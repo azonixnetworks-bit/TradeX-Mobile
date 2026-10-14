@@ -10,13 +10,11 @@ import '../device/device_identity.dart';
 import 'api_exception.dart';
 
 class TradeXApiClient {
-  TradeXApiClient({
-    required SecureSessionStore sessionStore,
-    required DeviceIdentity deviceIdentity,
+  TradeXApiClient(
+    this._sessionStore,
+    this._deviceIdentity, {
     http.Client? httpClient,
-  }) : _sessionStore = sessionStore,
-       _deviceIdentity = deviceIdentity,
-       _http = httpClient ?? http.Client();
+  }) : _http = httpClient ?? http.Client();
 
   final SecureSessionStore _sessionStore;
   final DeviceIdentity _deviceIdentity;
