@@ -89,39 +89,23 @@ class _SplashScreenState extends State<SplashScreen>
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
               child: Column(
                 children: [
-                  const Spacer(flex: 2),
+                  const Spacer(),
 
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: ScaleTransition(
                       scale: _scaleAnimation,
-                      child: const _LogoSection(),
+                      child: const _SplashTagline(),
                     ),
                   ),
 
-                  const Spacer(flex: 2),
+                  const Spacer(flex: 5),
 
                   AnimatedBuilder(
                     animation: _progressAnimation,
                     builder: (context, child) {
                       return _ProgressBar(value: _progressAnimation.value);
                     },
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: const Text(
-                      'DISCIPLINE CREATES FREEDOM',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: TradeXColors.goldBright,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 4,
-                      ),
-                    ),
                   ),
 
                   const SizedBox(height: 14),
@@ -135,68 +119,24 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-class _LogoSection extends StatelessWidget {
-  const _LogoSection();
+class _SplashTagline extends StatelessWidget {
+  const _SplashTagline();
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-
-    final logoWidth = screenWidth < 380
-        ? screenWidth * 0.72
-        : screenWidth * 0.68;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          constraints: const BoxConstraints(maxWidth: 350, maxHeight: 350),
-          child: Image.asset(
-            'assets/branding/trade_x_logo.png',
-            width: logoWidth,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        const Text(
-          'Trade X',
-          style: TextStyle(
-            color: TradeXColors.primaryText,
-            fontSize: 30,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.4,
-          ),
-        ),
-
-        const SizedBox(height: 10),
-
-        const Text(
-          'The OS for Every Trader.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: TradeXColors.primaryText,
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.4,
-          ),
-        ),
-
-        const SizedBox(height: 8),
-
-        const Text(
-          'Learn. Trade. Grow.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: TradeXColors.goldBright,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
+    return const Text(
+      'The OS for Every Trader',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: Color(0xFFFFE08A),
+        fontSize: 24,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.2,
+        shadows: [
+          Shadow(color: Colors.black87, blurRadius: 12, offset: Offset(0, 3)),
+          Shadow(color: Color(0x99F0A500), blurRadius: 16),
+        ],
+      ),
     );
   }
 }
@@ -257,88 +197,26 @@ class _SplashBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
+        Image.asset(
+          'assets/branding/trade_x_splash_background.png',
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.high,
+        ),
         const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF080A08),
-                TradeXColors.background,
-                Color(0xFF020302),
+                Color(0x33000000),
+                Colors.transparent,
+                Color(0x99000000),
               ],
-              stops: [0, 0.55, 1],
+              stops: [0, 0.52, 1],
             ),
           ),
         ),
-
-        Positioned(
-          top: -140,
-          left: -100,
-          child: _GlowOrb(
-            size: 320,
-            color: TradeXColors.gold.withValues(alpha: 0.12),
-          ),
-        ),
-
-        Positioned(
-          bottom: -180,
-          right: -100,
-          child: _GlowOrb(
-            size: 380,
-            color: TradeXColors.goldDeep.withValues(alpha: 0.14),
-          ),
-        ),
-
-        const Positioned.fill(
-          child: IgnorePointer(child: CustomPaint(painter: _GridPainter())),
-        ),
       ],
     );
-  }
-}
-
-class _GlowOrb extends StatelessWidget {
-  const _GlowOrb({required this.size, required this.color});
-
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(colors: [color, Colors.transparent]),
-      ),
-    );
-  }
-}
-
-class _GridPainter extends CustomPainter {
-  const _GridPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = TradeXColors.gold.withValues(alpha: 0.035)
-      ..strokeWidth = 0.7;
-
-    const spacing = 48.0;
-
-    for (double x = 0; x <= size.width; x += spacing) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-
-    for (double y = 0; y <= size.height; y += spacing) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return false;
   }
 }
