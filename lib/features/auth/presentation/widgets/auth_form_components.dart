@@ -165,6 +165,10 @@ class TradeXAuthField extends StatelessWidget {
     this.maxLength,
     this.suffixIcon,
     this.onFieldSubmitted,
+    this.onChanged,
+    this.onTap,
+    this.readOnly = false,
+    this.focusNode,
     this.textCapitalization = TextCapitalization.none,
   });
 
@@ -179,19 +183,27 @@ class TradeXAuthField extends StatelessWidget {
   final int? maxLength;
   final Widget? suffixIcon;
   final ValueChanged<String>? onFieldSubmitted;
+  final ValueChanged<String>? onChanged;
+  final VoidCallback? onTap;
+  final bool readOnly;
+  final FocusNode? focusNode;
   final TextCapitalization textCapitalization;
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       keyboardType: keyboardType,
       obscureText: obscureText,
+      readOnly: readOnly,
       textInputAction: textInputAction,
       inputFormatters: inputFormatters,
       maxLength: maxLength,
       validator: validator,
       onFieldSubmitted: onFieldSubmitted,
+      onChanged: onChanged,
+      onTap: onTap,
       textCapitalization: textCapitalization,
       cursorColor: TradeXColors.goldBright,
       style: const TextStyle(color: TradeXColors.primaryText, fontSize: 14),

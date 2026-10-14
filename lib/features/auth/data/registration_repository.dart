@@ -15,7 +15,7 @@ class RegistrationRepository {
     required String passwordConfirmation,
     required String countryCode,
     required String languageCode,
-    String? referralCode,
+    required String referralCode,
   }) async {
     final response = await _apiClient.publicPost(
       '/api/v1/auth/register/start',
@@ -27,18 +27,14 @@ class RegistrationRepository {
         'password_confirmation': passwordConfirmation,
         'country_code': countryCode.trim().toUpperCase(),
         'language_code': languageCode.trim().toLowerCase(),
-        if (referralCode != null && referralCode.trim().isNotEmpty)
-          'referral_code': referralCode.trim().toUpperCase(),
+        'referral_code': referralCode.trim().toUpperCase(),
       },
     );
 
     return RegistrationSession.fromJson(_data(response));
   }
 
-  Future<void> verifyEmail(
-    RegistrationSession session,
-    String otpCode,
-  ) async {
+  Future<void> verifyEmail(RegistrationSession session, String otpCode) async {
     await _apiClient.publicPost(
       '/api/v1/auth/register/email/verify',
       <String, dynamic>{
@@ -75,9 +71,7 @@ class RegistrationRepository {
     );
   }
 
-  Future<RegistrationTotpSetup> setupTotp(
-    RegistrationSession session,
-  ) async {
+  Future<RegistrationTotpSetup> setupTotp(RegistrationSession session) async {
     final response = await _apiClient.publicPost(
       '/api/v1/auth/register/totp/setup',
       _sessionPayload(session),
@@ -86,10 +80,7 @@ class RegistrationRepository {
     return RegistrationTotpSetup.fromJson(_data(response));
   }
 
-  Future<void> confirmTotp(
-    RegistrationSession session,
-    String totpCode,
-  ) async {
+  Future<void> confirmTotp(RegistrationSession session, String totpCode) async {
     final response = await _apiClient.publicPost(
       '/api/v1/auth/register/totp/confirm',
       <String, dynamic>{
