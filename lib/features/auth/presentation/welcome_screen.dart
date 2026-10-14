@@ -155,21 +155,9 @@ class _BrandSection extends StatelessWidget {
           width: width * 0.52,
           height: 190,
           child: Image.asset(
-            'assets/branding/trade_x_logo.png',
+            'assets/branding/trade_x_in_app_logo.png',
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
-          ),
-        ),
-
-        const SizedBox(height: 4),
-
-        const Text(
-          'Trade X',
-          style: TextStyle(
-            color: TradeXColors.primaryText,
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.4,
           ),
         ),
 

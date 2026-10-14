@@ -245,7 +245,7 @@ class _LoginHeader extends StatelessWidget {
           width: 128,
           height: 128,
           child: Image.asset(
-            'assets/branding/trade_x_logo.png',
+            'assets/branding/trade_x_mark.png',
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
           ),
@@ -253,13 +253,13 @@ class _LoginHeader extends StatelessWidget {
 
         const SizedBox(height: 6),
 
-        const Text(
-          'Trade X',
-          style: TextStyle(
-            color: TradeXColors.primaryText,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.3,
+        SizedBox(
+          width: 156,
+          height: 34,
+          child: Image.asset(
+            'assets/branding/trade_x_wordmark.png',
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
           ),
         ),
 

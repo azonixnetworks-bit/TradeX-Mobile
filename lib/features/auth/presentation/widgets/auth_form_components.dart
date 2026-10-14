@@ -57,7 +57,7 @@ class TradeXAuthPage extends StatelessWidget {
                               width: 76,
                               height: 76,
                               child: Image.asset(
-                                'assets/branding/trade_x_logo.png',
+                                'assets/branding/trade_x_mark.png',
                                 fit: BoxFit.contain,
                                 filterQuality: FilterQuality.high,
                               ),
