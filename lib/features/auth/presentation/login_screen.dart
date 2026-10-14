@@ -245,19 +245,7 @@ class _LoginHeader extends StatelessWidget {
           width: 128,
           height: 128,
           child: Image.asset(
-            'assets/branding/trade_x_mark.png',
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
-          ),
-        ),
-
-        const SizedBox(height: 6),
-
-        SizedBox(
-          width: 156,
-          height: 34,
-          child: Image.asset(
-            'assets/branding/trade_x_wordmark.png',
+            'assets/branding/trade_x_final_logo.png',
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
           ),

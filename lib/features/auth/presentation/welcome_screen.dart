@@ -155,7 +155,7 @@ class _BrandSection extends StatelessWidget {
           width: width * 0.52,
           height: 190,
           child: Image.asset(
-            'assets/branding/trade_x_in_app_logo.png',
+            'assets/branding/trade_x_final_logo.png',
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
           ),
