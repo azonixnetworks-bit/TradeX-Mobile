@@ -17,6 +17,7 @@ class OtpVerificationScreen extends StatefulWidget {
     required this.onBack,
     this.channelLabel,
     this.initialCooldownSeconds = 60,
+    this.showResend = true,
   });
 
   final String title;
@@ -27,6 +28,7 @@ class OtpVerificationScreen extends StatefulWidget {
   final Future<void> Function() onResend;
   final VoidCallback onBack;
   final int initialCooldownSeconds;
+  final bool showResend;
 
   @override
   State<OtpVerificationScreen> createState() =>
@@ -239,31 +241,33 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               loading: _verifying,
               icon: Icons.verified_rounded,
             ),
-            const SizedBox(height: 14),
-            Center(
-              child: TextButton(
-                onPressed:
-                    _secondsRemaining > 0 || _resending ? null : _resend,
-                child: _resending
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: TradeXColors.goldBright,
+            if (widget.showResend) ...[
+              const SizedBox(height: 14),
+              Center(
+                child: TextButton(
+                  onPressed:
+                      _secondsRemaining > 0 || _resending ? null : _resend,
+                  child: _resending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: TradeXColors.goldBright,
+                          ),
+                        )
+                      : Text(
+                          resendLabel,
+                          style: TextStyle(
+                            color: _secondsRemaining > 0
+                                ? TradeXColors.tertiaryText
+                                : TradeXColors.goldBright,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      )
-                    : Text(
-                        resendLabel,
-                        style: TextStyle(
-                          color: _secondsRemaining > 0
-                              ? TradeXColors.tertiaryText
-                              : TradeXColors.goldBright,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
