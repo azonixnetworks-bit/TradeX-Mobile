@@ -101,9 +101,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     }
 
     if (code.length != widget.codeLength) {
-      return 'Enter the ' +
-          widget.codeLength.toString() +
-          '-digit verification code.';
+      return 'Enter the ${widget.codeLength}-digit verification code.';
     }
 
     return null;
@@ -184,7 +182,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     final resendLabel = _secondsRemaining > 0
-        ? 'Resend in ' + _secondsRemaining.toString() + 's'
+        ? 'Resend in ${_secondsRemaining}s'
         : 'Resend Code';
 
     return TradeXAuthPage(

@@ -74,7 +74,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   String? _required(String? value, String label) {
     if (value == null || value.trim().isEmpty) {
-      return label + ' is required.';
+      return '$label is required.';
     }
     return null;
   }

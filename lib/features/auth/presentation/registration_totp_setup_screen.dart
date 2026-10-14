@@ -36,7 +36,7 @@ class RegistrationTotpSetupScreen extends StatelessWidget {
         SnackBar(
           backgroundColor: TradeXColors.surfaceRaised,
           content: Text(
-            label + ' copied.',
+            '$label copied.',
             style: const TextStyle(
               color: TradeXColors.primaryText,
             ),
@@ -154,11 +154,7 @@ class RegistrationTotpSetupScreen extends StatelessWidget {
           const SizedBox(height: 16),
           TradeXInfoBanner(
             message:
-                'Code settings: ' +
-                setup.digits.toString() +
-                ' digits • refreshes every ' +
-                setup.periodSeconds.toString() +
-                ' seconds.',
+                'Code settings: ${setup.digits} digits • refreshes every ${setup.periodSeconds} seconds.',
             icon: Icons.timer_outlined,
           ),
           const SizedBox(height: 18),

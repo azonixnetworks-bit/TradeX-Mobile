@@ -394,7 +394,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
               'Enter the 8 digits from the TradeX email code. The email may display it in TRX-XX XX XX XX format.',
           codeLength: 8,
           channelLabel:
-              'Verification code sent to ' + _registrationEmail + '.',
+              'Verification code sent to $_registrationEmail.',
           onVerify: _verifyRegistrationEmail,
           onResend: _resendRegistrationEmail,
           onBack: _showRegister,
@@ -407,7 +407,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
               'Enter the 6-digit code sent to your WhatsApp number.',
           codeLength: 6,
           channelLabel:
-              'Verification code sent to ' + _registrationWhatsApp + '.',
+              'Verification code sent to $_registrationWhatsApp.',
           onVerify: _verifyRegistrationWhatsApp,
           onResend: _resendRegistrationWhatsApp,
           onBack: () => _setStep(_AuthStep.registerEmailOtp),
@@ -463,9 +463,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
               'Enter the 8 digits from the TradeX password recovery email.',
           codeLength: 8,
           channelLabel:
-              'If eligible, a verification code was sent to ' +
-              _recoveryEmail +
-              '.',
+              'If eligible, a verification code was sent to $_recoveryEmail.',
           onVerify: _verifyRecoveryEmail,
           onResend: _resendRecoveryEmail,
           onBack: _showForgotPassword,
@@ -478,7 +476,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
               'Enter the 6-digit recovery code sent through WhatsApp.',
           codeLength: 6,
           channelLabel:
-              'Recovery verification for ' + _recoveryWhatsApp + '.',
+              'Recovery verification for $_recoveryWhatsApp.',
           onVerify: _verifyRecoveryWhatsApp,
           onResend: _resendRecoveryWhatsApp,
           onBack: () => _setStep(_AuthStep.recoveryEmailOtp),
