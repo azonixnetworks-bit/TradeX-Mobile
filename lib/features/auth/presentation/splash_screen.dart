@@ -89,7 +89,7 @@ class _SplashScreenState extends State<SplashScreen>
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
               child: Column(
                 children: [
-                  const Spacer(),
+                  const Spacer(flex: 6),
 
                   FadeTransition(
                     opacity: _fadeAnimation,
@@ -99,7 +99,7 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   ),
 
-                  const Spacer(flex: 5),
+                  const SizedBox(height: 24),
 
                   AnimatedBuilder(
                     animation: _progressAnimation,
@@ -197,9 +197,10 @@ class _SplashBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
+        const ColoredBox(color: Colors.black),
         Image.asset(
           'assets/branding/trade_x_splash_background.png',
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
           filterQuality: FilterQuality.high,
         ),
         const DecoratedBox(
