@@ -438,6 +438,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
           onResend: () async {},
           onBack: () => _setStep(_AuthStep.registerTotpSetup),
           initialCooldownSeconds: 0,
+          showResend: false,
         );
 
       case _AuthStep.registerComplete:
@@ -495,6 +496,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
           onResend: () async {},
           onBack: () => _setStep(_AuthStep.recoveryWhatsAppOtp),
           initialCooldownSeconds: 0,
+          showResend: false,
         );
 
       case _AuthStep.newPassword:
