@@ -5,13 +5,11 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
 
 class AuthRepository {
-  AuthRepository({
-    required TradeXApiClient apiClient,
-    required SecureSessionStore sessionStore,
-    required DeviceIdentity deviceIdentity,
-  }) : _apiClient = apiClient,
-       _sessionStore = sessionStore,
-       _deviceIdentity = deviceIdentity;
+  AuthRepository(
+    this._apiClient,
+    this._sessionStore,
+    this._deviceIdentity,
+  );
 
   final TradeXApiClient _apiClient;
   final SecureSessionStore _sessionStore;
