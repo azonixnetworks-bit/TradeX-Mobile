@@ -14,15 +14,19 @@ void main() {
   final deviceIdentity = DeviceIdentity(sessionStore);
 
   final apiClient = TradeXApiClient(
-    sessionStore: sessionStore,
-    deviceIdentity: deviceIdentity,
+    sessionStore,
+    deviceIdentity,
   );
 
   final authRepository = AuthRepository(
-    apiClient: apiClient,
-    sessionStore: sessionStore,
-    deviceIdentity: deviceIdentity,
+    apiClient,
+    sessionStore,
+    deviceIdentity,
   );
 
-  runApp(TradeXApp(authRepository: authRepository));
+  runApp(
+    TradeXApp(
+      authRepository: authRepository,
+    ),
+  );
 }
