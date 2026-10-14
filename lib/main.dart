@@ -5,12 +5,13 @@ import 'core/auth/secure_session_store.dart';
 import 'core/device/device_identity.dart';
 import 'core/network/tradex_api_client.dart';
 import 'features/auth/data/auth_repository.dart';
+import 'features/auth/data/password_recovery_repository.dart';
+import 'features/auth/data/registration_repository.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   final sessionStore = SecureSessionStore();
-
   final deviceIdentity = DeviceIdentity(sessionStore);
 
   final apiClient = TradeXApiClient(
@@ -24,9 +25,19 @@ void main() {
     deviceIdentity,
   );
 
+  final registrationRepository = RegistrationRepository(
+    apiClient,
+  );
+
+  final passwordRecoveryRepository = PasswordRecoveryRepository(
+    apiClient,
+  );
+
   runApp(
     TradeXApp(
       authRepository: authRepository,
+      registrationRepository: registrationRepository,
+      passwordRecoveryRepository: passwordRecoveryRepository,
     ),
   );
 }
