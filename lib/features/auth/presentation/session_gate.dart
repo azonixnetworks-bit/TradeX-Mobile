@@ -3,12 +3,21 @@ import 'package:flutter/material.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../data/auth_repository.dart';
+import '../data/password_recovery_repository.dart';
+import '../data/registration_repository.dart';
 import 'auth_flow_screen.dart';
 
 class SessionGate extends StatefulWidget {
-  const SessionGate({super.key, required this.authRepository});
+  const SessionGate({
+    super.key,
+    required this.authRepository,
+    required this.registrationRepository,
+    required this.passwordRecoveryRepository,
+  });
 
   final AuthRepository authRepository;
+  final RegistrationRepository registrationRepository;
+  final PasswordRecoveryRepository passwordRecoveryRepository;
 
   @override
   State<SessionGate> createState() => _SessionGateState();
@@ -101,6 +110,8 @@ class _SessionGateState extends State<SessionGate> {
 
     return AuthFlowScreen(
       authRepository: widget.authRepository,
+      registrationRepository: widget.registrationRepository,
+      passwordRecoveryRepository: widget.passwordRecoveryRepository,
       onAuthenticated: _onAuthenticated,
     );
   }
