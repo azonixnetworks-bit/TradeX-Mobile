@@ -94,8 +94,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   String? _validateEmail(String? value) {
     final requiredError = _required(value, 'Email');
-    if (required != null) {
-      return required;
+    if (requiredError != null) {
+      return requiredError;
     }
 
     final email = value!.trim();
@@ -110,8 +110,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   String? _validateWhatsApp(String? value) {
     final requiredError = _required(value, 'WhatsApp number');
-    if (required != null) {
-      return required;
+    if (requiredError != null) {
+      return requiredError;
     }
 
     final number = value!.trim();
