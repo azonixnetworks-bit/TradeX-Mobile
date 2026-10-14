@@ -1,0 +1,850 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../../../core/theme/tradex_colors.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({
+    super.key,
+    required this.onBack,
+    required this.onForgotPassword,
+    required this.onCreateAccount,
+    required this.onLogin,
+  });
+
+  final VoidCallback onBack;
+  final VoidCallback onForgotPassword;
+  final VoidCallback onCreateAccount;
+
+  final Future<void> Function({
+    required String email,
+    required String password,
+    String? totpCode,
+    String? recoveryCode,
+  })
+  onLogin;
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  final TextEditingController _emailController = TextEditingController();
+
+  final TextEditingController _passwordController = TextEditingController();
+
+  final TextEditingController _securityCodeController = TextEditingController();
+
+  bool _obscurePassword = true;
+  bool _useRecoveryCode = false;
+  bool _submitting = false;
+
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _securityCodeController.dispose();
+
+    super.dispose();
+  }
+
+  String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+
+    if (email.isEmpty) {
+      return 'Email address is required.';
+    }
+
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+    if (!emailRegex.hasMatch(email)) {
+      return 'Enter a valid email address.';
+    }
+
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required.';
+    }
+
+    return null;
+  }
+
+  String? _validateSecurityCode(String? value) {
+    final code = value?.trim() ?? '';
+
+    if (code.isEmpty) {
+      return _useRecoveryCode
+          ? 'Recovery code is required.'
+          : 'Authenticator code is required.';
+    }
+
+    if (!_useRecoveryCode && code.length != 6) {
+      return 'Enter the 6-digit authenticator code.';
+    }
+
+    return null;
+  }
+
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _submitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await widget.onLogin(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        totpCode: _useRecoveryCode ? null : _securityCodeController.text.trim(),
+        recoveryCode: _useRecoveryCode
+            ? _securityCodeController.text.trim()
+            : null,
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
+    }
+  }
+
+  void _toggleRecoveryMode() {
+    setState(() {
+      _useRecoveryCode = !_useRecoveryCode;
+      _securityCodeController.clear();
+      _errorMessage = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: TradeXColors.background,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const _LoginBackground(),
+
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 26),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight - 36,
+                    ),
+                    child: Column(
+                      children: [
+                        _LoginHeader(onBack: widget.onBack),
+
+                        const SizedBox(height: 12),
+
+                        _LoginCard(
+                          formKey: _formKey,
+                          emailController: _emailController,
+                          passwordController: _passwordController,
+                          securityCodeController: _securityCodeController,
+                          obscurePassword: _obscurePassword,
+                          useRecoveryCode: _useRecoveryCode,
+                          submitting: _submitting,
+                          errorMessage: _errorMessage,
+                          onPasswordVisibilityChanged: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                          onRecoveryModeChanged: _toggleRecoveryMode,
+                          onForgotPassword: widget.onForgotPassword,
+                          onSubmit: _submit,
+                          validateEmail: _validateEmail,
+                          validatePassword: _validatePassword,
+                          validateSecurityCode: _validateSecurityCode,
+                        ),
+
+                        const SizedBox(height: 22),
+
+                        _CreateAccountSection(
+                          onCreateAccount: widget.onCreateAccount,
+                        ),
+
+                        const SizedBox(height: 22),
+
+                        const _SecurityNote(),
+
+                        const SizedBox(height: 26),
+
+                        const Text(
+                          'DISCIPLINE CREATES FREEDOM',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: TradeXColors.goldBright,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 3.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoginHeader extends StatelessWidget {
+  const _LoginHeader({required this.onBack});
+
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: IconButton(
+            onPressed: onBack,
+            icon: const Icon(
+              Icons.arrow_back_rounded,
+              color: TradeXColors.goldBright,
+            ),
+          ),
+        ),
+
+        SizedBox(
+          width: 128,
+          height: 128,
+          child: Image.asset(
+            'assets/branding/trade_x_logo.png',
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+          ),
+        ),
+
+        const SizedBox(height: 6),
+
+        const Text(
+          'Trade X',
+          style: TextStyle(
+            color: TradeXColors.primaryText,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.3,
+          ),
+        ),
+
+        const SizedBox(height: 6),
+
+        const Text(
+          'The OS for Every Trader.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: TradeXColors.primaryText,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+
+        const SizedBox(height: 5),
+
+        const Text(
+          'Learn. Trade. Grow.',
+          style: TextStyle(
+            color: TradeXColors.goldBright,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LoginCard extends StatelessWidget {
+  const _LoginCard({
+    required this.formKey,
+    required this.emailController,
+    required this.passwordController,
+    required this.securityCodeController,
+    required this.obscurePassword,
+    required this.useRecoveryCode,
+    required this.submitting,
+    required this.errorMessage,
+    required this.onPasswordVisibilityChanged,
+    required this.onRecoveryModeChanged,
+    required this.onForgotPassword,
+    required this.onSubmit,
+    required this.validateEmail,
+    required this.validatePassword,
+    required this.validateSecurityCode,
+  });
+
+  final GlobalKey<FormState> formKey;
+
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final TextEditingController securityCodeController;
+
+  final bool obscurePassword;
+  final bool useRecoveryCode;
+  final bool submitting;
+
+  final String? errorMessage;
+
+  final VoidCallback onPasswordVisibilityChanged;
+  final VoidCallback onRecoveryModeChanged;
+  final VoidCallback onForgotPassword;
+  final VoidCallback onSubmit;
+
+  final String? Function(String?) validateEmail;
+  final String? Function(String?) validatePassword;
+  final String? Function(String?) validateSecurityCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF111614), Color(0xFF080B0A)],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: TradeXColors.gold.withValues(alpha: 0.45),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: TradeXColors.gold.withValues(alpha: 0.10),
+            blurRadius: 28,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Welcome Back',
+              style: TextStyle(
+                color: TradeXColors.primaryText,
+                fontSize: 25,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+              ),
+            ),
+
+            const SizedBox(height: 6),
+
+            const Text(
+              'Sign in securely to continue your trading journey.',
+              style: TextStyle(
+                color: TradeXColors.secondaryText,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+
+            const SizedBox(height: 22),
+
+            _LoginField(
+              controller: emailController,
+              label: 'Email Address',
+              icon: Icons.mail_outline_rounded,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [
+                AutofillHints.username,
+                AutofillHints.email,
+              ],
+              validator: validateEmail,
+            ),
+
+            const SizedBox(height: 13),
+
+            _LoginField(
+              controller: passwordController,
+              label: 'Password',
+              icon: Icons.lock_outline_rounded,
+              obscureText: obscurePassword,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.password],
+              validator: validatePassword,
+              suffixIcon: IconButton(
+                onPressed: onPasswordVisibilityChanged,
+                icon: Icon(
+                  obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  color: TradeXColors.secondaryText,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 13),
+
+            _LoginField(
+              controller: securityCodeController,
+              label: useRecoveryCode
+                  ? 'Recovery Code'
+                  : 'Authenticator Code (6 digits)',
+              icon: Icons.shield_outlined,
+              keyboardType: useRecoveryCode
+                  ? TextInputType.text
+                  : TextInputType.number,
+              textInputAction: TextInputAction.done,
+              inputFormatters: useRecoveryCode
+                  ? null
+                  : [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(6),
+                    ],
+              maxLength: useRecoveryCode ? null : 6,
+              validator: validateSecurityCode,
+              onFieldSubmitted: (_) {
+                if (!submitting) {
+                  onSubmit();
+                }
+              },
+            ),
+
+            const SizedBox(height: 4),
+
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: onRecoveryModeChanged,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(5),
+                              border: Border.all(
+                                color: useRecoveryCode
+                                    ? TradeXColors.goldBright
+                                    : TradeXColors.borderStrong,
+                              ),
+                              color: useRecoveryCode
+                                  ? TradeXColors.goldBright
+                                  : Colors.transparent,
+                            ),
+                            child: useRecoveryCode
+                                ? const Icon(
+                                    Icons.check_rounded,
+                                    size: 15,
+                                    color: Colors.black,
+                                  )
+                                : null,
+                          ),
+
+                          const SizedBox(width: 9),
+
+                          const Flexible(
+                            child: Text(
+                              'Use recovery code instead',
+                              style: TextStyle(
+                                color: TradeXColors.secondaryText,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                TextButton(
+                  onPressed: onForgotPassword,
+                  style: TextButton.styleFrom(
+                    foregroundColor: TradeXColors.goldBright,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                  ),
+                  child: const Text(
+                    'Forgot Password?',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+
+            if (errorMessage != null) ...[
+              const SizedBox(height: 10),
+
+              _ErrorMessage(message: errorMessage!),
+            ],
+
+            const SizedBox(height: 16),
+
+            _SignInButton(submitting: submitting, onPressed: onSubmit),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LoginField extends StatelessWidget {
+  const _LoginField({
+    required this.controller,
+    required this.label,
+    required this.icon,
+    required this.validator,
+    this.keyboardType,
+    this.textInputAction,
+    this.obscureText = false,
+    this.suffixIcon,
+    this.inputFormatters,
+    this.maxLength,
+    this.autofillHints,
+    this.onFieldSubmitted,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final IconData icon;
+
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+
+  final bool obscureText;
+
+  final Widget? suffixIcon;
+
+  final List<TextInputFormatter>? inputFormatters;
+
+  final int? maxLength;
+
+  final Iterable<String>? autofillHints;
+
+  final String? Function(String?) validator;
+
+  final ValueChanged<String>? onFieldSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      obscureText: obscureText,
+      autofillHints: autofillHints,
+      inputFormatters: inputFormatters,
+      maxLength: maxLength,
+      onFieldSubmitted: onFieldSubmitted,
+      validator: validator,
+      style: const TextStyle(color: TradeXColors.primaryText, fontSize: 14),
+      cursorColor: TradeXColors.goldBright,
+      decoration: InputDecoration(
+        counterText: '',
+        hintText: label,
+        hintStyle: const TextStyle(color: TradeXColors.secondaryText),
+        prefixIcon: Icon(icon, color: TradeXColors.gold, size: 21),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: const Color(0xFF090D0B),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 17,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: TradeXColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: TradeXColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: TradeXColors.gold, width: 1.3),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: TradeXColors.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: TradeXColors.error, width: 1.3),
+        ),
+        errorStyle: const TextStyle(color: TradeXColors.error, fontSize: 11),
+      ),
+    );
+  }
+}
+
+class _SignInButton extends StatelessWidget {
+  const _SignInButton({required this.submitting, required this.onPressed});
+
+  final bool submitting;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFFFFD760),
+              TradeXColors.goldBright,
+              Color(0xFFF0A500),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: TradeXColors.goldBright.withValues(alpha: 0.25),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: submitting ? null : onPressed,
+            borderRadius: BorderRadius.circular(15),
+            child: Center(
+              child: submitting
+                  ? const SizedBox(
+                      width: 23,
+                      height: 23,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.3,
+                        color: Colors.black,
+                      ),
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Sign In',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(width: 9),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Colors.black,
+                          size: 21,
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CreateAccountSection extends StatelessWidget {
+  const _CreateAccountSection({required this.onCreateAccount});
+
+  final VoidCallback onCreateAccount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        const Text(
+          'Don\'t have an account? ',
+          style: TextStyle(color: TradeXColors.secondaryText, fontSize: 14),
+        ),
+        GestureDetector(
+          onTap: onCreateAccount,
+          child: const Text(
+            'Create Account',
+            style: TextStyle(
+              color: TradeXColors.goldBright,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SecurityNote extends StatelessWidget {
+  const _SecurityNote();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+      decoration: BoxDecoration(
+        color: TradeXColors.surface.withValues(alpha: 0.74),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: TradeXColors.border),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.verified_user_outlined,
+            color: TradeXColors.goldBright,
+            size: 18,
+          ),
+          SizedBox(width: 9),
+          Flexible(
+            child: Text(
+              'Your account is protected with TradeX security.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: TradeXColors.secondaryText, fontSize: 11),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorMessage extends StatelessWidget {
+  const _ErrorMessage({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: TradeXColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: TradeXColors.error.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: TradeXColors.error,
+            size: 18,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: TradeXColors.error, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoginBackground extends StatelessWidget {
+  const _LoginBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF070A08),
+                TradeXColors.background,
+                Color(0xFF020302),
+              ],
+            ),
+          ),
+        ),
+
+        Positioned(
+          top: -150,
+          right: -140,
+          child: Container(
+            width: 380,
+            height: 380,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  TradeXColors.gold.withValues(alpha: 0.13),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        Positioned(
+          bottom: -180,
+          left: -140,
+          child: Container(
+            width: 420,
+            height: 420,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  TradeXColors.goldDeep.withValues(alpha: 0.12),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
