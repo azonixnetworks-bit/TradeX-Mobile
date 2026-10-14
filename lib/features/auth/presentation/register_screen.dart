@@ -22,8 +22,9 @@ class RegisterScreen extends StatefulWidget {
     required String passwordConfirmation,
     required String countryCode,
     required String languageCode,
-    String? referralCode,
-  }) onSubmit;
+    required String referralCode,
+  })
+  onSubmit;
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -45,10 +46,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _whatsappController = TextEditingController();
-  final TextEditingController _countryController =
-      TextEditingController(text: 'LK');
-  final TextEditingController _languageController =
-      TextEditingController(text: 'en');
+  final TextEditingController _countryController = TextEditingController(
+    text: 'Sri Lanka',
+  );
+  final TextEditingController _languageController = TextEditingController(
+    text: 'English',
+  );
   final TextEditingController _referralController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -58,6 +61,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirmation = true;
   bool _submitting = false;
   String? _errorMessage;
+  String? _countryCode = 'LK';
+  String _languageCode = 'en';
+  List<_Country> _countrySuggestions = _countries;
 
   @override
   void dispose() {
@@ -124,20 +130,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   String? _validateCountry(String? value) {
-    final code = value?.trim() ?? '';
-
-    if (!RegExp(r'^[A-Za-z]{2}$').hasMatch(code)) {
-      return 'Enter a 2-letter country code.';
+    if (_countryCode == null || (value?.trim().isEmpty ?? true)) {
+      return 'Select a country from the list.';
     }
 
     return null;
   }
 
   String? _validateLanguage(String? value) {
-    final code = value?.trim().toLowerCase() ?? '';
-
-    if (!_allowedLanguages.contains(code)) {
-      return 'Use en, ta, si, hi, ml, te, or ur.';
+    if (!_allowedLanguages.contains(_languageCode)) {
+      return 'Select a learning language.';
     }
 
     return null;
@@ -187,11 +189,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         whatsappNumber: _whatsappController.text.trim(),
         password: _passwordController.text,
         passwordConfirmation: _confirmPasswordController.text,
-        countryCode: _countryController.text.trim(),
-        languageCode: _languageController.text.trim(),
-        referralCode: _referralController.text.trim().isEmpty
-            ? null
-            : _referralController.text.trim(),
+        countryCode: _countryCode!,
+        languageCode: _languageCode,
+        referralCode: _referralController.text.trim(),
       );
     } catch (error) {
       if (!mounted) {
@@ -210,22 +210,104 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  void _onCountryChanged(String query) {
+    final normalizedQuery = query.trim().toLowerCase();
+
+    setState(() {
+      _countryCode = null;
+      _countrySuggestions = _countries
+          .where(
+            (country) =>
+                country.name.toLowerCase().contains(normalizedQuery) ||
+                country.code.toLowerCase().startsWith(normalizedQuery),
+          )
+          .take(6)
+          .toList();
+    });
+  }
+
+  void _selectCountry(_Country country) {
+    setState(() {
+      _countryController.text = country.name;
+      _countryCode = country.code;
+      _countrySuggestions = <_Country>[];
+    });
+    FocusScope.of(context).unfocus();
+  }
+
+  Future<void> _showLearningLanguageDialog() async {
+    final selectedLanguage = await showDialog<_LearningLanguage>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF111614),
+          title: const Text(
+            'Choose Learning Language',
+            style: TextStyle(color: Color(0xFFF8FAFC)),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Videos will be available in your selected language. You cannot change this later.',
+                    style: TextStyle(color: Color(0xFF9CA3AF), height: 1.4),
+                  ),
+                  const SizedBox(height: 12),
+                  ..._learningLanguages.map(
+                    (language) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        language.name,
+                        style: const TextStyle(color: Color(0xFFF8FAFC)),
+                      ),
+                      trailing: language.code == _languageCode
+                          ? const Icon(
+                              Icons.check_rounded,
+                              color: Color(0xFFFFC83D),
+                            )
+                          : null,
+                      onTap: () => Navigator.of(context).pop(language),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selectedLanguage == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _languageCode = selectedLanguage.code;
+      _languageController.text = selectedLanguage.name;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return TradeXAuthPage(
       title: 'Create Your Account',
-      subtitle:
-          'Set up your TradeX account, then verify email, WhatsApp, and authenticator security.',
+      subtitle: 'Set up your Trade X account. Email OTP verification starts immediately after you create the account.',
       onBack: widget.onBack,
       footer: Wrap(
         alignment: WrapAlignment.center,
         children: [
           const Text(
             'Already have an account? ',
-            style: TextStyle(
-              color: Color(0xFF9CA3AF),
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
           ),
           GestureDetector(
             onTap: widget.onSignIn,
@@ -269,61 +351,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
               keyboardType: TextInputType.phone,
               textInputAction: TextInputAction.next,
               inputFormatters: [
-                FilteringTextInputFormatter.allow(
-                  RegExp(r'[0-9+]'),
-                ),
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
                 LengthLimitingTextInputFormatter(16),
               ],
               validator: _validateWhatsApp,
             ),
             const SizedBox(height: 13),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TradeXAuthField(
-                    controller: _countryController,
-                    label: 'Country',
-                    icon: Icons.public_rounded,
-                    textInputAction: TextInputAction.next,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'[A-Za-z]'),
-                      ),
-                      LengthLimitingTextInputFormatter(2),
-                    ],
-                    validator: _validateCountry,
-                    textCapitalization: TextCapitalization.characters,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TradeXAuthField(
-                    controller: _languageController,
-                    label: 'Language',
-                    icon: Icons.language_rounded,
-                    textInputAction: TextInputAction.next,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'[A-Za-z]'),
-                      ),
-                      LengthLimitingTextInputFormatter(2),
-                    ],
-                    validator: _validateLanguage,
-                  ),
-                ),
-              ],
+            TradeXAuthField(
+              controller: _countryController,
+              label: 'Country',
+              icon: Icons.public_rounded,
+              textInputAction: TextInputAction.next,
+              validator: _validateCountry,
+              onChanged: _onCountryChanged,
+              textCapitalization: TextCapitalization.words,
+            ),
+            if (_countrySuggestions.isNotEmpty && _countryCode == null)
+              _CountrySuggestions(
+                countries: _countrySuggestions,
+                onSelected: _selectCountry,
+              ),
+            const SizedBox(height: 13),
+            TradeXAuthField(
+              controller: _languageController,
+              label: 'Learning Language',
+              icon: Icons.language_rounded,
+              readOnly: true,
+              onTap: _showLearningLanguageDialog,
+              validator: _validateLanguage,
+              suffixIcon: const Icon(
+                Icons.expand_more_rounded,
+                color: Color(0xFFFFC83D),
+              ),
             ),
             const SizedBox(height: 13),
             TradeXAuthField(
               controller: _referralController,
-              label: 'Referral Code (optional)',
+              label: 'Referral Code',
               icon: Icons.group_add_outlined,
               textInputAction: TextInputAction.next,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(30),
-              ],
+              inputFormatters: [LengthLimitingTextInputFormatter(30)],
               textCapitalization: TextCapitalization.characters,
+              validator: (value) => _required(value, 'Referral code'),
             ),
             const SizedBox(height: 13),
             TradeXAuthField(
@@ -374,8 +443,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 14),
             const TradeXInfoBanner(
-              message:
-                  'Password must be 12+ characters and include uppercase, lowercase, number, and symbol.',
+              message: 'Password must be 12+ characters and include uppercase, lowercase, number, and symbol.',
               icon: Icons.security_rounded,
             ),
             if (_errorMessage != null) ...[
@@ -384,7 +452,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ],
             const SizedBox(height: 18),
             TradeXGoldButton(
-              label: 'Create Account',
+              label: 'Create Account & Verify Email',
               onPressed: _submit,
               loading: _submitting,
               icon: Icons.person_add_alt_1_rounded,
@@ -395,3 +463,94 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
+
+class _CountrySuggestions extends StatelessWidget {
+  const _CountrySuggestions({
+    required this.countries,
+    required this.onSelected,
+  });
+
+  final List<_Country> countries;
+  final ValueChanged<_Country> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111614),
+        border: Border.all(
+          color: const Color(0xFFFFC83D).withValues(alpha: 0.4),
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: countries
+            .map(
+              (country) => ListTile(
+                dense: true,
+                title: Text(
+                  country.name,
+                  style: const TextStyle(color: Color(0xFFF8FAFC)),
+                ),
+                trailing: Text(
+                  country.code,
+                  style: const TextStyle(color: Color(0xFFFFC83D)),
+                ),
+                onTap: () => onSelected(country),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _Country {
+  const _Country(this.name, this.code);
+
+  final String name;
+  final String code;
+}
+
+class _LearningLanguage {
+  const _LearningLanguage(this.name, this.code);
+
+  final String name;
+  final String code;
+}
+
+const List<_Country> _countries = <_Country>[
+  _Country('Australia', 'AU'),
+  _Country('Bangladesh', 'BD'),
+  _Country('Canada', 'CA'),
+  _Country('France', 'FR'),
+  _Country('Germany', 'DE'),
+  _Country('India', 'IN'),
+  _Country('Indonesia', 'ID'),
+  _Country('Italy', 'IT'),
+  _Country('Japan', 'JP'),
+  _Country('Malaysia', 'MY'),
+  _Country('Maldives', 'MV'),
+  _Country('Nepal', 'NP'),
+  _Country('Pakistan', 'PK'),
+  _Country('Qatar', 'QA'),
+  _Country('Saudi Arabia', 'SA'),
+  _Country('Singapore', 'SG'),
+  _Country('South Africa', 'ZA'),
+  _Country('Sri Lanka', 'LK'),
+  _Country('Thailand', 'TH'),
+  _Country('United Arab Emirates', 'AE'),
+  _Country('United Kingdom', 'GB'),
+  _Country('United States', 'US'),
+];
+
+const List<_LearningLanguage> _learningLanguages = <_LearningLanguage>[
+  _LearningLanguage('English', 'en'),
+  _LearningLanguage('Tamil', 'ta'),
+  _LearningLanguage('Sinhala', 'si'),
+  _LearningLanguage('Hindi', 'hi'),
+  _LearningLanguage('Malayalam', 'ml'),
+  _LearningLanguage('Telugu', 'te'),
+  _LearningLanguage('Urdu', 'ur'),
+];

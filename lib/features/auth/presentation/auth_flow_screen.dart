@@ -137,7 +137,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     required String passwordConfirmation,
     required String countryCode,
     required String languageCode,
-    String? referralCode,
+    required String referralCode,
   }) async {
     final session = await widget.registrationRepository.start(
       name: name,
@@ -169,10 +169,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       throw StateError('Registration session is missing.');
     }
 
-    await widget.registrationRepository.verifyEmail(
-      session,
-      code,
-    );
+    await widget.registrationRepository.verifyEmail(session, code);
 
     _setStep(_AuthStep.registerWhatsAppOtp);
   }
@@ -194,14 +191,9 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       throw StateError('Registration session is missing.');
     }
 
-    await widget.registrationRepository.verifyWhatsApp(
-      session,
-      code,
-    );
+    await widget.registrationRepository.verifyWhatsApp(session, code);
 
-    final setup = await widget.registrationRepository.setupTotp(
-      session,
-    );
+    final setup = await widget.registrationRepository.setupTotp(session);
 
     if (!mounted) {
       return;
@@ -230,10 +222,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       throw StateError('Registration session is missing.');
     }
 
-    await widget.registrationRepository.confirmTotp(
-      session,
-      code,
-    );
+    await widget.registrationRepository.confirmTotp(session, code);
 
     _setStep(_AuthStep.registerComplete);
   }
@@ -266,10 +255,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       throw StateError('Password recovery session is missing.');
     }
 
-    await widget.passwordRecoveryRepository.verifyEmail(
-      session,
-      code,
-    );
+    await widget.passwordRecoveryRepository.verifyEmail(session, code);
 
     _setStep(_AuthStep.recoveryWhatsAppOtp);
   }
@@ -291,10 +277,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       throw StateError('Password recovery session is missing.');
     }
 
-    await widget.passwordRecoveryRepository.verifyWhatsApp(
-      session,
-      code,
-    );
+    await widget.passwordRecoveryRepository.verifyWhatsApp(session, code);
 
     _setStep(_AuthStep.recoveryTotp);
   }
@@ -316,10 +299,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       throw StateError('Password recovery session is missing.');
     }
 
-    await widget.passwordRecoveryRepository.verifyTotp(
-      session,
-      code,
-    );
+    await widget.passwordRecoveryRepository.verifyTotp(session, code);
 
     _setStep(_AuthStep.newPassword);
   }
@@ -331,9 +311,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       throw StateError('Password recovery session is missing.');
     }
 
-    await widget.passwordRecoveryRepository.resendResetLink(
-      session,
-    );
+    await widget.passwordRecoveryRepository.resendResetLink(session);
   }
 
   Future<void> _resetPassword({
@@ -361,9 +339,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   Widget build(BuildContext context) {
     switch (_step) {
       case _AuthStep.splash:
-        return SplashScreen(
-          onFinished: _showWelcome,
-        );
+        return SplashScreen(onFinished: _showWelcome);
 
       case _AuthStep.welcome:
         return WelcomeScreen(
@@ -390,11 +366,9 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       case _AuthStep.registerEmailOtp:
         return OtpVerificationScreen(
           title: 'Verify Your Email',
-          subtitle:
-              'Enter the 8 digits from the TradeX email code. The email may display it in TRX-XX XX XX XX format.',
+          subtitle: 'Enter the 8 digits from the Trade X email code. The email may display it in TRX-XX XX XX XX format.',
           codeLength: 8,
-          channelLabel:
-              'Verification code sent to $_registrationEmail.',
+          channelLabel: 'Verification code sent to $_registrationEmail.',
           onVerify: _verifyRegistrationEmail,
           onResend: _resendRegistrationEmail,
           onBack: _showRegister,
@@ -403,11 +377,9 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       case _AuthStep.registerWhatsAppOtp:
         return OtpVerificationScreen(
           title: 'Verify WhatsApp',
-          subtitle:
-              'Enter the 6-digit code sent to your WhatsApp number.',
+          subtitle: 'Enter the 6-digit code sent to your WhatsApp number.',
           codeLength: 6,
-          channelLabel:
-              'Verification code sent to $_registrationWhatsApp.',
+          channelLabel: 'Verification code sent to $_registrationWhatsApp.',
           onVerify: _verifyRegistrationWhatsApp,
           onResend: _resendRegistrationWhatsApp,
           onBack: () => _setStep(_AuthStep.registerEmailOtp),
@@ -429,8 +401,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       case _AuthStep.registerTotpVerify:
         return OtpVerificationScreen(
           title: 'Verify Authenticator',
-          subtitle:
-              'Enter the current 6-digit code from the authenticator app you just configured.',
+          subtitle: 'Enter the current 6-digit code from the authenticator app you just configured.',
           codeLength: 6,
           channelLabel:
               'This final security check activates your TradeX account.',
@@ -472,11 +443,9 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       case _AuthStep.recoveryWhatsAppOtp:
         return OtpVerificationScreen(
           title: 'Verify Recovery WhatsApp',
-          subtitle:
-              'Enter the 6-digit recovery code sent through WhatsApp.',
+          subtitle: 'Enter the 6-digit recovery code sent through WhatsApp.',
           codeLength: 6,
-          channelLabel:
-              'Recovery verification for $_recoveryWhatsApp.',
+          channelLabel: 'Recovery verification for $_recoveryWhatsApp.',
           onVerify: _verifyRecoveryWhatsApp,
           onResend: _resendRecoveryWhatsApp,
           onBack: () => _setStep(_AuthStep.recoveryEmailOtp),
@@ -485,11 +454,9 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       case _AuthStep.recoveryTotp:
         return OtpVerificationScreen(
           title: 'Verify Authenticator',
-          subtitle:
-              'Enter the current 6-digit authenticator code for your TradeX account.',
+          subtitle: 'Enter the current 6-digit authenticator code for your TradeX account.',
           codeLength: 6,
-          channelLabel:
-              'After verification, TradeX will email a short-lived password reset link.',
+          channelLabel: 'After verification, TradeX will email a short-lived password reset link.',
           onVerify: _verifyRecoveryTotp,
           onResend: () async {},
           onBack: () => _setStep(_AuthStep.recoveryWhatsAppOtp),
@@ -514,8 +481,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       case _AuthStep.passwordResetComplete:
         return AuthSuccessScreen(
           title: 'Password Updated',
-          message:
-              'Your password has been reset and previous sessions have been invalidated.',
+          message: 'Your password has been reset and previous sessions have been invalidated.',
           buttonLabel: 'Sign In Again',
           onContinue: _showLogin,
         );
@@ -534,9 +500,7 @@ class _MissingFlowState extends StatelessWidget {
         child: Text(
           'This security flow has expired. Please start again.',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-          ),
+          style: TextStyle(color: Colors.white),
         ),
       ),
     );
