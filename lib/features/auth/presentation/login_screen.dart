@@ -245,13 +245,25 @@ class _LoginHeader extends StatelessWidget {
           width: 128,
           height: 128,
           child: Image.asset(
-            'assets/branding/tradex_logo.png',
+            'assets/branding/trade_x_logo.png',
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
           ),
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
+
+        const Text(
+          'Trade X',
+          style: TextStyle(
+            color: TradeXColors.primaryText,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.3,
+          ),
+        ),
+
+        const SizedBox(height: 6),
 
         const Text(
           'The OS for Every Trader.',

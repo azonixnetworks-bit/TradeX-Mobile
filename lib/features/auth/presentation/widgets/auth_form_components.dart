@@ -57,7 +57,7 @@ class TradeXAuthPage extends StatelessWidget {
                               width: 76,
                               height: 76,
                               child: Image.asset(
-                                'assets/branding/tradex_logo.png',
+                                'assets/branding/trade_x_logo.png',
                                 fit: BoxFit.contain,
                                 filterQuality: FilterQuality.high,
                               ),
@@ -118,10 +118,7 @@ class TradeXAuthPage extends StatelessWidget {
 }
 
 class TradeXAuthCard extends StatelessWidget {
-  const TradeXAuthCard({
-    super.key,
-    required this.child,
-  });
+  const TradeXAuthCard({super.key, required this.child});
 
   final Widget child;
 
@@ -134,10 +131,7 @@ class TradeXAuthCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF111614),
-            Color(0xFF080B0A),
-          ],
+          colors: [Color(0xFF111614), Color(0xFF080B0A)],
         ),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
@@ -200,21 +194,12 @@ class TradeXAuthField extends StatelessWidget {
       onFieldSubmitted: onFieldSubmitted,
       textCapitalization: textCapitalization,
       cursorColor: TradeXColors.goldBright,
-      style: const TextStyle(
-        color: TradeXColors.primaryText,
-        fontSize: 14,
-      ),
+      style: const TextStyle(color: TradeXColors.primaryText, fontSize: 14),
       decoration: InputDecoration(
         counterText: '',
         labelText: label,
-        labelStyle: const TextStyle(
-          color: TradeXColors.secondaryText,
-        ),
-        prefixIcon: Icon(
-          icon,
-          color: TradeXColors.gold,
-          size: 21,
-        ),
+        labelStyle: const TextStyle(color: TradeXColors.secondaryText),
+        prefixIcon: Icon(icon, color: TradeXColors.gold, size: 21),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: const Color(0xFF090D0B),
@@ -224,40 +209,25 @@ class TradeXAuthField extends StatelessWidget {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(
-            color: TradeXColors.border,
-          ),
+          borderSide: const BorderSide(color: TradeXColors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(
-            color: TradeXColors.border,
-          ),
+          borderSide: const BorderSide(color: TradeXColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(
-            color: TradeXColors.gold,
-            width: 1.3,
-          ),
+          borderSide: const BorderSide(color: TradeXColors.gold, width: 1.3),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(
-            color: TradeXColors.error,
-          ),
+          borderSide: const BorderSide(color: TradeXColors.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(
-            color: TradeXColors.error,
-            width: 1.3,
-          ),
+          borderSide: const BorderSide(color: TradeXColors.error, width: 1.3),
         ),
-        errorStyle: const TextStyle(
-          color: TradeXColors.error,
-          fontSize: 11,
-        ),
+        errorStyle: const TextStyle(color: TradeXColors.error, fontSize: 11),
       ),
     );
   }
@@ -327,11 +297,7 @@ class TradeXGoldButton extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 9),
-                        Icon(
-                          icon,
-                          color: Colors.black,
-                          size: 21,
-                        ),
+                        Icon(icon, color: Colors.black, size: 21),
                       ],
                     ),
             ),
@@ -343,10 +309,7 @@ class TradeXGoldButton extends StatelessWidget {
 }
 
 class TradeXErrorBanner extends StatelessWidget {
-  const TradeXErrorBanner({
-    super.key,
-    required this.message,
-  });
+  const TradeXErrorBanner({super.key, required this.message});
 
   final String message;
 
@@ -358,9 +321,7 @@ class TradeXErrorBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: TradeXColors.error.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: TradeXColors.error.withValues(alpha: 0.35),
-        ),
+        border: Border.all(color: TradeXColors.error.withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [
@@ -373,10 +334,7 @@ class TradeXErrorBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: TradeXColors.error,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: TradeXColors.error, fontSize: 12),
             ),
           ),
         ],
@@ -403,18 +361,12 @@ class TradeXInfoBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: TradeXColors.gold.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: TradeXColors.gold.withValues(alpha: 0.22),
-        ),
+        border: Border.all(color: TradeXColors.gold.withValues(alpha: 0.22)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            color: TradeXColors.goldBright,
-            size: 18,
-          ),
+          Icon(icon, color: TradeXColors.goldBright, size: 18),
           const SizedBox(width: 9),
           Expanded(
             child: Text(

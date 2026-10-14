@@ -152,14 +152,26 @@ class _LogoSection extends StatelessWidget {
         Container(
           constraints: const BoxConstraints(maxWidth: 350, maxHeight: 350),
           child: Image.asset(
-            'assets/branding/tradex_logo.png',
+            'assets/branding/trade_x_logo.png',
             width: logoWidth,
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
           ),
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
+
+        const Text(
+          'Trade X',
+          style: TextStyle(
+            color: TradeXColors.primaryText,
+            fontSize: 30,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.4,
+          ),
+        ),
+
+        const SizedBox(height: 10),
 
         const Text(
           'The OS for Every Trader.',

@@ -21,7 +21,7 @@ class TradeXApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'TradeX',
+      title: 'Trade X',
       debugShowCheckedModeBanner: false,
       theme: TradeXTheme.dark,
       home: SessionGate(
