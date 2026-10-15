@@ -3,9 +3,33 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/tradex_colors.dart';
 import 'widgets/auth_form_components.dart';
 
-class RegistrationVerificationGateScreen extends StatelessWidget {
+class RegistrationVerificationGateScreen extends StatefulWidget {
   const RegistrationVerificationGateScreen({super.key, required this.onVerify});
-  final VoidCallback onVerify;
+  final Future<void> Function() onVerify;
+  @override
+  State<RegistrationVerificationGateScreen> createState() =>
+      _RegistrationVerificationGateScreenState();
+}
+
+class _RegistrationVerificationGateScreenState
+    extends State<RegistrationVerificationGateScreen> {
+  bool _loading = false;
+  String? _error;
+
+  Future<void> _start() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await widget.onVerify();
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: TradeXColors.background,
@@ -53,10 +77,19 @@ class RegistrationVerificationGateScreen extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Color(0xFFFF7A7A)),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   TradeXGoldButton(
                     label: 'Start Verification',
-                    onPressed: onVerify,
+                    loading: _loading,
+                    onPressed: _start,
                     icon: Icons.verified_rounded,
                   ),
                 ],
