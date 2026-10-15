@@ -1,17 +1,16 @@
-# tradex_mobile
+# Trade X Mobile
 
-A new Flutter project.
+The mobile client uses `https://cloudvideo.online` as its default API base URL.
+Registration requests are sent to `https://cloudvideo.online/api/v1/...`.
 
-## Getting Started
+## Run the app
 
-This project is a starting point for a Flutter application.
+```powershell
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+To target a different backend for development or staging, pass a build-time override:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```powershell
+flutter run --dart-define=TRADEX_API_BASE_URL=https://api.example.com
+```
