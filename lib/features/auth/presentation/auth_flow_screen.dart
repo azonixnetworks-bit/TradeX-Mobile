@@ -101,6 +101,42 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     _showLogin();
   }
 
+  void _goBack() {
+    switch (_step) {
+      case _AuthStep.register:
+        _showWelcome();
+      case _AuthStep.registerLanguage:
+        _setStep(_AuthStep.register);
+      case _AuthStep.registerGate:
+        _setStep(_AuthStep.registerLanguage);
+      case _AuthStep.registerEmailOtp:
+        _setStep(_AuthStep.registerGate);
+      case _AuthStep.registerWhatsAppOtp:
+        _setStep(_AuthStep.registerEmailOtp);
+      case _AuthStep.registerTotpSetup:
+        _setStep(_AuthStep.registerWhatsAppOtp);
+      case _AuthStep.registerTotpVerify:
+        _setStep(_AuthStep.registerTotpSetup);
+      case _AuthStep.login:
+        _showWelcome();
+      case _AuthStep.forgotPassword:
+        _showLogin();
+      case _AuthStep.recoveryEmailOtp:
+        _setStep(_AuthStep.forgotPassword);
+      case _AuthStep.recoveryWhatsAppOtp:
+        _setStep(_AuthStep.recoveryEmailOtp);
+      case _AuthStep.recoveryTotp:
+        _setStep(_AuthStep.recoveryWhatsAppOtp);
+      case _AuthStep.newPassword:
+        _setStep(_AuthStep.recoveryTotp);
+      case _AuthStep.registerComplete:
+      case _AuthStep.passwordResetComplete:
+      case _AuthStep.splash:
+      case _AuthStep.welcome:
+        break;
+    }
+  }
+
   void _clearRegistration() {
     _registrationSession = null;
     _registrationTotpSetup = null;
@@ -385,6 +421,16 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _goBack();
+      },
+      child: _buildStep(context),
+    );
+  }
+
+  Widget _buildStep(BuildContext context) {
     switch (_step) {
       case _AuthStep.splash:
         return SplashScreen(onFinished: _showWelcome);
