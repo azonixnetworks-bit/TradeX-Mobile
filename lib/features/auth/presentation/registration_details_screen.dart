@@ -73,7 +73,15 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
             label: 'Referral Code',
             icon: Icons.group_add_outlined,
             textCapitalization: TextCapitalization.characters,
-            inputFormatters: [LengthLimitingTextInputFormatter(30)],
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
+              LengthLimitingTextInputFormatter(30),
+              TextInputFormatter.withFunction(
+                (oldValue, newValue) => newValue.copyWith(
+                  text: newValue.text.toUpperCase(),
+                ),
+              ),
+            ],
             validator: (v) => v == null || v.trim().isEmpty
                 ? 'Referral code is required.'
                 : null,
