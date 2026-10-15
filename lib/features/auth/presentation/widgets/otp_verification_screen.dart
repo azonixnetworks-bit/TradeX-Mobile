@@ -18,6 +18,7 @@ class OtpVerificationScreen extends StatefulWidget {
     this.channelLabel,
     this.initialCooldownSeconds = 60,
     this.showResend = true,
+    this.digitsPerBox = 2,
   });
 
   final String title;
@@ -29,6 +30,7 @@ class OtpVerificationScreen extends StatefulWidget {
   final VoidCallback onBack;
   final int initialCooldownSeconds;
   final bool showResend;
+  final int digitsPerBox;
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -50,10 +52,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   void initState() {
     super.initState();
     _codeControllers = List.generate(
-      widget.codeLength ~/ 2,
+      widget.codeLength ~/ widget.digitsPerBox,
       (_) => TextEditingController(),
     );
-    _codeFocusNodes = List.generate(widget.codeLength ~/ 2, (_) => FocusNode());
+    _codeFocusNodes = List.generate(
+      widget.codeLength ~/ widget.digitsPerBox,
+      (_) => FocusNode(),
+    );
     _startCooldown(widget.initialCooldownSeconds);
   }
 
@@ -244,12 +249,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   index++
                 ) ...[
                   Expanded(
-                    child: _OtpPairField(
+                    child: _OtpCodeField(
                       controller: _codeControllers[index],
                       focusNode: _codeFocusNodes[index],
                       autofocus: index == 0,
+                      digitsPerBox: widget.digitsPerBox,
                       onChanged: (value) {
-                        if (value.length == 2 &&
+                        if (value.length == widget.digitsPerBox &&
                             index < _codeFocusNodes.length - 1) {
                           _codeFocusNodes[index + 1].requestFocus();
                         }
@@ -324,11 +330,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 }
 
-class _OtpPairField extends StatelessWidget {
-  const _OtpPairField({
+class _OtpCodeField extends StatelessWidget {
+  const _OtpCodeField({
     required this.controller,
     required this.focusNode,
     required this.autofocus,
+    required this.digitsPerBox,
     required this.onChanged,
     required this.onSubmitted,
   });
@@ -336,6 +343,7 @@ class _OtpPairField extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool autofocus;
+  final int digitsPerBox;
   final ValueChanged<String> onChanged;
   final VoidCallback onSubmitted;
 
@@ -355,7 +363,7 @@ class _OtpPairField extends StatelessWidget {
     textInputAction: TextInputAction.next,
     inputFormatters: [
       FilteringTextInputFormatter.digitsOnly,
-      LengthLimitingTextInputFormatter(2),
+      LengthLimitingTextInputFormatter(digitsPerBox),
     ],
     onChanged: onChanged,
     onSubmitted: (_) => onSubmitted(),
