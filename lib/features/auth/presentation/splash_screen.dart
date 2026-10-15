@@ -198,10 +198,15 @@ class _SplashBackground extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         const ColoredBox(color: Colors.black),
-        Image.asset(
-          'assets/branding/trade_x_splash_background.png',
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.high,
+        Center(
+          child: Transform.scale(
+            scale: 0.88,
+            child: Image.asset(
+              'assets/branding/trade_x_splash_background.png',
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+            ),
+          ),
         ),
         const DecoratedBox(
           decoration: BoxDecoration(
