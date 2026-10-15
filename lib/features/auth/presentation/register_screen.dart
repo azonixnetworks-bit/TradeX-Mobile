@@ -105,13 +105,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             icon: Icons.person_outline_rounded,
             textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.next,
-            onChanged: (_) => setState(() {}),
             validator: (value) => value == null || value.trim().length < 2
                 ? 'Enter your full name.'
                 : null,
           ),
-          const SizedBox(height: 10),
-          _PasswordChecklist(password: _password.text),
           const SizedBox(height: 13),
           TradeXAuthField(
             controller: _email,
@@ -133,6 +130,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             icon: Icons.lock_outline_rounded,
             obscureText: _hidePassword,
             textInputAction: TextInputAction.next,
+            onChanged: (_) => setState(() {}),
             validator: _passwordValidator,
             suffixIcon: IconButton(
               onPressed: () => setState(() => _hidePassword = !_hidePassword),
@@ -143,6 +141,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 10),
+          _PasswordChecklist(password: _password.text),
           const SizedBox(height: 13),
           TradeXAuthField(
             controller: _confirmation,
