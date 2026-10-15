@@ -148,8 +148,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _validatePassword(String? value) {
     final password = value ?? '';
 
-    if (password.length < 12) {
-      return 'Password must contain at least 12 characters.';
+    if (password.length < 8) {
+      return 'Password must contain at least 8 characters.';
     }
 
     if (!RegExp(r'[a-z]').hasMatch(password) ||
@@ -443,7 +443,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 14),
             const TradeXInfoBanner(
-              message: 'Password must be 12+ characters and include uppercase, lowercase, number, and symbol.',
+              message: 'Password must be 8+ characters and include uppercase, lowercase, number, and symbol.',
               icon: Icons.security_rounded,
             ),
             if (_errorMessage != null) ...[
