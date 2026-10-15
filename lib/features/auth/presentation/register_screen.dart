@@ -105,10 +105,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             icon: Icons.person_outline_rounded,
             textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.next,
+            onChanged: (_) => setState(() {}),
             validator: (value) => value == null || value.trim().length < 2
                 ? 'Enter your full name.'
                 : null,
           ),
+          const SizedBox(height: 10),
+          _PasswordChecklist(password: _password.text),
           const SizedBox(height: 13),
           TradeXAuthField(
             controller: _email,
@@ -165,4 +168,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     ),
   );
+}
+
+class _PasswordChecklist extends StatelessWidget {
+  const _PasswordChecklist({required this.password});
+  final String password;
+
+  @override
+  Widget build(BuildContext context) {
+    final checks = <(String, bool)>[
+      ('8+ characters', password.length >= 8),
+      ('Uppercase letter', RegExp(r'[A-Z]').hasMatch(password)),
+      ('Lowercase letter', RegExp(r'[a-z]').hasMatch(password)),
+      ('Number', RegExp(r'[0-9]').hasMatch(password)),
+      ('Symbol', RegExp(r'[^A-Za-z0-9]').hasMatch(password)),
+    ];
+    return Wrap(
+      spacing: 10,
+      runSpacing: 7,
+      children: checks
+          .map(
+            (check) => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  check.$2 ? Icons.check_circle_rounded : Icons.circle_outlined,
+                  size: 15,
+                  color: check.$2
+                      ? const Color(0xFF18D77A)
+                      : const Color(0xFF7D8796),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  check.$1,
+                  style: TextStyle(
+                    color: check.$2
+                        ? const Color(0xFFB8F5D3)
+                        : const Color(0xFF9CA3AF),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          )
+          .toList(),
+    );
+  }
 }
