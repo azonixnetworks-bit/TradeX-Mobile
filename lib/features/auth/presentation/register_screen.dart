@@ -8,7 +8,7 @@ class RegisterScreen extends StatefulWidget {
     super.key,
     required this.onBack,
     required this.onSignIn,
-    required this.onSubmit,
+    required this.onContinue,
   });
 
   final VoidCallback onBack;
@@ -21,26 +21,15 @@ class RegisterScreen extends StatefulWidget {
     required String password,
     required String passwordConfirmation,
     required String countryCode,
-    required String languageCode,
     required String referralCode,
   })
-  onSubmit;
+  onContinue;
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  static const Set<String> _allowedLanguages = <String>{
-    'en',
-    'ta',
-    'si',
-    'hi',
-    'ml',
-    'te',
-    'ur',
-  };
-
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   final TextEditingController _nameController = TextEditingController();
@@ -48,9 +37,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _whatsappController = TextEditingController();
   final TextEditingController _countryController = TextEditingController(
     text: 'Sri Lanka',
-  );
-  final TextEditingController _languageController = TextEditingController(
-    text: 'English',
   );
   final TextEditingController _referralController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -62,7 +48,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _submitting = false;
   String? _errorMessage;
   String? _countryCode = 'LK';
-  String _languageCode = 'en';
   List<_Country> _countrySuggestions = _countries;
 
   @override
@@ -71,7 +56,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _whatsappController.dispose();
     _countryController.dispose();
-    _languageController.dispose();
     _referralController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -120,7 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return requiredError;
     }
 
-    final number = value!.trim();
+    final number = '${_selectedCountry.dialCode}${value!.trim()}';
 
     if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(number)) {
       return 'Use international format, for example +94771234567.';
@@ -132,14 +116,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _validateCountry(String? value) {
     if (_countryCode == null || (value?.trim().isEmpty ?? true)) {
       return 'Select a country from the list.';
-    }
-
-    return null;
-  }
-
-  String? _validateLanguage(String? value) {
-    if (!_allowedLanguages.contains(_languageCode)) {
-      return 'Select a learning language.';
     }
 
     return null;
@@ -183,14 +159,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      await widget.onSubmit(
+      await widget.onContinue(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
-        whatsappNumber: _whatsappController.text.trim(),
+        whatsappNumber:
+            '${_selectedCountry.dialCode}${_whatsappController.text.trim()}',
         password: _passwordController.text,
         passwordConfirmation: _confirmPasswordController.text,
         countryCode: _countryCode!,
-        languageCode: _languageCode,
         referralCode: _referralController.text.trim(),
       );
     } catch (error) {
@@ -230,77 +206,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() {
       _countryController.text = country.name;
       _countryCode = country.code;
+      _whatsappController.clear();
       _countrySuggestions = <_Country>[];
     });
     FocusScope.of(context).unfocus();
-  }
-
-  Future<void> _showLearningLanguageDialog() async {
-    final selectedLanguage = await showDialog<_LearningLanguage>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF111614),
-          title: const Text(
-            'Choose Learning Language',
-            style: TextStyle(color: Color(0xFFF8FAFC)),
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Videos will be available in your selected language. You cannot change this later.',
-                    style: TextStyle(color: Color(0xFF9CA3AF), height: 1.4),
-                  ),
-                  const SizedBox(height: 12),
-                  ..._learningLanguages.map(
-                    (language) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        language.name,
-                        style: const TextStyle(color: Color(0xFFF8FAFC)),
-                      ),
-                      trailing: language.code == _languageCode
-                          ? const Icon(
-                              Icons.check_rounded,
-                              color: Color(0xFFFFC83D),
-                            )
-                          : null,
-                      onTap: () => Navigator.of(context).pop(language),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (selectedLanguage == null || !mounted) {
-      return;
-    }
-
-    setState(() {
-      _languageCode = selectedLanguage.code;
-      _languageController.text = selectedLanguage.name;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return TradeXAuthPage(
       title: 'Create Your Account',
-      subtitle: 'Set up your Trade X account. Email OTP verification starts immediately after you create the account.',
+      subtitle: 'Add your account details. You will choose your learning language on the next step.',
       onBack: widget.onBack,
       footer: Wrap(
         alignment: WrapAlignment.center,
@@ -345,19 +261,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 13),
             TradeXAuthField(
-              controller: _whatsappController,
-              label: 'WhatsApp Number',
-              icon: Icons.chat_outlined,
-              keyboardType: TextInputType.phone,
-              textInputAction: TextInputAction.next,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
-                LengthLimitingTextInputFormatter(16),
-              ],
-              validator: _validateWhatsApp,
-            ),
-            const SizedBox(height: 13),
-            TradeXAuthField(
               controller: _countryController,
               label: 'Country',
               icon: Icons.public_rounded,
@@ -373,21 +276,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             const SizedBox(height: 13),
             TradeXAuthField(
-              controller: _languageController,
-              label: 'Learning Language',
-              icon: Icons.language_rounded,
-              readOnly: true,
-              onTap: _showLearningLanguageDialog,
-              validator: _validateLanguage,
-              suffixIcon: const Icon(
-                Icons.expand_more_rounded,
-                color: Color(0xFFFFC83D),
-              ),
+              controller: _whatsappController,
+              label: 'Mobile Number',
+              icon: Icons.phone_android_rounded,
+              prefixText: '${_selectedCountry.dialCode} ',
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.next,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(14),
+              ],
+              validator: _validateWhatsApp,
             ),
             const SizedBox(height: 13),
             TradeXAuthField(
               controller: _referralController,
-              label: 'Referral Code',
+              label: 'Referral Code (Required)',
               icon: Icons.group_add_outlined,
               textInputAction: TextInputAction.next,
               inputFormatters: [LengthLimitingTextInputFormatter(30)],
@@ -452,7 +356,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ],
             const SizedBox(height: 18),
             TradeXGoldButton(
-              label: 'Create Account & Verify Email',
+              label: 'Continue to Language',
               onPressed: _submit,
               loading: _submitting,
               icon: Icons.person_add_alt_1_rounded,
@@ -462,6 +366,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
+
+  _Country get _selectedCountry => _countries.firstWhere(
+    (country) => country.code == _countryCode,
+    orElse: () => _countries.firstWhere((country) => country.code == 'LK'),
+  );
 }
 
 class _CountrySuggestions extends StatelessWidget {
@@ -494,7 +403,7 @@ class _CountrySuggestions extends StatelessWidget {
                   style: const TextStyle(color: Color(0xFFF8FAFC)),
                 ),
                 trailing: Text(
-                  country.code,
+                  '${country.code} · ${country.dialCode}',
                   style: const TextStyle(color: Color(0xFFFFC83D)),
                 ),
                 onTap: () => onSelected(country),
@@ -507,50 +416,34 @@ class _CountrySuggestions extends StatelessWidget {
 }
 
 class _Country {
-  const _Country(this.name, this.code);
+  const _Country(this.name, this.code, this.dialCode);
 
   final String name;
   final String code;
-}
-
-class _LearningLanguage {
-  const _LearningLanguage(this.name, this.code);
-
-  final String name;
-  final String code;
+  final String dialCode;
 }
 
 const List<_Country> _countries = <_Country>[
-  _Country('Australia', 'AU'),
-  _Country('Bangladesh', 'BD'),
-  _Country('Canada', 'CA'),
-  _Country('France', 'FR'),
-  _Country('Germany', 'DE'),
-  _Country('India', 'IN'),
-  _Country('Indonesia', 'ID'),
-  _Country('Italy', 'IT'),
-  _Country('Japan', 'JP'),
-  _Country('Malaysia', 'MY'),
-  _Country('Maldives', 'MV'),
-  _Country('Nepal', 'NP'),
-  _Country('Pakistan', 'PK'),
-  _Country('Qatar', 'QA'),
-  _Country('Saudi Arabia', 'SA'),
-  _Country('Singapore', 'SG'),
-  _Country('South Africa', 'ZA'),
-  _Country('Sri Lanka', 'LK'),
-  _Country('Thailand', 'TH'),
-  _Country('United Arab Emirates', 'AE'),
-  _Country('United Kingdom', 'GB'),
-  _Country('United States', 'US'),
-];
-
-const List<_LearningLanguage> _learningLanguages = <_LearningLanguage>[
-  _LearningLanguage('English', 'en'),
-  _LearningLanguage('Tamil', 'ta'),
-  _LearningLanguage('Sinhala', 'si'),
-  _LearningLanguage('Hindi', 'hi'),
-  _LearningLanguage('Malayalam', 'ml'),
-  _LearningLanguage('Telugu', 'te'),
-  _LearningLanguage('Urdu', 'ur'),
+  _Country('Australia', 'AU', '+61'),
+  _Country('Bangladesh', 'BD', '+880'),
+  _Country('Canada', 'CA', '+1'),
+  _Country('France', 'FR', '+33'),
+  _Country('Germany', 'DE', '+49'),
+  _Country('India', 'IN', '+91'),
+  _Country('Indonesia', 'ID', '+62'),
+  _Country('Italy', 'IT', '+39'),
+  _Country('Japan', 'JP', '+81'),
+  _Country('Malaysia', 'MY', '+60'),
+  _Country('Maldives', 'MV', '+960'),
+  _Country('Nepal', 'NP', '+977'),
+  _Country('Pakistan', 'PK', '+92'),
+  _Country('Qatar', 'QA', '+974'),
+  _Country('Saudi Arabia', 'SA', '+966'),
+  _Country('Singapore', 'SG', '+65'),
+  _Country('South Africa', 'ZA', '+27'),
+  _Country('Sri Lanka', 'LK', '+94'),
+  _Country('Thailand', 'TH', '+66'),
+  _Country('United Arab Emirates', 'AE', '+971'),
+  _Country('United Kingdom', 'GB', '+44'),
+  _Country('United States', 'US', '+1'),
 ];

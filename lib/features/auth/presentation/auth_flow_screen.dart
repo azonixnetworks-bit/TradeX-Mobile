@@ -11,6 +11,7 @@ import 'login_screen.dart';
 import 'new_password_screen.dart';
 import 'register_screen.dart';
 import 'registration_totp_setup_screen.dart';
+import 'registration_language_screen.dart';
 import 'splash_screen.dart';
 import 'welcome_screen.dart';
 import 'widgets/otp_verification_screen.dart';
@@ -20,6 +21,7 @@ enum _AuthStep {
   welcome,
   login,
   register,
+  registerLanguage,
   registerEmailOtp,
   registerWhatsAppOtp,
   registerTotpSetup,
@@ -56,6 +58,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
 
   RegistrationSession? _registrationSession;
   RegistrationTotpSetup? _registrationTotpSetup;
+  _RegistrationDraft? _registrationDraft;
 
   PasswordRecoverySession? _recoverySession;
 
@@ -99,6 +102,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   void _clearRegistration() {
     _registrationSession = null;
     _registrationTotpSetup = null;
+    _registrationDraft = null;
     _registrationEmail = '';
     _registrationWhatsApp = '';
   }
@@ -129,25 +133,45 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     widget.onAuthenticated();
   }
 
-  Future<void> _startRegistration({
+  Future<void> _collectRegistrationDetails({
     required String name,
     required String email,
     required String whatsappNumber,
     required String password,
     required String passwordConfirmation,
     required String countryCode,
-    required String languageCode,
     required String referralCode,
   }) async {
+    setState(() {
+      _registrationDraft = _RegistrationDraft(
+        name: name,
+        email: email,
+        whatsappNumber: whatsappNumber,
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+        countryCode: countryCode,
+        referralCode: referralCode,
+      );
+      _step = _AuthStep.registerLanguage;
+    });
+  }
+
+  Future<void> _startRegistration(String languageCode) async {
+    final draft = _registrationDraft;
+
+    if (draft == null) {
+      throw StateError('Registration details are missing. Please start again.');
+    }
+
     final session = await widget.registrationRepository.start(
-      name: name,
-      email: email,
-      whatsappNumber: whatsappNumber,
-      password: password,
-      passwordConfirmation: passwordConfirmation,
-      countryCode: countryCode,
+      name: draft.name,
+      email: draft.email,
+      whatsappNumber: draft.whatsappNumber,
+      password: draft.password,
+      passwordConfirmation: draft.passwordConfirmation,
+      countryCode: draft.countryCode,
       languageCode: languageCode,
-      referralCode: referralCode,
+      referralCode: draft.referralCode,
     );
 
     if (!mounted) {
@@ -156,8 +180,8 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
 
     setState(() {
       _registrationSession = session;
-      _registrationEmail = email.trim();
-      _registrationWhatsApp = whatsappNumber.trim();
+      _registrationEmail = draft.email.trim();
+      _registrationWhatsApp = draft.whatsappNumber.trim();
       _step = _AuthStep.registerEmailOtp;
     });
   }
@@ -360,7 +384,13 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
         return RegisterScreen(
           onBack: _showWelcome,
           onSignIn: _showLogin,
-          onSubmit: _startRegistration,
+          onContinue: _collectRegistrationDetails,
+        );
+
+      case _AuthStep.registerLanguage:
+        return RegistrationLanguageScreen(
+          onBack: () => _setStep(_AuthStep.register),
+          onContinue: _startRegistration,
         );
 
       case _AuthStep.registerEmailOtp:
@@ -371,7 +401,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
           channelLabel: 'Verification code sent to $_registrationEmail.',
           onVerify: _verifyRegistrationEmail,
           onResend: _resendRegistrationEmail,
-          onBack: _showRegister,
+          onBack: () => _setStep(_AuthStep.registerLanguage),
         );
 
       case _AuthStep.registerWhatsAppOtp:
@@ -505,4 +535,24 @@ class _MissingFlowState extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RegistrationDraft {
+  const _RegistrationDraft({
+    required this.name,
+    required this.email,
+    required this.whatsappNumber,
+    required this.password,
+    required this.passwordConfirmation,
+    required this.countryCode,
+    required this.referralCode,
+  });
+
+  final String name;
+  final String email;
+  final String whatsappNumber;
+  final String password;
+  final String passwordConfirmation;
+  final String countryCode;
+  final String referralCode;
 }
