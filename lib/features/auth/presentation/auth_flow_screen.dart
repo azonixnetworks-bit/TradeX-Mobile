@@ -11,7 +11,8 @@ import 'login_screen.dart';
 import 'new_password_screen.dart';
 import 'register_screen.dart';
 import 'registration_totp_setup_screen.dart';
-import 'registration_language_screen.dart';
+import 'registration_details_screen.dart';
+import 'registration_verification_gate_screen.dart';
 import 'splash_screen.dart';
 import 'welcome_screen.dart';
 import 'widgets/otp_verification_screen.dart';
@@ -22,6 +23,7 @@ enum _AuthStep {
   login,
   register,
   registerLanguage,
+  registerGate,
   registerEmailOtp,
   registerWhatsAppOtp,
   registerTotpSetup,
@@ -136,27 +138,28 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   Future<void> _collectRegistrationDetails({
     required String name,
     required String email,
-    required String whatsappNumber,
     required String password,
     required String passwordConfirmation,
-    required String countryCode,
-    required String referralCode,
   }) async {
     setState(() {
       _registrationDraft = _RegistrationDraft(
         name: name,
         email: email,
-        whatsappNumber: whatsappNumber,
+        whatsappNumber: '',
         password: password,
         passwordConfirmation: passwordConfirmation,
-        countryCode: countryCode,
-        referralCode: referralCode,
+        countryCode: '',
+        referralCode: '',
       );
       _step = _AuthStep.registerLanguage;
     });
   }
 
-  Future<void> _startRegistration(String languageCode) async {
+  Future<void> _startRegistration({
+    required String countryCode,
+    required String phone,
+    required String referralCode,
+  }) async {
     final draft = _registrationDraft;
 
     if (draft == null) {
@@ -166,12 +169,12 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     final session = await widget.registrationRepository.start(
       name: draft.name,
       email: draft.email,
-      whatsappNumber: draft.whatsappNumber,
+      whatsappNumber: phone,
       password: draft.password,
       passwordConfirmation: draft.passwordConfirmation,
-      countryCode: draft.countryCode,
-      languageCode: languageCode,
-      referralCode: draft.referralCode,
+      countryCode: countryCode,
+      languageCode: 'en',
+      referralCode: referralCode,
     );
 
     if (!mounted) {
@@ -181,8 +184,8 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     setState(() {
       _registrationSession = session;
       _registrationEmail = draft.email.trim();
-      _registrationWhatsApp = draft.whatsappNumber.trim();
-      _step = _AuthStep.registerEmailOtp;
+      _registrationWhatsApp = phone.trim();
+      _step = _AuthStep.registerGate;
     });
   }
 
@@ -384,13 +387,17 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
         return RegisterScreen(
           onBack: _showWelcome,
           onSignIn: _showLogin,
-          onContinue: _collectRegistrationDetails,
+          onNext: _collectRegistrationDetails,
         );
 
       case _AuthStep.registerLanguage:
-        return RegistrationLanguageScreen(
+        return RegistrationDetailsScreen(
           onBack: () => _setStep(_AuthStep.register),
           onContinue: _startRegistration,
+        );
+      case _AuthStep.registerGate:
+        return RegistrationVerificationGateScreen(
+          onVerify: () => _setStep(_AuthStep.registerEmailOtp),
         );
 
       case _AuthStep.registerEmailOtp:
