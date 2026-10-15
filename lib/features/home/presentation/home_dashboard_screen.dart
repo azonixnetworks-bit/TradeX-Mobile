@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/tradex_colors.dart';
@@ -71,6 +73,10 @@ class _HomeContent extends StatelessWidget {
               _Header(onLogout: onLogout),
               const SizedBox(height: 24),
               const _WelcomeCard(),
+              const SizedBox(height: 24),
+              const _SectionHeader(title: '24H Global Session Clock'),
+              const SizedBox(height: 12),
+              const _SessionClockCard(),
               const SizedBox(height: 24),
               const _SectionHeader(title: 'Quick Actions'),
               const SizedBox(height: 12),
@@ -235,6 +241,112 @@ class _WelcomeCard extends StatelessWidget {
           Icon(Icons.bolt_rounded, color: TradeXColors.goldBright, size: 52),
         ],
       ),
+    );
+  }
+}
+
+class _SessionClockCard extends StatelessWidget {
+  const _SessionClockCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<int>(
+      stream: Stream<int>.periodic(
+        const Duration(seconds: 1),
+        (value) => value,
+      ),
+      builder: (context, snapshot) {
+        final now = DateTime.now().toUtc();
+        final hour = now.hour;
+        final sessions = <({String name, String hours, int start, int end})>[
+          (name: 'Tokyo', hours: '00:00 - 09:00 UTC', start: 0, end: 9),
+          (name: 'London', hours: '08:00 - 17:00 UTC', start: 8, end: 17),
+          (name: 'New York', hours: '13:00 - 22:00 UTC', start: 13, end: 22),
+        ];
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: _cardDecoration,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.schedule_rounded,
+                    color: TradeXColors.goldBright,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')} UTC',
+                    style: const TextStyle(
+                      color: TradeXColors.primaryText,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const Spacer(),
+                  const Text(
+                    '24H LIVE',
+                    style: TextStyle(
+                      color: TradeXColors.goldBright,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              ...sessions.map((session) {
+                final open = hour >= session.start && hour < session.end;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 9),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: open
+                              ? const Color(0xFF18D77A)
+                              : TradeXColors.tertiaryText,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          session.name,
+                          style: const TextStyle(
+                            color: TradeXColors.primaryText,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        session.hours,
+                        style: const TextStyle(
+                          color: TradeXColors.secondaryText,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        open ? 'OPEN' : 'CLOSED',
+                        style: TextStyle(
+                          color: open
+                              ? const Color(0xFF18D77A)
+                              : TradeXColors.tertiaryText,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 }
