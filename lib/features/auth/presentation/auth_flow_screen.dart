@@ -155,7 +155,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     });
   }
 
-  Future<void> _startRegistration({
+  Future<void> _completeRegistrationDetails({
     required String countryCode,
     required String phone,
     required String referralCode,
@@ -166,15 +166,36 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       throw StateError('Registration details are missing. Please start again.');
     }
 
+    setState(() {
+      _registrationDraft = _RegistrationDraft(
+        name: draft.name,
+        email: draft.email,
+        whatsappNumber: phone,
+        password: draft.password,
+        passwordConfirmation: draft.passwordConfirmation,
+        countryCode: countryCode,
+        referralCode: referralCode,
+      );
+      _step = _AuthStep.registerGate;
+    });
+  }
+
+  Future<void> _beginVerification() async {
+    final draft = _registrationDraft;
+
+    if (draft == null) {
+      throw StateError('Registration details are missing. Please start again.');
+    }
+
     final session = await widget.registrationRepository.start(
       name: draft.name,
       email: draft.email,
-      whatsappNumber: phone,
+      whatsappNumber: draft.whatsappNumber,
       password: draft.password,
       passwordConfirmation: draft.passwordConfirmation,
-      countryCode: countryCode,
+      countryCode: draft.countryCode,
       languageCode: 'en',
-      referralCode: referralCode,
+      referralCode: draft.referralCode,
     );
 
     if (!mounted) {
@@ -184,8 +205,8 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     setState(() {
       _registrationSession = session;
       _registrationEmail = draft.email.trim();
-      _registrationWhatsApp = phone.trim();
-      _step = _AuthStep.registerGate;
+      _registrationWhatsApp = draft.whatsappNumber.trim();
+      _step = _AuthStep.registerEmailOtp;
     });
   }
 
@@ -393,11 +414,13 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       case _AuthStep.registerLanguage:
         return RegistrationDetailsScreen(
           onBack: () => _setStep(_AuthStep.register),
-          onContinue: _startRegistration,
+          onContinue: _completeRegistrationDetails,
         );
       case _AuthStep.registerGate:
         return RegistrationVerificationGateScreen(
-          onVerify: () => _setStep(_AuthStep.registerEmailOtp),
+          onVerify: () {
+            _beginVerification();
+          },
         );
 
       case _AuthStep.registerEmailOtp:
