@@ -31,13 +31,13 @@ class OtpVerificationScreen extends StatefulWidget {
   final bool showResend;
 
   @override
-  State<OtpVerificationScreen> createState() =>
-      _OtpVerificationScreenState();
+  State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
 }
 
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _codeController = TextEditingController();
+  late final List<TextEditingController> _codeControllers;
+  late final List<FocusNode> _codeFocusNodes;
 
   Timer? _timer;
   int _secondsRemaining = 0;
@@ -49,15 +49,28 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   void initState() {
     super.initState();
+    _codeControllers = List.generate(
+      widget.codeLength ~/ 2,
+      (_) => TextEditingController(),
+    );
+    _codeFocusNodes = List.generate(widget.codeLength ~/ 2, (_) => FocusNode());
     _startCooldown(widget.initialCooldownSeconds);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _codeController.dispose();
+    for (final controller in _codeControllers) {
+      controller.dispose();
+    }
+    for (final focusNode in _codeFocusNodes) {
+      focusNode.dispose();
+    }
     super.dispose();
   }
+
+  String get _code =>
+      _codeControllers.map((controller) => controller.text).join();
 
   void _startCooldown(int seconds) {
     _timer?.cancel();
@@ -70,27 +83,24 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       return;
     }
 
-    _timer = Timer.periodic(
-      const Duration(seconds: 1),
-      (timer) {
-        if (!mounted) {
-          timer.cancel();
-          return;
-        }
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
 
-        if (_secondsRemaining <= 1) {
-          timer.cancel();
-          setState(() {
-            _secondsRemaining = 0;
-          });
-          return;
-        }
-
+      if (_secondsRemaining <= 1) {
+        timer.cancel();
         setState(() {
-          _secondsRemaining -= 1;
+          _secondsRemaining = 0;
         });
-      },
-    );
+        return;
+      }
+
+      setState(() {
+        _secondsRemaining -= 1;
+      });
+    });
   }
 
   String? _validateCode(String? value) {
@@ -110,7 +120,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   Future<void> _verify() async {
     FocusScope.of(context).unfocus();
 
-    if (!_formKey.currentState!.validate()) {
+    final validationError = _validateCode(_code);
+    if (validationError != null) {
+      setState(() => _errorMessage = validationError);
       return;
     }
 
@@ -121,7 +133,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     });
 
     try {
-      await widget.onVerify(_codeController.text.trim());
+      await widget.onVerify(_code);
     } catch (error) {
       if (!mounted) {
         return;
@@ -201,25 +213,63 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               ),
               const SizedBox(height: 16),
             ],
-            TradeXAuthField(
-              controller: _codeController,
-              label: widget.codeLength == 8
-                  ? '8-digit verification code'
-                  : '6-digit verification code',
-              icon: Icons.password_rounded,
-              keyboardType: TextInputType.number,
-              textInputAction: TextInputAction.done,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(widget.codeLength),
+            Text(
+              widget.codeLength == 8
+                  ? 'Email verification code'
+                  : 'Verification code',
+              style: const TextStyle(
+                color: TradeXColors.secondaryText,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (widget.codeLength == 8) ...[
+                  const Text(
+                    'TRX',
+                    style: TextStyle(
+                      color: TradeXColors.goldBright,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                for (
+                  var index = 0;
+                  index < _codeControllers.length;
+                  index++
+                ) ...[
+                  Expanded(
+                    child: _OtpPairField(
+                      controller: _codeControllers[index],
+                      focusNode: _codeFocusNodes[index],
+                      autofocus: index == 0,
+                      onChanged: (value) {
+                        if (value.length == 2 &&
+                            index < _codeFocusNodes.length - 1) {
+                          _codeFocusNodes[index + 1].requestFocus();
+                        }
+                        if (_errorMessage != null) {
+                          setState(() => _errorMessage = null);
+                        }
+                      },
+                      onSubmitted: () {
+                        if (index < _codeFocusNodes.length - 1) {
+                          _codeFocusNodes[index + 1].requestFocus();
+                        } else if (!_verifying) {
+                          _verify();
+                        }
+                      },
+                    ),
+                  ),
+                  if (index < _codeControllers.length - 1)
+                    const SizedBox(width: 8),
+                ],
               ],
-              maxLength: widget.codeLength,
-              validator: _validateCode,
-              onFieldSubmitted: (_) {
-                if (!_verifying) {
-                  _verify();
-                }
-              },
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 14),
@@ -243,8 +293,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               const SizedBox(height: 14),
               Center(
                 child: TextButton(
-                  onPressed:
-                      _secondsRemaining > 0 || _resending ? null : _resend,
+                  onPressed: _secondsRemaining > 0 || _resending
+                      ? null
+                      : _resend,
                   child: _resending
                       ? const SizedBox(
                           width: 18,
@@ -271,4 +322,59 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       ),
     );
   }
+}
+
+class _OtpPairField extends StatelessWidget {
+  const _OtpPairField({
+    required this.controller,
+    required this.focusNode,
+    required this.autofocus,
+    required this.onChanged,
+    required this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool autofocus;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onSubmitted;
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: controller,
+    focusNode: focusNode,
+    autofocus: autofocus,
+    keyboardType: TextInputType.number,
+    textAlign: TextAlign.center,
+    style: const TextStyle(
+      color: Colors.white,
+      fontSize: 18,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 2,
+    ),
+    textInputAction: TextInputAction.next,
+    inputFormatters: [
+      FilteringTextInputFormatter.digitsOnly,
+      LengthLimitingTextInputFormatter(2),
+    ],
+    onChanged: onChanged,
+    onSubmitted: (_) => onSubmitted(),
+    decoration: InputDecoration(
+      counterText: '',
+      filled: true,
+      fillColor: const Color(0xFF08100E),
+      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFF334138)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(
+          color: TradeXColors.goldBright,
+          width: 1.5,
+        ),
+      ),
+    ),
+  );
 }
