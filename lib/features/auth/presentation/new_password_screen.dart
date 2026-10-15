@@ -19,7 +19,8 @@ class NewPasswordScreen extends StatefulWidget {
     required String resetToken,
     required String password,
     required String passwordConfirmation,
-  }) onSubmit;
+  })
+  onSubmit;
 
   @override
   State<NewPasswordScreen> createState() => _NewPasswordScreenState();
@@ -66,8 +67,8 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
   String? _validatePassword(String? value) {
     final password = value ?? '';
 
-    if (password.length < 12) {
-      return 'Password must contain at least 12 characters.';
+    if (password.length < 8) {
+      return 'Password must contain at least 8 characters.';
     }
 
     if (!RegExp(r'[a-z]').hasMatch(password) ||
@@ -199,16 +200,14 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
   Widget build(BuildContext context) {
     return TradeXAuthPage(
       title: 'Create New Password',
-      subtitle:
-          'Open the TradeX reset email and paste the reset link or token below.',
+      subtitle: 'Open the TradeX reset email and paste the reset link or token below.',
       onBack: widget.onBack,
       child: Form(
         key: _formKey,
         child: Column(
           children: [
             const TradeXInfoBanner(
-              message:
-                  'The reset link is short-lived and single-use. Completing the reset signs out existing sessions and clears trusted-device status.',
+              message: 'The reset link is short-lived and single-use. Completing the reset signs out existing sessions and clears trusted-device status.',
               icon: Icons.security_update_warning_outlined,
             ),
             const SizedBox(height: 16),
@@ -268,8 +267,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
             ),
             const SizedBox(height: 14),
             const TradeXInfoBanner(
-              message:
-                  'Use at least 12 characters with uppercase, lowercase, number, and symbol. Your current password cannot be reused.',
+              message: 'Use at least 8 characters with uppercase, lowercase, number, and symbol. Your current password cannot be reused.',
               icon: Icons.password_rounded,
             ),
             if (_errorMessage != null) ...[
@@ -297,9 +295,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                      ),
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Text('Resend Reset Link'),
             ),
