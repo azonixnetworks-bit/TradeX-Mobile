@@ -164,6 +164,7 @@ class TradeXAuthField extends StatelessWidget {
     this.inputFormatters,
     this.maxLength,
     this.suffixIcon,
+    this.prefixText,
     this.onFieldSubmitted,
     this.onChanged,
     this.onTap,
@@ -182,6 +183,7 @@ class TradeXAuthField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final int? maxLength;
   final Widget? suffixIcon;
+  final String? prefixText;
   final ValueChanged<String>? onFieldSubmitted;
   final ValueChanged<String>? onChanged;
   final VoidCallback? onTap;
@@ -212,6 +214,12 @@ class TradeXAuthField extends StatelessWidget {
         labelText: label,
         labelStyle: const TextStyle(color: TradeXColors.secondaryText),
         prefixIcon: Icon(icon, color: TradeXColors.gold, size: 21),
+        prefixText: prefixText,
+        prefixStyle: const TextStyle(
+          color: TradeXColors.goldBright,
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+        ),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: const Color(0xFF090D0B),
