@@ -4,11 +4,21 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../data/trade_ideas_repository.dart';
+
+bool _timeZoneDatabaseInitialized = false;
+
+void _ensureTimeZoneDatabase() {
+  if (_timeZoneDatabaseInitialized) return;
+  tz_data.initializeTimeZones();
+  _timeZoneDatabaseInitialized = true;
+}
 
 class HomeDashboardScreen extends StatefulWidget {
   const HomeDashboardScreen({
@@ -107,14 +117,7 @@ class _HomeContent extends StatelessWidget {
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               _Header(onLogout: onLogout, onNotificationTap: onActionTap),
-              const SizedBox(height: 18),
-              _HeroBanner(onTap: () => onActionTap('Continue learning')),
-              const SizedBox(height: 20),
-              const _SectionTitle(
-                icon: Icons.schedule_rounded,
-                title: '24H Global Session Clock',
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
               _SessionClockCard(apiClient: apiClient),
               const SizedBox(height: 20),
               _SectionTitle(
@@ -205,110 +208,6 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _HeroBanner extends StatelessWidget {
-  const _HeroBanner({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Ink(
-        height: 168,
-        decoration: BoxDecoration(
-          color: TradeXColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: TradeXColors.gold.withValues(alpha: 0.75)),
-          boxShadow: [
-            BoxShadow(
-              color: TradeXColors.gold.withValues(alpha: 0.08),
-              blurRadius: 28,
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(23),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: SizedBox(
-                  width: MediaQuery.sizeOf(context).width * .67,
-                  child: Image.asset(
-                    'assets/branding/tradex_bull_bear_trading_emblem.png',
-                    fit: BoxFit.cover,
-                    alignment: const Alignment(0.18, 0.08),
-                  ),
-                ),
-              ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      Color(0xFF090D0B),
-                      Color(0xED090D0B),
-                      Color(0x48090D0B),
-                    ],
-                    stops: [0, .45, 1],
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'TRADE SMARTER\nBUILD A FREER LIFE',
-                      style: TextStyle(
-                        color: TradeXColors.primaryText,
-                        fontSize: 18,
-                        height: 1.05,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      'Education  ·  Trade Ideas  ·  Opportunities',
-                      style: TextStyle(
-                        color: Color(0xFFD0D6D3),
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const Spacer(),
-                    _GoldButton(label: 'Continue Learning', onTap: onTap),
-                  ],
-                ),
-              ),
-              const Positioned(
-                bottom: 9,
-                right: 12,
-                child: Text(
-                  'DISCIPLINE\nCREATES\nFREEDOM',
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    color: Color(0xFFF4E1A5),
-                    fontSize: 8,
-                    height: 1.35,
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _SessionClockCard extends StatefulWidget {
   const _SessionClockCard({required this.apiClient});
 
@@ -328,6 +227,7 @@ class _SessionClockCardState extends State<_SessionClockCard> {
   @override
   void initState() {
     super.initState();
+    _ensureTimeZoneDatabase();
     _loadLiveMarketClock();
     _refreshTimer = Timer.periodic(
       const Duration(minutes: 5),
@@ -439,6 +339,8 @@ class _SessionClockCardState extends State<_SessionClockCard> {
               const _ClockLegend(),
               const SizedBox(height: 8),
               ...sessions.map((session) => _SessionRow(session: session)),
+              const SizedBox(height: 16),
+              _WorldClockGrid(now: now, deviceTimezone: _timezone),
             ],
           ),
         );
@@ -533,6 +435,217 @@ class _SessionRow extends StatelessWidget {
       ),
     );
   }
+}
+
+class _WorldClockGrid extends StatelessWidget {
+  const _WorldClockGrid({required this.now, required this.deviceTimezone});
+
+  final DateTime now;
+  final String deviceTimezone;
+
+  @override
+  Widget build(BuildContext context) {
+    final clocks = [
+      _WorldClock(
+        'New Zealand',
+        'Pacific/Auckland',
+        _inZone('Pacific/Auckland'),
+      ),
+      _WorldClock('Device Time', deviceTimezone, now),
+      _WorldClock('London', 'Europe/London', _inZone('Europe/London')),
+      _WorldClock('New York', 'America/New_York', _inZone('America/New_York')),
+    ];
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: clocks.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: .98,
+      ),
+      itemBuilder: (context, index) => _WorldClockTile(clock: clocks[index]),
+    );
+  }
+
+  DateTime _inZone(String timezone) {
+    try {
+      return tz.TZDateTime.now(tz.getLocation(timezone));
+    } catch (_) {
+      return now.toUtc();
+    }
+  }
+}
+
+class _WorldClock {
+  const _WorldClock(this.label, this.timezone, this.time);
+
+  final String label;
+  final String timezone;
+  final DateTime time;
+}
+
+class _WorldClockTile extends StatelessWidget {
+  const _WorldClockTile({required this.clock});
+
+  final _WorldClock clock;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
+    decoration: BoxDecoration(
+      color: const Color(0xFF081B2B),
+      borderRadius: BorderRadius.circular(13),
+      border: Border.all(color: const Color(0xFF1A3850)),
+    ),
+    child: Column(
+      children: [
+        Expanded(
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: CustomPaint(painter: _AnalogClockPainter(time: clock.time)),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          clock.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: TradeXColors.primaryText,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          _digitalTime(clock.time),
+          style: const TextStyle(
+            color: TradeXColors.success,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+        ),
+        Text(
+          clock.timezone,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: TradeXColors.tertiaryText, fontSize: 7),
+        ),
+      ],
+    ),
+  );
+
+  String _digitalTime(DateTime time) {
+    final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final second = time.second.toString().padLeft(2, '0');
+    return '$hour:$minute:$second ${time.hour >= 12 ? 'PM' : 'AM'}';
+  }
+}
+
+class _AnalogClockPainter extends CustomPainter {
+  const _AnalogClockPainter({required this.time});
+
+  final DateTime time;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.shortestSide / 2;
+    canvas.drawCircle(
+      center,
+      radius * .93,
+      Paint()..color = const Color(0xFFF9FAFB),
+    );
+    canvas.drawCircle(
+      center,
+      radius * .93,
+      Paint()
+        ..color = const Color(0xFF122237)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(1.2, radius * .035),
+    );
+    for (var hour = 1; hour <= 12; hour++) {
+      final radians = hour * math.pi / 6 - math.pi / 2;
+      final position = Offset(
+        center.dx + radius * .7 * math.cos(radians),
+        center.dy + radius * .7 * math.sin(radians),
+      );
+      final painter = TextPainter(
+        text: TextSpan(
+          text: '$hour',
+          style: TextStyle(
+            color: const Color(0xFF101827),
+            fontSize: math.max(6, radius * .16),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      painter.paint(
+        canvas,
+        position - Offset(painter.width / 2, painter.height / 2),
+      );
+    }
+    _drawHand(
+      canvas,
+      center,
+      radius * .44,
+      ((time.hour % 12) + time.minute / 60) * 30 - 90,
+      const Color(0xFF172238),
+      math.max(2.2, radius * .09),
+    );
+    _drawHand(
+      canvas,
+      center,
+      radius * .62,
+      (time.minute + time.second / 60) * 6 - 90,
+      const Color(0xFF172238),
+      math.max(1.6, radius * .055),
+    );
+    _drawHand(
+      canvas,
+      center,
+      radius * .7,
+      (time.second * 6 - 90).toDouble(),
+      const Color(0xFFFF4247),
+      math.max(.8, radius * .02),
+    );
+    canvas.drawCircle(
+      center,
+      math.max(2.3, radius * .075),
+      Paint()..color = const Color(0xFFFF4247),
+    );
+  }
+
+  void _drawHand(
+    Canvas canvas,
+    Offset center,
+    double length,
+    double degrees,
+    Color color,
+    double width,
+  ) {
+    final radians = degrees * math.pi / 180;
+    final endpoint = Offset(
+      center.dx + length * math.cos(radians),
+      center.dy + length * math.sin(radians),
+    );
+    canvas.drawLine(
+      center,
+      endpoint,
+      Paint()
+        ..color = color
+        ..strokeWidth = width
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _AnalogClockPainter oldDelegate) => true;
 }
 
 class _ClockLegend extends StatelessWidget {
