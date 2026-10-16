@@ -5,6 +5,8 @@ import '../features/auth/data/auth_repository.dart';
 import '../features/auth/data/password_recovery_repository.dart';
 import '../features/auth/data/registration_repository.dart';
 import '../features/auth/presentation/session_gate.dart';
+import 'connectivity_observer.dart';
+import '../core/network/app_messenger.dart';
 
 class TradeXApp extends StatelessWidget {
   const TradeXApp({
@@ -20,14 +22,17 @@ class TradeXApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Trade X',
-      debugShowCheckedModeBanner: false,
-      theme: TradeXTheme.dark,
-      home: SessionGate(
-        authRepository: authRepository,
-        registrationRepository: registrationRepository,
-        passwordRecoveryRepository: passwordRecoveryRepository,
+    return ConnectivityObserver(
+      child: MaterialApp(
+        title: 'Trade X',
+        debugShowCheckedModeBanner: false,
+        scaffoldMessengerKey: AppMessenger.key,
+        theme: TradeXTheme.dark,
+        home: SessionGate(
+          authRepository: authRepository,
+          registrationRepository: registrationRepository,
+          passwordRecoveryRepository: passwordRecoveryRepository,
+        ),
       ),
     );
   }
