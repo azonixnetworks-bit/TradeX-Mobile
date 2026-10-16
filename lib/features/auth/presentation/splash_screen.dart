@@ -199,13 +199,10 @@ class _SplashBackground extends StatelessWidget {
       children: [
         const ColoredBox(color: Colors.black),
         Center(
-          child: Transform.scale(
-            scale: 0.88,
-            child: Image.asset(
-              'assets/branding/trade_x_splash_background.png',
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.high,
-            ),
+          child: Image.asset(
+            'assets/branding/tradex_bull_bear_trading_emblem.png',
+            fit: BoxFit.cover,
+            filterQuality: FilterQuality.high,
           ),
         ),
         const DecoratedBox(
