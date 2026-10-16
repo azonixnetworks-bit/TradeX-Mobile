@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/theme/tradex_colors.dart';
 import '../models/registration_session.dart';
@@ -17,14 +18,8 @@ class RegistrationTotpSetupScreen extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onContinue;
 
-  Future<void> _copy(
-    BuildContext context,
-    String value,
-    String label,
-  ) async {
-    await Clipboard.setData(
-      ClipboardData(text: value),
-    );
+  Future<void> _copy(BuildContext context, String value, String label) async {
+    await Clipboard.setData(ClipboardData(text: value));
 
     if (!context.mounted) {
       return;
@@ -37,9 +32,7 @@ class RegistrationTotpSetupScreen extends StatelessWidget {
           backgroundColor: TradeXColors.surfaceRaised,
           content: Text(
             '$label copied.',
-            style: const TextStyle(
-              color: TradeXColors.primaryText,
-            ),
+            style: const TextStyle(color: TradeXColors.primaryText),
           ),
         ),
       );
@@ -49,24 +42,26 @@ class RegistrationTotpSetupScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return TradeXAuthPage(
       title: 'Set Up Authenticator',
-      subtitle:
-          'Add TradeX to your authenticator app before confirming the 6-digit code.',
+      subtitle: 'Add TradeX to your authenticator app before confirming the 6-digit code.',
       onBack: onBack,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const TradeXInfoBanner(
-            message:
-                'Use Google Authenticator, Microsoft Authenticator, 1Password, Authy, or another TOTP-compatible app.',
+            message: 'Use Google Authenticator, Microsoft Authenticator, 1Password, Authy, or another TOTP-compatible app.',
             icon: Icons.security_rounded,
           ),
           const SizedBox(height: 18),
           const Text(
+            'Scan QR Code',
+            style: TextStyle(color: TradeXColors.secondaryText, fontSize: 12),
+          ),
+          const SizedBox(height: 7),
+          _TotpQrCode(value: setup.otpauthUri),
+          const SizedBox(height: 18),
+          const Text(
             'Issuer',
-            style: TextStyle(
-              color: TradeXColors.secondaryText,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: TradeXColors.secondaryText, fontSize: 12),
           ),
           const SizedBox(height: 5),
           Text(
@@ -80,10 +75,7 @@ class RegistrationTotpSetupScreen extends StatelessWidget {
           const SizedBox(height: 16),
           const Text(
             'Account',
-            style: TextStyle(
-              color: TradeXColors.secondaryText,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: TradeXColors.secondaryText, fontSize: 12),
           ),
           const SizedBox(height: 5),
           Text(
@@ -97,10 +89,7 @@ class RegistrationTotpSetupScreen extends StatelessWidget {
           const SizedBox(height: 18),
           const Text(
             'Manual Setup Key',
-            style: TextStyle(
-              color: TradeXColors.secondaryText,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: TradeXColors.secondaryText, fontSize: 12),
           ),
           const SizedBox(height: 7),
           Container(
@@ -129,25 +118,14 @@ class RegistrationTotpSetupScreen extends StatelessWidget {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () {
-                _copy(
-                  context,
-                  setup.secret,
-                  'Authenticator setup key',
-                );
+                _copy(context, setup.secret, 'Authenticator setup key');
               },
-              icon: const Icon(
-                Icons.copy_rounded,
-                size: 18,
-              ),
+              icon: const Icon(Icons.copy_rounded, size: 18),
               label: const Text('Copy Setup Key'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: TradeXColors.goldBright,
-                side: const BorderSide(
-                  color: TradeXColors.gold,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 13,
-                ),
+                side: const BorderSide(color: TradeXColors.gold),
+                padding: const EdgeInsets.symmetric(vertical: 13),
               ),
             ),
           ),
@@ -165,6 +143,55 @@ class RegistrationTotpSetupScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TotpQrCode extends StatelessWidget {
+  const _TotpQrCode({required this.value});
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final qrSize = (constraints.maxWidth * 0.62).clamp(150.0, 210.0);
+
+        return Center(
+          child: Container(
+            width: qrSize + 24,
+            height: qrSize + 24,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: TradeXColors.gold.withValues(alpha: 0.52),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: TradeXColors.gold.withValues(alpha: 0.16),
+                  blurRadius: 22,
+                ),
+              ],
+            ),
+            child: QrImageView(
+              data: value,
+              version: QrVersions.auto,
+              size: qrSize,
+              eyeStyle: const QrEyeStyle(
+                eyeShape: QrEyeShape.square,
+                color: Color(0xFF080B0A),
+              ),
+              dataModuleStyle: const QrDataModuleStyle(
+                dataModuleShape: QrDataModuleShape.square,
+                color: Color(0xFF080B0A),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
