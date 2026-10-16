@@ -481,7 +481,8 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
           title: 'Verify Mobile Number',
           subtitle: 'WhatsApp delivery is coming soon. Enter the 6-digit code sent to your email.',
           codeLength: 6,
-          digitsPerBox: 1,
+          forceSingleDigitBoxes: true,
+          titleIconAsset: 'assets/branding/whatsapp_verification.png',
           channelLabel:
               'Temporary mobile verification code sent to $_registrationEmail.',
           onVerify: _verifyRegistrationWhatsApp,
