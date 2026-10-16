@@ -470,6 +470,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
           title: 'Verify Your Email',
           subtitle: 'Enter the 8 digits from the Trade X email code. The email may display it in TRX-XX XX XX XX format.',
           codeLength: 8,
+          titleIconAsset: 'assets/branding/email_verification.png',
           channelLabel: 'Verification code sent to $_registrationEmail.',
           onVerify: _verifyRegistrationEmail,
           onResend: _resendRegistrationEmail,
