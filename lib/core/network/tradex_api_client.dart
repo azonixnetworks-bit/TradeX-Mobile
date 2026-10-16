@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
@@ -47,6 +48,45 @@ class TradeXApiClient {
     authenticated: true,
     retryAfterRefresh: true,
   );
+
+  Future<Uint8List> getBytes(String path) async {
+    AuthSession? session = await _sessionStore.readSession();
+    if (session == null) {
+      throw const ApiException(
+        message: 'Your TradeX session has ended. Please sign in again.',
+        statusCode: 401,
+        code: 'SESSION_MISSING',
+      );
+    }
+
+    if (session.accessTokenExpired) session = await refreshSession();
+
+    var response = await _request(
+      method: 'GET',
+      path: path,
+      accessToken: session.accessToken,
+      responseType: ResponseType.bytes,
+    );
+
+    if (response.statusCode == 401) {
+      session = await refreshSession(force: true);
+      response = await _request(
+        method: 'GET',
+        path: path,
+        accessToken: session.accessToken,
+        responseType: ResponseType.bytes,
+      );
+    }
+
+    final statusCode = response.statusCode ?? 500;
+    if (statusCode < 200 || statusCode >= 300 || response.data is! List<int>) {
+      throw const ApiException(
+        message: 'Trade idea chart is unavailable right now.',
+      );
+    }
+
+    return Uint8List.fromList(response.data as List<int>);
+  }
 
   Future<Map<String, dynamic>> postJson(
     String path,
@@ -116,6 +156,7 @@ class TradeXApiClient {
     required String path,
     Map<String, dynamic>? body,
     String? accessToken,
+    ResponseType? responseType,
   }) async {
     try {
       return await _dio.request<dynamic>(
@@ -123,6 +164,7 @@ class TradeXApiClient {
         data: body,
         options: Options(
           method: method,
+          responseType: responseType,
           headers: <String, String>{
             'Accept': 'application/json',
             'Content-Type': 'application/json',

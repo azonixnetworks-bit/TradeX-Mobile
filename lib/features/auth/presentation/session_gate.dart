@@ -8,6 +8,7 @@ import '../data/password_recovery_repository.dart';
 import '../data/registration_repository.dart';
 import 'auth_flow_screen.dart';
 import '../../home/presentation/home_dashboard_screen.dart';
+import '../../home/data/trade_ideas_repository.dart';
 
 class SessionGate extends StatefulWidget {
   const SessionGate({
@@ -16,12 +17,14 @@ class SessionGate extends StatefulWidget {
     required this.registrationRepository,
     required this.passwordRecoveryRepository,
     required this.apiClient,
+    required this.tradeIdeasRepository,
   });
 
   final AuthRepository authRepository;
   final RegistrationRepository registrationRepository;
   final PasswordRecoveryRepository passwordRecoveryRepository;
   final TradeXApiClient apiClient;
+  final TradeIdeasRepository tradeIdeasRepository;
 
   @override
   State<SessionGate> createState() => _SessionGateState();
@@ -112,6 +115,7 @@ class _SessionGateState extends State<SessionGate> {
       return HomeDashboardScreen(
         onLogout: _logout,
         apiClient: widget.apiClient,
+        tradeIdeasRepository: widget.tradeIdeasRepository,
       );
     }
 
