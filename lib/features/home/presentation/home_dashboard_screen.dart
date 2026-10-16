@@ -455,17 +455,17 @@ class _WorldClockGrid extends StatelessWidget {
       _WorldClock('London', 'Europe/London', _inZone('Europe/London')),
       _WorldClock('New York', 'America/New_York', _inZone('America/New_York')),
     ];
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: clocks.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-        childAspectRatio: .98,
+    return SizedBox(
+      height: 172,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.only(right: 8),
+        itemCount: clocks.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) =>
+            SizedBox(width: 142, child: _WorldClockTile(clock: clocks[index])),
       ),
-      itemBuilder: (context, index) => _WorldClockTile(clock: clocks[index]),
     );
   }
 
