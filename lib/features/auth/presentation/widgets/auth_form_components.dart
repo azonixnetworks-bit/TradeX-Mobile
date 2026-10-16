@@ -11,6 +11,7 @@ class TradeXAuthPage extends StatelessWidget {
     required this.child,
     this.onBack,
     this.footer,
+    this.titleIconAsset,
   });
 
   final String title;
@@ -18,6 +19,7 @@ class TradeXAuthPage extends StatelessWidget {
   final Widget child;
   final VoidCallback? onBack;
   final Widget? footer;
+  final String? titleIconAsset;
 
   @override
   Widget build(BuildContext context) {
@@ -67,15 +69,29 @@ class TradeXAuthPage extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        Text(
-                          title,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: TradeXColors.primaryText,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.4,
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              title,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: TradeXColors.primaryText,
+                                fontSize: 26,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.4,
+                              ),
+                            ),
+                            if (titleIconAsset != null) ...[
+                              const SizedBox(width: 8),
+                              Image.asset(
+                                titleIconAsset!,
+                                width: 27,
+                                height: 27,
+                                fit: BoxFit.contain,
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 7),
                         Text(

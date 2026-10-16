@@ -19,6 +19,8 @@ class OtpVerificationScreen extends StatefulWidget {
     this.initialCooldownSeconds = 60,
     this.showResend = true,
     this.digitsPerBox = 2,
+    this.forceSingleDigitBoxes = false,
+    this.titleIconAsset,
   });
 
   final String title;
@@ -31,6 +33,8 @@ class OtpVerificationScreen extends StatefulWidget {
   final int initialCooldownSeconds;
   final bool showResend;
   final int digitsPerBox;
+  final bool forceSingleDigitBoxes;
+  final String? titleIconAsset;
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -51,14 +55,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   void initState() {
     super.initState();
-    _codeControllers = List.generate(
-      widget.codeLength ~/ widget.digitsPerBox,
-      (_) => TextEditingController(),
-    );
-    _codeFocusNodes = List.generate(
-      widget.codeLength ~/ widget.digitsPerBox,
-      (_) => FocusNode(),
-    );
+    _codeControllers = List.generate(_boxCount, (_) => TextEditingController());
+    _codeFocusNodes = List.generate(_boxCount, (_) => FocusNode());
     _startCooldown(widget.initialCooldownSeconds);
   }
 
@@ -76,6 +74,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   String get _code =>
       _codeControllers.map((controller) => controller.text).join();
+
+  int get _boxCount => widget.forceSingleDigitBoxes
+      ? widget.codeLength
+      : widget.codeLength ~/ widget.digitsPerBox;
+
+  int get _digitsPerBox =>
+      widget.forceSingleDigitBoxes ? 1 : widget.digitsPerBox;
 
   void _startCooldown(int seconds) {
     _timer?.cancel();
@@ -206,6 +211,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       title: widget.title,
       subtitle: widget.subtitle,
       onBack: widget.onBack,
+      titleIconAsset: widget.titleIconAsset,
       child: Form(
         key: _formKey,
         child: Column(
@@ -253,9 +259,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       controller: _codeControllers[index],
                       focusNode: _codeFocusNodes[index],
                       autofocus: index == 0,
-                      digitsPerBox: widget.digitsPerBox,
+                      digitsPerBox: _digitsPerBox,
                       onChanged: (value) {
-                        if (value.length == widget.digitsPerBox &&
+                        if (value.length == _digitsPerBox &&
                             index < _codeFocusNodes.length - 1) {
                           _codeFocusNodes[index + 1].requestFocus();
                         }
