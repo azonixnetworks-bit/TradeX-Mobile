@@ -46,3 +46,29 @@ class RegistrationTotpSetup {
     );
   }
 }
+
+class RegistrationRecoveryCodes {
+  const RegistrationRecoveryCodes({required this.codes});
+
+  final List<String> codes;
+
+  factory RegistrationRecoveryCodes.fromJson(Map<String, dynamic> json) {
+    final rawCodes = json['recovery_codes'];
+
+    if (rawCodes is! List) {
+      throw const FormatException('TradeX returned invalid recovery codes.');
+    }
+
+    final codes = rawCodes
+        .whereType<String>()
+        .map((code) => code.trim())
+        .where((code) => code.isNotEmpty)
+        .toList(growable: false);
+
+    if (codes.isEmpty) {
+      throw const FormatException('TradeX returned empty recovery codes.');
+    }
+
+    return RegistrationRecoveryCodes(codes: codes);
+  }
+}

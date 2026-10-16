@@ -98,6 +98,17 @@ class RegistrationRepository {
     }
   }
 
+  Future<RegistrationRecoveryCodes> bootstrapRecoveryCodes(
+    RegistrationSession session,
+  ) async {
+    final response = await _apiClient.publicPost(
+      '/api/v1/auth/register/recovery-codes',
+      _sessionPayload(session),
+    );
+
+    return RegistrationRecoveryCodes.fromJson(_data(response));
+  }
+
   Map<String, dynamic> _sessionPayload(RegistrationSession session) {
     return <String, dynamic>{
       'registration_id': session.id,
