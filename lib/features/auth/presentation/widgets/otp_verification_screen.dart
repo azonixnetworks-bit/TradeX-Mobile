@@ -40,6 +40,42 @@ class OtpVerificationScreen extends StatefulWidget {
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
 }
 
+/// A dedicated six-field OTP screen for mobile verification. Keeping this as a
+/// separate widget ensures the old two-digit email layout can never be reused
+/// when the registration flow moves to WhatsApp/mobile verification.
+class MobileOtpVerificationScreen extends StatelessWidget {
+  const MobileOtpVerificationScreen({
+    super.key,
+    required this.subtitle,
+    required this.channelLabel,
+    required this.onVerify,
+    required this.onResend,
+    required this.onBack,
+  });
+
+  final String subtitle;
+  final String channelLabel;
+  final Future<void> Function(String code) onVerify;
+  final Future<void> Function() onResend;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return OtpVerificationScreen(
+      key: const ValueKey('mobile-single-digit-otp'),
+      title: 'Verify Mobile Number',
+      subtitle: subtitle,
+      codeLength: 6,
+      forceSingleDigitBoxes: true,
+      titleIconAsset: 'assets/branding/whatsapp_verification.png',
+      channelLabel: channelLabel,
+      onVerify: onVerify,
+      onResend: onResend,
+      onBack: onBack,
+    );
+  }
+}
+
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final List<TextEditingController> _codeControllers;
