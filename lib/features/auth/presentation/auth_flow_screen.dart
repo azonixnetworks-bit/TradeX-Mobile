@@ -478,12 +478,8 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
         );
 
       case _AuthStep.registerWhatsAppOtp:
-        return OtpVerificationScreen(
-          title: 'Verify Mobile Number',
+        return MobileOtpVerificationScreen(
           subtitle: 'WhatsApp delivery is coming soon. Enter the 6-digit code sent to your email.',
-          codeLength: 6,
-          forceSingleDigitBoxes: true,
-          titleIconAsset: 'assets/branding/whatsapp_verification.png',
           channelLabel:
               'Temporary mobile verification code sent to $_registrationEmail.',
           onVerify: _verifyRegistrationWhatsApp,
