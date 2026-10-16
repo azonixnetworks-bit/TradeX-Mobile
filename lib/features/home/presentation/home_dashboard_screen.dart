@@ -1657,27 +1657,27 @@ class _CategoryGrid extends StatelessWidget {
     const categories = [
       (
         label: 'Forex',
-        icon: Icons.currency_exchange_rounded,
         ideas: '30+ Ideas',
         accent: Color(0xFF45D6A8),
+        imageAsset: 'assets/branding/market_forex.png',
       ),
       (
         label: 'Crypto',
-        icon: Icons.currency_bitcoin_rounded,
         ideas: '20+ Ideas',
         accent: Color(0xFFFFA928),
+        imageAsset: 'assets/branding/market_crypto.png',
       ),
       (
         label: 'Stocks',
-        icon: Icons.trending_up_rounded,
         ideas: '50+ Ideas',
         accent: Color(0xFF39B9FF),
+        imageAsset: 'assets/branding/market_stocks.png',
       ),
       (
         label: 'Deriv',
-        icon: Icons.multiline_chart_rounded,
         ideas: '15+ Ideas',
         accent: Color(0xFFFF5A54),
+        imageAsset: 'assets/branding/market_deriv.png',
       ),
     ];
     return SizedBox(
@@ -1692,10 +1692,10 @@ class _CategoryGrid extends StatelessWidget {
           return SizedBox(
             width: 264,
             child: _CategoryTile(
-              icon: category.icon,
               label: category.label,
               ideas: category.ideas,
               accent: category.accent,
+              imageAsset: category.imageAsset,
               onTap: () => onTap('${category.label} trade ideas'),
             ),
           );
@@ -1707,17 +1707,17 @@ class _CategoryGrid extends StatelessWidget {
 
 class _CategoryTile extends StatelessWidget {
   const _CategoryTile({
-    required this.icon,
     required this.label,
     required this.ideas,
     required this.accent,
+    required this.imageAsset,
     required this.onTap,
   });
 
-  final IconData icon;
   final String label;
   final String ideas;
   final Color accent;
+  final String imageAsset;
   final VoidCallback onTap;
 
   @override
@@ -1728,14 +1728,9 @@ class _CategoryTile extends StatelessWidget {
       child: Ink(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              accent.withValues(alpha: .23),
-              const Color(0xFF07100E),
-              const Color(0xFF0B0B09),
-            ],
+          image: DecorationImage(
+            image: AssetImage(imageAsset),
+            fit: BoxFit.cover,
           ),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: accent.withValues(alpha: .78)),
@@ -1745,10 +1740,17 @@ class _CategoryTile extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Positioned(
-              top: -10,
-              right: -8,
-              child: Icon(icon, color: accent.withValues(alpha: .78), size: 96),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(17),
+                  gradient: const LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [Color(0xBE020504), Color(0x26020504)],
+                  ),
+                ),
+              ),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1793,19 +1795,6 @@ class _CategoryTile extends StatelessWidget {
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
                         ),
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      width: 35,
-                      height: 35,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: TradeXColors.goldBright),
-                      ),
-                      child: const Icon(
-                        Icons.chevron_right_rounded,
-                        color: TradeXColors.goldBright,
                       ),
                     ),
                   ],
