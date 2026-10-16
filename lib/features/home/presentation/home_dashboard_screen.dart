@@ -34,18 +34,30 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           duration: const Duration(milliseconds: 260),
           switchInCurve: Curves.easeOutCubic,
           switchOutCurve: Curves.easeInCubic,
-          child: _selectedTab == 0
-              ? _HomeContent(
-                  key: const ValueKey('home'),
-                  onActionTap: _showComingSoon,
-                  onLogout: widget.onLogout,
-                )
-              : _DashboardPlaceholder(
-                  key: ValueKey(_selectedTab),
-                  icon: _tabItems[_selectedTab].icon,
-                  title: _tabItems[_selectedTab].label,
-                  onBackHome: () => setState(() => _selectedTab = 0),
-                ),
+          child: switch (_selectedTab) {
+            0 => _HomeContent(
+              key: const ValueKey('home'),
+              onActionTap: _showComingSoon,
+              onLogout: widget.onLogout,
+            ),
+            1 => _LearnTab(
+              key: const ValueKey('learn'),
+              onActionTap: _showComingSoon,
+            ),
+            2 => _TradeIdeasTab(
+              key: const ValueKey('ideas'),
+              onActionTap: _showComingSoon,
+            ),
+            3 => _AffiliateTab(
+              key: const ValueKey('affiliate'),
+              onActionTap: _showComingSoon,
+            ),
+            _ => _ProfileTab(
+              key: const ValueKey('profile'),
+              onActionTap: _showComingSoon,
+              onLogout: widget.onLogout,
+            ),
+          },
         ),
       ),
       bottomNavigationBar: _DashboardNavBar(
@@ -752,44 +764,1137 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _DashboardPlaceholder extends StatelessWidget {
-  const _DashboardPlaceholder({
+class _LearnTab extends StatelessWidget {
+  const _LearnTab({super.key, required this.onActionTap});
+
+  final ValueChanged<String> onActionTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _TabScrollView(
+      title: 'Learning Hub',
+      subtitle: 'Build skill, discipline and consistency.',
+      children: [
+        _LearningProgressCard(onTap: () => onActionTap('Resume course')),
+        const SizedBox(height: 22),
+        const _SectionTitle(
+          icon: Icons.auto_stories_rounded,
+          title: 'Your Learning Path',
+        ),
+        const SizedBox(height: 10),
+        _ModuleList(onTap: onActionTap),
+        const SizedBox(height: 22),
+        const _SectionTitle(
+          icon: Icons.workspace_premium_rounded,
+          title: 'Recommended for you',
+        ),
+        const SizedBox(height: 10),
+        _RecommendedCourseCard(onTap: () => onActionTap('Recommended course')),
+      ],
+    );
+  }
+}
+
+class _TradeIdeasTab extends StatelessWidget {
+  const _TradeIdeasTab({super.key, required this.onActionTap});
+
+  final ValueChanged<String> onActionTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _TabScrollView(
+      title: 'Trade Ideas',
+      subtitle: 'Educational market ideas. Always manage your own risk.',
+      children: [
+        const _RiskNotice(),
+        const SizedBox(height: 16),
+        _MarketFilterBar(onActionTap: onActionTap),
+        const SizedBox(height: 15),
+        _ExpandedIdeaCard(
+          symbol: 'XAUUSD',
+          market: 'GOLD',
+          direction: 'BUY',
+          entry: '2340 - 2345',
+          target: '2360 / 2375',
+          stop: '2320',
+          status: 'ACTIVE',
+          isPositive: true,
+          onTap: () => onActionTap('XAUUSD trade idea'),
+        ),
+        const SizedBox(height: 12),
+        _ExpandedIdeaCard(
+          symbol: 'BTCUSD',
+          market: 'CRYPTO',
+          direction: 'SELL',
+          entry: '67,950 - 68,300',
+          target: '66,800 / 66,200',
+          stop: '68,800',
+          status: 'WATCHING',
+          isPositive: false,
+          onTap: () => onActionTap('BTCUSD trade idea'),
+        ),
+        const SizedBox(height: 12),
+        _ExpandedIdeaCard(
+          symbol: 'EURUSD',
+          market: 'FOREX',
+          direction: 'BUY',
+          entry: '1.0820 - 1.0830',
+          target: '1.0880 / 1.0910',
+          stop: '1.0790',
+          status: 'ACTIVE',
+          isPositive: true,
+          onTap: () => onActionTap('EURUSD trade idea'),
+        ),
+      ],
+    );
+  }
+}
+
+class _AffiliateTab extends StatelessWidget {
+  const _AffiliateTab({super.key, required this.onActionTap});
+
+  final ValueChanged<String> onActionTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _TabScrollView(
+      title: 'Affiliate Centre',
+      subtitle: 'Share TradeX. Build your community.',
+      children: [
+        _AffiliateHero(onShare: () => onActionTap('Share referral link')),
+        const SizedBox(height: 20),
+        const _SectionTitle(
+          icon: Icons.account_tree_rounded,
+          title: 'Your Performance',
+        ),
+        const SizedBox(height: 10),
+        const _AffiliateMetrics(),
+        const SizedBox(height: 20),
+        const _SectionTitle(
+          icon: Icons.emoji_events_rounded,
+          title: 'Next Milestone',
+        ),
+        const SizedBox(height: 10),
+        _MilestoneCard(onTap: () => onActionTap('Affiliate milestones')),
+        const SizedBox(height: 20),
+        _AffiliateTools(onActionTap: onActionTap),
+      ],
+    );
+  }
+}
+
+class _ProfileTab extends StatelessWidget {
+  const _ProfileTab({
     super.key,
+    required this.onActionTap,
+    required this.onLogout,
+  });
+
+  final ValueChanged<String> onActionTap;
+  final Future<void> Function() onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return _TabScrollView(
+      title: 'My Profile',
+      subtitle: 'Manage your TradeX account securely.',
+      children: [
+        _ProfileHero(onTap: () => onActionTap('Edit profile')),
+        const SizedBox(height: 20),
+        const _SectionTitle(
+          icon: Icons.verified_user_rounded,
+          title: 'Account & Security',
+        ),
+        const SizedBox(height: 10),
+        _ProfileMenu(onActionTap: onActionTap, onLogout: onLogout),
+        const SizedBox(height: 20),
+        const _SectionTitle(
+          icon: Icons.support_agent_rounded,
+          title: 'Support',
+        ),
+        const SizedBox(height: 10),
+        _SupportCard(onTap: () => onActionTap('Support centre')),
+      ],
+    );
+  }
+}
+
+class _TabScrollView extends StatelessWidget {
+  const _TabScrollView({
+    required this.title,
+    required this.subtitle,
+    required this.children,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              Image.asset(
+                'assets/branding/trade_x_wordmark.png',
+                width: 128,
+                height: 32,
+                alignment: Alignment.centerLeft,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: TradeXColors.primaryText,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 28,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: TradeXColors.secondaryText,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ...children,
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LearningProgressCard extends StatelessWidget {
+  const _LearningProgressCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Ink(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF30240A), Color(0xFF131A16)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: TradeXColors.gold.withValues(alpha: .65)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'KEEP BUILDING YOUR EDGE',
+              style: TextStyle(
+                color: TradeXColors.goldBright,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.1,
+              ),
+            ),
+            const SizedBox(height: 7),
+            const Text(
+              'Smart Money Concepts',
+              style: TextStyle(
+                color: TradeXColors.primaryText,
+                fontSize: 21,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 5),
+            const Text(
+              'Module 3 · Lesson 2: Break of Structure',
+              style: TextStyle(color: TradeXColors.secondaryText, fontSize: 12),
+            ),
+            const SizedBox(height: 18),
+            const ClipRRect(
+              borderRadius: BorderRadius.all(Radius.circular(99)),
+              child: LinearProgressIndicator(
+                value: .68,
+                minHeight: 8,
+                color: TradeXColors.goldBright,
+                backgroundColor: TradeXColors.surfaceMuted,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Row(
+              children: [
+                const Text(
+                  '68% complete',
+                  style: TextStyle(
+                    color: TradeXColors.goldBright,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                _GoldButton(label: 'Resume', onTap: onTap),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ModuleList extends StatelessWidget {
+  const _ModuleList({required this.onTap});
+
+  final ValueChanged<String> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const modules = [
+      ('1', 'Trading Foundations', 'Complete', true),
+      ('2', 'Risk Management', 'Complete', true),
+      ('3', 'Market Structure', 'In progress', false),
+      ('4', 'Trade Execution', 'Locked', false),
+    ];
+    return Container(
+      decoration: _panelDecoration,
+      child: Column(
+        children: modules.map((module) {
+          final index = modules.indexOf(module);
+          final complete = module.$4;
+          final locked = module.$3 == 'Locked';
+          return InkWell(
+            onTap: locked ? null : () => onTap(module.$2),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: complete
+                          ? TradeXColors.success.withValues(alpha: .16)
+                          : locked
+                          ? TradeXColors.surfaceMuted
+                          : TradeXColors.goldDeep.withValues(alpha: .38),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      complete
+                          ? Icons.check_rounded
+                          : locked
+                          ? Icons.lock_outline_rounded
+                          : Icons.play_arrow_rounded,
+                      color: complete
+                          ? TradeXColors.success
+                          : locked
+                          ? TradeXColors.tertiaryText
+                          : TradeXColors.goldBright,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Module ${module.$1}: ${module.$2}',
+                      style: TextStyle(
+                        color: locked
+                            ? TradeXColors.secondaryText
+                            : TradeXColors.primaryText,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    module.$3,
+                    style: TextStyle(
+                      color: complete
+                          ? TradeXColors.success
+                          : locked
+                          ? TradeXColors.tertiaryText
+                          : TradeXColors.goldBright,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (index != modules.length - 1) const SizedBox(width: 0),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _RecommendedCourseCard extends StatelessWidget {
+  const _RecommendedCourseCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Ink(
+        padding: const EdgeInsets.all(14),
+        decoration: _panelDecoration,
+        child: Row(
+          children: [
+            _CourseThumbnail(label: 'RISK\nMANAGEMENT'),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Risk Management Mastery',
+                    style: TextStyle(
+                      color: TradeXColors.primaryText,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Text(
+                    'Protect capital before you pursue profit.',
+                    style: TextStyle(
+                      color: TradeXColors.secondaryText,
+                      fontSize: 11,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_rounded,
+              color: TradeXColors.goldBright,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RiskNotice extends StatelessWidget {
+  const _RiskNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: TradeXColors.warning.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: TradeXColors.warning.withValues(alpha: .35)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.shield_outlined, color: TradeXColors.warning, size: 20),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Trade ideas are for educational purposes only. Trade at your own risk and always use your own analysis.',
+              style: TextStyle(
+                color: Color(0xFFE9DDAE),
+                fontSize: 11,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MarketFilterBar extends StatelessWidget {
+  const _MarketFilterBar({required this.onActionTap});
+
+  final ValueChanged<String> onActionTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const markets = ['All', 'Forex', 'Crypto', 'Gold'];
+    return SizedBox(
+      height: 36,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: markets.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final selected = index == 0;
+          return InkWell(
+            onTap: () => onActionTap('${markets[index]} trade ideas'),
+            borderRadius: BorderRadius.circular(99),
+            child: Ink(
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(99),
+                color: selected
+                    ? TradeXColors.goldBright
+                    : TradeXColors.surfaceRaised,
+                border: Border.all(
+                  color: selected
+                      ? TradeXColors.goldBright
+                      : TradeXColors.border,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  markets[index],
+                  style: TextStyle(
+                    color: selected
+                        ? const Color(0xFF171308)
+                        : TradeXColors.primaryText,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ExpandedIdeaCard extends StatelessWidget {
+  const _ExpandedIdeaCard({
+    required this.symbol,
+    required this.market,
+    required this.direction,
+    required this.entry,
+    required this.target,
+    required this.stop,
+    required this.status,
+    required this.isPositive,
+    required this.onTap,
+  });
+
+  final String symbol;
+  final String market;
+  final String direction;
+  final String entry;
+  final String target;
+  final String stop;
+  final String status;
+  final bool isPositive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final directionColor = isPositive
+        ? TradeXColors.success
+        : TradeXColors.error;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Ink(
+        padding: const EdgeInsets.all(16),
+        decoration: _panelDecoration,
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Text(
+                  symbol,
+                  style: const TextStyle(
+                    color: TradeXColors.primaryText,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _SmallPill(label: market, color: TradeXColors.goldBright),
+                const Spacer(),
+                _SmallPill(
+                  label: status,
+                  color: status == 'ACTIVE'
+                      ? TradeXColors.success
+                      : TradeXColors.warning,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _IdeaValue(
+                    label: 'Direction',
+                    value: direction,
+                    color: directionColor,
+                  ),
+                ),
+                Expanded(
+                  child: _IdeaValue(label: 'Entry', value: entry),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _IdeaValue(label: 'Take profit', value: target),
+                ),
+                Expanded(
+                  child: _IdeaValue(
+                    label: 'Stop loss',
+                    value: stop,
+                    color: TradeXColors.error,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 13),
+            const Divider(color: TradeXColors.border, height: 1),
+            const SizedBox(height: 10),
+            const Row(
+              children: [
+                Icon(
+                  Icons.schedule_rounded,
+                  color: TradeXColors.secondaryText,
+                  size: 15,
+                ),
+                SizedBox(width: 5),
+                Text(
+                  'Updated moments ago',
+                  style: TextStyle(
+                    color: TradeXColors.secondaryText,
+                    fontSize: 11,
+                  ),
+                ),
+                Spacer(),
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  color: TradeXColors.goldBright,
+                  size: 18,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _IdeaValue extends StatelessWidget {
+  const _IdeaValue({required this.label, required this.value, this.color});
+
+  final String label;
+  final String value;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: TradeXColors.secondaryText,
+            fontSize: 10,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: TextStyle(
+            color: color ?? TradeXColors.primaryText,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SmallPill extends StatelessWidget {
+  const _SmallPill({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: color.withValues(alpha: .43)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _AffiliateHero extends StatelessWidget {
+  const _AffiliateHero({required this.onShare});
+
+  final VoidCallback onShare;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(19),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2D230B), Color(0xFF0F1915)],
+        ),
+        border: Border.all(color: TradeXColors.gold.withValues(alpha: .65)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.workspace_premium_rounded,
+            color: TradeXColors.goldBright,
+            size: 34,
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Invite. Empower. Earn.',
+            style: TextStyle(
+              color: TradeXColors.primaryText,
+              fontSize: 23,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Your unique referral code is ready to share.',
+            style: TextStyle(color: TradeXColors.secondaryText, fontSize: 12),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: .28),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: TradeXColors.borderStrong),
+            ),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.link_rounded,
+                  color: TradeXColors.goldBright,
+                  size: 18,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'TRADEX.OS/REF/TRXADMIN',
+                    style: TextStyle(
+                      color: TradeXColors.primaryText,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.copy_rounded,
+                  color: TradeXColors.goldBright,
+                  size: 17,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 15),
+          _GoldButton(label: 'Share Your Link', onTap: onShare),
+        ],
+      ),
+    );
+  }
+}
+
+class _AffiliateMetrics extends StatelessWidget {
+  const _AffiliateMetrics();
+
+  @override
+  Widget build(BuildContext context) {
+    const metrics = [
+      ('0', 'Total referrals', Icons.groups_rounded),
+      ('0', 'Qualified clients', Icons.verified_rounded),
+      ('LKR 0.00', 'Available rewards', Icons.account_balance_wallet_rounded),
+    ];
+    return GridView.builder(
+      itemCount: metrics.length,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 9,
+        childAspectRatio: .83,
+      ),
+      itemBuilder: (context, index) {
+        final metric = metrics[index];
+        return Container(
+          padding: const EdgeInsets.all(11),
+          decoration: _panelDecoration,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(metric.$3, color: TradeXColors.goldBright, size: 21),
+              const Spacer(),
+              Text(
+                metric.$1,
+                style: const TextStyle(
+                  color: TradeXColors.primaryText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                metric.$2,
+                style: const TextStyle(
+                  color: TradeXColors.secondaryText,
+                  fontSize: 9,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MilestoneCard extends StatelessWidget {
+  const _MilestoneCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(19),
+      child: Ink(
+        padding: const EdgeInsets.all(16),
+        decoration: _panelDecoration,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(
+                  Icons.emoji_events_rounded,
+                  color: TradeXColors.goldBright,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Community Builder',
+                  style: TextStyle(
+                    color: TradeXColors.primaryText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 7),
+            const Text(
+              'Invite 5 qualified clients to unlock your first reward tier.',
+              style: TextStyle(
+                color: TradeXColors.secondaryText,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 13),
+            const ClipRRect(
+              borderRadius: BorderRadius.all(Radius.circular(99)),
+              child: LinearProgressIndicator(
+                value: 0,
+                minHeight: 7,
+                color: TradeXColors.goldBright,
+                backgroundColor: TradeXColors.surfaceMuted,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              '0 of 5 qualified clients',
+              style: TextStyle(color: TradeXColors.secondaryText, fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AffiliateTools extends StatelessWidget {
+  const _AffiliateTools({required this.onActionTap});
+
+  final ValueChanged<String> onActionTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: _panelDecoration,
+      child: Column(
+        children: [
+          _MenuRow(
+            icon: Icons.people_alt_outlined,
+            title: 'My Referrals',
+            subtitle: 'See your referral network',
+            onTap: () => onActionTap('My referrals'),
+          ),
+          const Divider(height: 1, color: TradeXColors.border),
+          _MenuRow(
+            icon: Icons.history_rounded,
+            title: 'Rewards History',
+            subtitle: 'Track your affiliate rewards',
+            onTap: () => onActionTap('Rewards history'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileHero extends StatelessWidget {
+  const _ProfileHero({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(21),
+      child: Ink(
+        padding: const EdgeInsets.all(17),
+        decoration: _panelDecoration,
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: TradeXColors.goldBright, width: 1.3),
+                image: const DecorationImage(
+                  image: AssetImage('assets/branding/trade_x_final_logo.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(width: 13),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'TradeX Client',
+                    style: TextStyle(
+                      color: TradeXColors.primaryText,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Secure account · Verified access',
+                    style: TextStyle(
+                      color: TradeXColors.secondaryText,
+                      fontSize: 11,
+                    ),
+                  ),
+                  SizedBox(height: 7),
+                  _SmallPill(label: 'VERIFIED', color: TradeXColors.success),
+                ],
+              ),
+            ),
+            const Icon(Icons.edit_outlined, color: TradeXColors.goldBright),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileMenu extends StatelessWidget {
+  const _ProfileMenu({required this.onActionTap, required this.onLogout});
+
+  final ValueChanged<String> onActionTap;
+  final Future<void> Function() onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: _panelDecoration,
+      child: Column(
+        children: [
+          _MenuRow(
+            icon: Icons.person_outline_rounded,
+            title: 'Personal details',
+            subtitle: 'Name, email and mobile number',
+            onTap: () => onActionTap('Personal details'),
+          ),
+          const Divider(height: 1, color: TradeXColors.border),
+          _MenuRow(
+            icon: Icons.lock_outline_rounded,
+            title: 'Security',
+            subtitle: 'Password, authenticator and sessions',
+            onTap: () => onActionTap('Security'),
+          ),
+          const Divider(height: 1, color: TradeXColors.border),
+          _MenuRow(
+            icon: Icons.language_rounded,
+            title: 'Learning language',
+            subtitle: 'English',
+            onTap: () => onActionTap('Learning language'),
+          ),
+          const Divider(height: 1, color: TradeXColors.border),
+          _MenuRow(
+            icon: Icons.logout_rounded,
+            title: 'Sign out',
+            subtitle: 'Sign out from this device',
+            danger: true,
+            onTap: () async => onLogout(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SupportCard extends StatelessWidget {
+  const _SupportCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(19),
+      child: Ink(
+        padding: const EdgeInsets.all(16),
+        decoration: _panelDecoration,
+        child: const Row(
+          children: [
+            Icon(
+              Icons.forum_outlined,
+              color: TradeXColors.goldBright,
+              size: 28,
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Need help?',
+                    style: TextStyle(
+                      color: TradeXColors.primaryText,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Visit the TradeX Support Centre.',
+                    style: TextStyle(
+                      color: TradeXColors.secondaryText,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_rounded, color: TradeXColors.goldBright),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({
     required this.icon,
     required this.title,
-    required this.onBackHome,
+    required this.subtitle,
+    required this.onTap,
+    this.danger = false,
   });
 
   final IconData icon;
   final String title;
-  final VoidCallback onBackHome;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool danger;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    final color = danger ? TradeXColors.error : TradeXColors.goldBright;
+    return InkWell(
+      onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        padding: const EdgeInsets.all(15),
+        child: Row(
           children: [
-            Icon(icon, color: TradeXColors.goldBright, size: 58),
-            const SizedBox(height: 18),
-            Text(
-              '$title is coming next',
-              style: const TextStyle(
-                color: TradeXColors.primaryText,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: danger
+                          ? TradeXColors.error
+                          : TradeXColors.primaryText,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: TradeXColors.secondaryText,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Your Trade X experience is being built module by module.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: TradeXColors.secondaryText),
-            ),
-            const SizedBox(height: 20),
-            _GoldButton(label: 'Back to Home', onTap: onBackHome),
+            Icon(Icons.chevron_right_rounded, color: color),
           ],
         ),
       ),
