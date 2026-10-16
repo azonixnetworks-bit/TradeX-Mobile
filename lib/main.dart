@@ -7,6 +7,7 @@ import 'core/network/tradex_api_client.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/auth/data/password_recovery_repository.dart';
 import 'features/auth/data/registration_repository.dart';
+import 'features/home/data/trade_ideas_repository.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,7 @@ void main() {
   final registrationRepository = RegistrationRepository(apiClient);
 
   final passwordRecoveryRepository = PasswordRecoveryRepository(apiClient);
+  final tradeIdeasRepository = TradeIdeasRepository(apiClient);
 
   runApp(
     TradeXApp(
@@ -32,6 +34,7 @@ void main() {
       registrationRepository: registrationRepository,
       passwordRecoveryRepository: passwordRecoveryRepository,
       apiClient: apiClient,
+      tradeIdeasRepository: tradeIdeasRepository,
     ),
   );
 }
