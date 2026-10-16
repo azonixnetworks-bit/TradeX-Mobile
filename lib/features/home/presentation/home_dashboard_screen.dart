@@ -128,6 +128,15 @@ class _HomeContent extends StatelessWidget {
               _SessionClockCard(apiClient: apiClient),
               const SizedBox(height: 20),
               _SectionTitle(
+                icon: Icons.bar_chart_rounded,
+                title: 'Market Categories',
+                action: 'View all',
+                onAction: () => onActionTap('Market categories'),
+              ),
+              const SizedBox(height: 10),
+              _CategoryGrid(onTap: onActionTap),
+              const SizedBox(height: 20),
+              _SectionTitle(
                 icon: Icons.menu_book_rounded,
                 title: 'Continue Learning',
                 action: 'View all',
@@ -150,13 +159,6 @@ class _HomeContent extends StatelessWidget {
                 repository: tradeIdeasRepository,
                 onActionTap: onActionTap,
               ),
-              const SizedBox(height: 20),
-              const _SectionTitle(
-                icon: Icons.bar_chart_rounded,
-                title: 'Market Categories',
-              ),
-              const SizedBox(height: 10),
-              _CategoryGrid(onTap: onActionTap),
               const SizedBox(height: 20),
               _SectionTitle(
                 icon: Icons.article_rounded,
@@ -1653,29 +1655,52 @@ class _CategoryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const categories = [
-      (label: 'Forex', icon: Icons.currency_exchange_rounded),
-      (label: 'Crypto', icon: Icons.currency_bitcoin_rounded),
-      (label: 'Stocks', icon: Icons.show_chart_rounded),
-      (label: 'Deriv', icon: Icons.multiline_chart_rounded),
-    ];
-    return GridView.builder(
-      itemCount: categories.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 1.55,
+      (
+        label: 'Forex',
+        icon: Icons.currency_exchange_rounded,
+        ideas: '30+ Ideas',
+        accent: Color(0xFF45D6A8),
       ),
-      itemBuilder: (context, index) {
-        final category = categories[index];
-        return _CategoryTile(
-          icon: category.icon,
-          label: category.label,
-          onTap: () => onTap('${category.label} trade ideas'),
-        );
-      },
+      (
+        label: 'Crypto',
+        icon: Icons.currency_bitcoin_rounded,
+        ideas: '20+ Ideas',
+        accent: Color(0xFFFFA928),
+      ),
+      (
+        label: 'Stocks',
+        icon: Icons.trending_up_rounded,
+        ideas: '50+ Ideas',
+        accent: Color(0xFF39B9FF),
+      ),
+      (
+        label: 'Deriv',
+        icon: Icons.multiline_chart_rounded,
+        ideas: '15+ Ideas',
+        accent: Color(0xFFFF5A54),
+      ),
+    ];
+    return SizedBox(
+      height: 154,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: categories.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          return SizedBox(
+            width: 264,
+            child: _CategoryTile(
+              icon: category.icon,
+              label: category.label,
+              ideas: category.ideas,
+              accent: category.accent,
+              onTap: () => onTap('${category.label} trade ideas'),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -1684,11 +1709,15 @@ class _CategoryTile extends StatelessWidget {
   const _CategoryTile({
     required this.icon,
     required this.label,
+    required this.ideas,
+    required this.accent,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
+  final String ideas;
+  final Color accent;
   final VoidCallback onTap;
 
   @override
@@ -1697,27 +1726,91 @@ class _CategoryTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: Ink(
-        padding: const EdgeInsets.all(13),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: TradeXColors.surfaceRaised,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              accent.withValues(alpha: .23),
+              const Color(0xFF07100E),
+              const Color(0xFF0B0B09),
+            ],
+          ),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: TradeXColors.gold.withValues(alpha: .7)),
+          border: Border.all(color: accent.withValues(alpha: .78)),
+          boxShadow: [
+            BoxShadow(color: accent.withValues(alpha: .18), blurRadius: 14),
+          ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            Icon(icon, color: TradeXColors.goldBright, size: 28),
-            const Spacer(),
-            Text(
-              label,
-              style: const TextStyle(
-                color: TradeXColors.primaryText,
-                fontWeight: FontWeight.w800,
-              ),
+            Positioned(
+              top: -10,
+              right: -8,
+              child: Icon(icon, color: accent.withValues(alpha: .78), size: 96),
             ),
-            const Text(
-              'Trade Ideas',
-              style: TextStyle(color: TradeXColors.secondaryText, fontSize: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Spacer(),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: TradeXColors.primaryText,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Trade Ideas',
+                  style: TextStyle(
+                    color: TradeXColors.secondaryText,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: .28),
+                        borderRadius: BorderRadius.circular(99),
+                        border: Border.all(
+                          color: accent.withValues(alpha: .74),
+                        ),
+                      ),
+                      child: Text(
+                        ideas,
+                        style: TextStyle(
+                          color: TradeXColors.goldBright,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      width: 35,
+                      height: 35,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: TradeXColors.goldBright),
+                      ),
+                      child: const Icon(
+                        Icons.chevron_right_rounded,
+                        color: TradeXColors.goldBright,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
