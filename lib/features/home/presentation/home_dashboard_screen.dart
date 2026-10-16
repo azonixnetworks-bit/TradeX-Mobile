@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -11,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../data/trade_ideas_repository.dart';
+import '../data/learning_repository.dart';
 
 bool _timeZoneDatabaseInitialized = false;
 
@@ -26,11 +28,13 @@ class HomeDashboardScreen extends StatefulWidget {
     required this.onLogout,
     required this.apiClient,
     required this.tradeIdeasRepository,
+    required this.learningRepository,
   });
 
   final Future<void> Function() onLogout;
   final TradeXApiClient apiClient;
   final TradeIdeasRepository tradeIdeasRepository;
+  final LearningRepository learningRepository;
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -64,6 +68,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               onLogout: widget.onLogout,
               apiClient: widget.apiClient,
               tradeIdeasRepository: widget.tradeIdeasRepository,
+              learningRepository: widget.learningRepository,
             ),
             1 => _LearnTab(
               key: const ValueKey('learn'),
@@ -100,12 +105,14 @@ class _HomeContent extends StatelessWidget {
     required this.onLogout,
     required this.apiClient,
     required this.tradeIdeasRepository,
+    required this.learningRepository,
   });
 
   final ValueChanged<String> onActionTap;
   final Future<void> Function() onLogout;
   final TradeXApiClient apiClient;
   final TradeIdeasRepository tradeIdeasRepository;
+  final LearningRepository learningRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +134,10 @@ class _HomeContent extends StatelessWidget {
                 onAction: () => onActionTap('Learning library'),
               ),
               const SizedBox(height: 10),
-              _LearningCard(onTap: () => onActionTap('Continue learning')),
+              _ContinueLearningSection(
+                repository: learningRepository,
+                onActionTap: onActionTap,
+              ),
               const SizedBox(height: 20),
               _SectionTitle(
                 icon: Icons.lightbulb_rounded,
@@ -974,57 +984,221 @@ class _MarketClockDialPainter extends CustomPainter {
   bool shouldRepaint(covariant _MarketClockDialPainter oldDelegate) => true;
 }
 
-class _LearningCard extends StatelessWidget {
-  const _LearningCard({required this.onTap});
+class _ContinueLearningSection extends StatefulWidget {
+  const _ContinueLearningSection({
+    required this.repository,
+    required this.onActionTap,
+  });
 
+  final LearningRepository repository;
+  final ValueChanged<String> onActionTap;
+
+  @override
+  State<_ContinueLearningSection> createState() =>
+      _ContinueLearningSectionState();
+}
+
+class _ContinueLearningSectionState extends State<_ContinueLearningSection> {
+  late Future<HomeLearningData> _learning;
+
+  @override
+  void initState() {
+    super.initState();
+    _learning = widget.repository.loadHomeLearning();
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<HomeLearningData>(
+    future: _learning,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const SizedBox(
+          height: 144,
+          child: Center(
+            child: CircularProgressIndicator(color: TradeXColors.goldBright),
+          ),
+        );
+      }
+
+      final learning = snapshot.data;
+      if (learning == null) {
+        return _PremiumLockedLearningCard(
+          onUnlock: () => widget.onActionTap('Premium Access'),
+        );
+      }
+
+      if (learning.isPremium) {
+        return _PremiumContinueLearningCard(
+          item: learning.continueItem ?? learning.defaultPremiumItem,
+          onTap: () => widget.onActionTap(
+            learning.continueItem == null
+                ? 'Start learning'
+                : 'Continue learning',
+          ),
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _PremiumLockedLearningCard(
+            onUnlock: () => widget.onActionTap('Premium Access'),
+          ),
+          if (learning.freeLessons.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            const Text(
+              'Free Lessons',
+              style: TextStyle(
+                color: TradeXColors.primaryText,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 9),
+            _FreeLearningHorizontalList(
+              lessons: learning.freeLessons,
+              onTap: (lesson) =>
+                  widget.onActionTap('Free lesson: ${lesson.lessonTitle}'),
+            ),
+          ],
+        ],
+      );
+    },
+  );
+}
+
+class _PremiumLockedLearningCard extends StatelessWidget {
+  const _PremiumLockedLearningCard({required this.onUnlock});
+
+  final VoidCallback onUnlock;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: _panelDecoration,
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+            child: Opacity(
+              opacity: .46,
+              child: IgnorePointer(
+                child: _PremiumContinueLearningCard(
+                  item: const LearningItem(
+                    courseTitle: 'Premium Market Mastery',
+                    moduleTitle: 'Advanced Market Structure',
+                    lessonTitle: 'Institutional Trading Framework',
+                    lessonUuid: '',
+                    progressPercent: 68,
+                    lastPositionSeconds: 0,
+                    lastWatchedAt: null,
+                    isFree: false,
+                  ),
+                  onTap: () {},
+                ),
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.lock_rounded,
+                color: TradeXColors.goldBright,
+                size: 30,
+              ),
+              const SizedBox(height: 7),
+              const Text(
+                'Premium content. Upgrade to continue learning.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: TradeXColors.primaryText,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 11),
+              _GoldButton(label: 'Unlock Premium', onTap: onUnlock),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _PremiumContinueLearningCard extends StatelessWidget {
+  const _PremiumContinueLearningCard({required this.item, required this.onTap});
+
+  final LearningItem? item;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final hasHistory = item?.lastWatchedAt != null;
+    final title = hasHistory
+        ? item!.courseTitle
+        : 'Start Your Learning Journey';
+    final subtitle = item == null
+        ? 'New premium lessons will appear here.'
+        : '${item!.moduleTitle} · ${item!.lessonTitle}';
+    final progress = (item?.progressPercent ?? 0).clamp(0, 100);
+
     return InkWell(
-      onTap: onTap,
+      onTap: item == null ? null : onTap,
       borderRadius: BorderRadius.circular(20),
       child: Ink(
         padding: const EdgeInsets.all(12),
         decoration: _panelDecoration,
         child: Row(
           children: [
-            _CourseThumbnail(label: 'SMART MONEY\nCONCEPTS'),
+            _CourseThumbnail(
+              label: hasHistory ? 'CONTINUE\nLEARNING' : 'PREMIUM\nLEARNING',
+            ),
             const SizedBox(width: 13),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Module 3: Market Structure',
-                    style: TextStyle(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       color: TradeXColors.primaryText,
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  SizedBox(height: 5),
+                  const SizedBox(height: 5),
                   Text(
-                    'Lesson 2: Break of Structure (BOS)',
-                    style: TextStyle(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       color: TradeXColors.secondaryText,
                       fontSize: 11,
                     ),
                   ),
-                  SizedBox(height: 13),
+                  const SizedBox(height: 12),
                   ClipRRect(
-                    borderRadius: BorderRadius.all(Radius.circular(99)),
+                    borderRadius: const BorderRadius.all(Radius.circular(99)),
                     child: LinearProgressIndicator(
-                      value: .68,
+                      value: progress / 100,
                       minHeight: 7,
                       color: TradeXColors.goldBright,
                       backgroundColor: TradeXColors.surfaceMuted,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    '68% complete',
-                    style: TextStyle(
+                    hasHistory ? '$progress% complete' : 'Start learning',
+                    style: const TextStyle(
                       color: TradeXColors.goldBright,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -1038,6 +1212,99 @@ class _LearningCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _FreeLearningHorizontalList extends StatelessWidget {
+  const _FreeLearningHorizontalList({
+    required this.lessons,
+    required this.onTap,
+  });
+
+  final List<LearningItem> lessons;
+  final ValueChanged<LearningItem> onTap;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: 130,
+    child: ListView.separated(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      itemCount: lessons.length,
+      separatorBuilder: (_, _) => const SizedBox(width: 10),
+      itemBuilder: (context, index) {
+        final lesson = lessons[index];
+        return SizedBox(
+          width: 172,
+          child: InkWell(
+            onTap: () => onTap(lesson),
+            borderRadius: BorderRadius.circular(16),
+            child: Ink(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: TradeXColors.surfaceRaised,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: TradeXColors.border),
+              ),
+              child: Row(
+                children: [
+                  _CourseThumbnail(label: 'FREE', compact: true),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: TradeXColors.goldBright.withValues(
+                              alpha: .16,
+                            ),
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: const Text(
+                            'FREE',
+                            style: TextStyle(
+                              color: TradeXColors.goldBright,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          lesson.lessonTitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: TradeXColors.primaryText,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          lesson.moduleTitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: TradeXColors.secondaryText,
+                            fontSize: 9,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    ),
+  );
 }
 
 class _LiveTradeIdeasCarousel extends StatefulWidget {
