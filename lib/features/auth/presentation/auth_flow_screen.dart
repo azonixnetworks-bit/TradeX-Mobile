@@ -12,6 +12,7 @@ import 'new_password_screen.dart';
 import 'register_screen.dart';
 import 'registration_totp_setup_screen.dart';
 import 'registration_details_screen.dart';
+import 'registration_recovery_codes_screen.dart';
 import 'registration_verification_gate_screen.dart';
 import 'splash_screen.dart';
 import 'welcome_screen.dart';
@@ -28,6 +29,7 @@ enum _AuthStep {
   registerWhatsAppOtp,
   registerTotpSetup,
   registerTotpVerify,
+  registerRecoveryCodes,
   registerComplete,
   forgotPassword,
   recoveryEmailOtp,
@@ -60,6 +62,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
 
   RegistrationSession? _registrationSession;
   RegistrationTotpSetup? _registrationTotpSetup;
+  RegistrationRecoveryCodes? _registrationRecoveryCodes;
   _RegistrationDraft? _registrationDraft;
 
   PasswordRecoverySession? _recoverySession;
@@ -117,6 +120,8 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
         _setStep(_AuthStep.registerWhatsAppOtp);
       case _AuthStep.registerTotpVerify:
         _setStep(_AuthStep.registerTotpSetup);
+      case _AuthStep.registerRecoveryCodes:
+        break;
       case _AuthStep.login:
         _showWelcome();
       case _AuthStep.forgotPassword:
@@ -140,6 +145,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   void _clearRegistration() {
     _registrationSession = null;
     _registrationTotpSetup = null;
+    _registrationRecoveryCodes = null;
     _registrationDraft = null;
     _registrationEmail = '';
     _registrationWhatsApp = '';
@@ -308,7 +314,17 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
 
     await widget.registrationRepository.confirmTotp(session, code);
 
-    _setStep(_AuthStep.registerComplete);
+    final recoveryCodes = await widget.registrationRepository
+        .bootstrapRecoveryCodes(session);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _registrationRecoveryCodes = recoveryCodes;
+      _step = _AuthStep.registerRecoveryCodes;
+    });
   }
 
   Future<void> _startRecovery({
@@ -512,6 +528,18 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
           onBack: () => _setStep(_AuthStep.registerTotpSetup),
           initialCooldownSeconds: 0,
           showResend: false,
+        );
+
+      case _AuthStep.registerRecoveryCodes:
+        final recoveryCodes = _registrationRecoveryCodes;
+
+        if (recoveryCodes == null) {
+          return const _MissingFlowState();
+        }
+
+        return RegistrationRecoveryCodesScreen(
+          recoveryCodes: recoveryCodes,
+          onContinue: () => _setStep(_AuthStep.registerComplete),
         );
 
       case _AuthStep.registerComplete:
