@@ -14,10 +14,7 @@ void main() {
   final sessionStore = SecureSessionStore();
   final deviceIdentity = DeviceIdentity(sessionStore);
 
-  final apiClient = TradeXApiClient(
-    sessionStore,
-    deviceIdentity,
-  );
+  final apiClient = TradeXApiClient(sessionStore, deviceIdentity);
 
   final authRepository = AuthRepository(
     apiClient,
@@ -25,19 +22,16 @@ void main() {
     deviceIdentity,
   );
 
-  final registrationRepository = RegistrationRepository(
-    apiClient,
-  );
+  final registrationRepository = RegistrationRepository(apiClient);
 
-  final passwordRecoveryRepository = PasswordRecoveryRepository(
-    apiClient,
-  );
+  final passwordRecoveryRepository = PasswordRecoveryRepository(apiClient);
 
   runApp(
     TradeXApp(
       authRepository: authRepository,
       registrationRepository: registrationRepository,
       passwordRecoveryRepository: passwordRecoveryRepository,
+      apiClient: apiClient,
     ),
   );
 }

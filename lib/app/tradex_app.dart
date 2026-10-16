@@ -7,6 +7,7 @@ import '../features/auth/data/registration_repository.dart';
 import '../features/auth/presentation/session_gate.dart';
 import 'connectivity_observer.dart';
 import '../core/network/app_messenger.dart';
+import '../core/network/tradex_api_client.dart';
 
 class TradeXApp extends StatelessWidget {
   const TradeXApp({
@@ -14,11 +15,13 @@ class TradeXApp extends StatelessWidget {
     required this.authRepository,
     required this.registrationRepository,
     required this.passwordRecoveryRepository,
+    required this.apiClient,
   });
 
   final AuthRepository authRepository;
   final RegistrationRepository registrationRepository;
   final PasswordRecoveryRepository passwordRecoveryRepository;
+  final TradeXApiClient apiClient;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +35,7 @@ class TradeXApp extends StatelessWidget {
           authRepository: authRepository,
           registrationRepository: registrationRepository,
           passwordRecoveryRepository: passwordRecoveryRepository,
+          apiClient: apiClient,
         ),
       ),
     );

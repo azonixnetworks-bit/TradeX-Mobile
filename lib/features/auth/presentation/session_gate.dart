@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/network/tradex_api_client.dart';
 import '../data/auth_repository.dart';
 import '../data/password_recovery_repository.dart';
 import '../data/registration_repository.dart';
@@ -14,11 +15,13 @@ class SessionGate extends StatefulWidget {
     required this.authRepository,
     required this.registrationRepository,
     required this.passwordRecoveryRepository,
+    required this.apiClient,
   });
 
   final AuthRepository authRepository;
   final RegistrationRepository registrationRepository;
   final PasswordRecoveryRepository passwordRecoveryRepository;
+  final TradeXApiClient apiClient;
 
   @override
   State<SessionGate> createState() => _SessionGateState();
@@ -106,7 +109,10 @@ class _SessionGateState extends State<SessionGate> {
     }
 
     if (_authenticated) {
-      return HomeDashboardScreen(onLogout: _logout);
+      return HomeDashboardScreen(
+        onLogout: _logout,
+        apiClient: widget.apiClient,
+      );
     }
 
     return AuthFlowScreen(

@@ -1,13 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 
+import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
 
 class HomeDashboardScreen extends StatefulWidget {
-  const HomeDashboardScreen({super.key, required this.onLogout});
+  const HomeDashboardScreen({
+    super.key,
+    required this.onLogout,
+    required this.apiClient,
+  });
 
   final Future<void> Function() onLogout;
+  final TradeXApiClient apiClient;
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -39,6 +46,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               key: const ValueKey('home'),
               onActionTap: _showComingSoon,
               onLogout: widget.onLogout,
+              apiClient: widget.apiClient,
             ),
             1 => _LearnTab(
               key: const ValueKey('learn'),
@@ -73,10 +81,12 @@ class _HomeContent extends StatelessWidget {
     super.key,
     required this.onActionTap,
     required this.onLogout,
+    required this.apiClient,
   });
 
   final ValueChanged<String> onActionTap;
   final Future<void> Function() onLogout;
+  final TradeXApiClient apiClient;
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +106,7 @@ class _HomeContent extends StatelessWidget {
                 title: '24H Global Session Clock',
               ),
               const SizedBox(height: 10),
-              const _SessionClockCard(),
+              _SessionClockCard(apiClient: apiClient),
               const SizedBox(height: 20),
               _SectionTitle(
                 icon: Icons.menu_book_rounded,
@@ -194,7 +204,7 @@ class _HeroBanner extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
       child: Ink(
-        height: 222,
+        height: 168,
         decoration: BoxDecoration(
           color: TradeXColors.surface,
           borderRadius: BorderRadius.circular(24),
@@ -237,7 +247,7 @@ class _HeroBanner extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -245,17 +255,17 @@ class _HeroBanner extends StatelessWidget {
                       'TRADE SMARTER\nBUILD A FREER LIFE',
                       style: TextStyle(
                         color: TradeXColors.primaryText,
-                        fontSize: 24,
+                        fontSize: 18,
                         height: 1.05,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 9),
+                    const SizedBox(height: 5),
                     const Text(
                       'Education  ·  Trade Ideas  ·  Opportunities',
                       style: TextStyle(
                         color: Color(0xFFD0D6D3),
-                        fontSize: 11,
+                        fontSize: 9,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -265,8 +275,8 @@ class _HeroBanner extends StatelessWidget {
                 ),
               ),
               const Positioned(
-                bottom: 12,
-                right: 16,
+                bottom: 9,
+                right: 12,
                 child: Text(
                   'DISCIPLINE\nCREATES\nFREEDOM',
                   textAlign: TextAlign.right,
@@ -287,21 +297,76 @@ class _HeroBanner extends StatelessWidget {
   }
 }
 
-class _SessionClockCard extends StatelessWidget {
-  const _SessionClockCard();
+class _SessionClockCard extends StatefulWidget {
+  const _SessionClockCard({required this.apiClient});
+
+  final TradeXApiClient apiClient;
+
+  @override
+  State<_SessionClockCard> createState() => _SessionClockCardState();
+}
+
+class _SessionClockCardState extends State<_SessionClockCard> {
+  static const _featuredNames = {'Sydney', 'Tokyo', 'London', 'New York'};
+
+  List<_MarketSession> _sessions = const [];
+  String _timezone = 'Local time';
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLiveMarketClock();
+    _refreshTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => _loadLiveMarketClock(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadLiveMarketClock() async {
+    var timezone = 'UTC';
+    try {
+      timezone = (await FlutterTimezone.getLocalTimezone()).identifier;
+      final response = await widget.apiClient.getJson(
+        '/api/v1/market-clock?timezone=${Uri.encodeQueryComponent(timezone)}',
+      );
+      final data = response['data'];
+      final rawSessions = data is Map ? data['sessions'] : null;
+      if (rawSessions is! List) return;
+
+      final sessions = rawSessions
+          .whereType<Map>()
+          .map((raw) => _MarketSession.fromJson(Map<String, dynamic>.from(raw)))
+          .where((session) => _featuredNames.contains(session.name))
+          .toList(growable: false);
+
+      if (mounted && sessions.isNotEmpty) {
+        setState(() {
+          _timezone = timezone;
+          _sessions = sessions;
+        });
+      }
+    } catch (_) {
+      // The device clock remains useful offline; the next refresh reconnects
+      // to Laravel and refreshes the authoritative session states.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<int>(
       stream: Stream<int>.periodic(const Duration(seconds: 1), (tick) => tick),
       builder: (context, _) {
-        final now = DateTime.now().toUtc();
-        final sessions = <_TradingSession>[
-          const _TradingSession('Sydney', '22:00 - 07:00 UTC', 22, 7),
-          const _TradingSession('Tokyo', '00:00 - 09:00 UTC', 0, 9),
-          const _TradingSession('London', '08:00 - 17:00 UTC', 8, 17),
-          const _TradingSession('New York', '13:00 - 22:00 UTC', 13, 22),
-        ];
+        final now = DateTime.now();
+        final sessions = _sessions.isEmpty
+            ? _fallbackSessions(now.toUtc())
+            : _sessions;
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: _panelDecoration,
@@ -310,31 +375,42 @@ class _SessionClockCard extends StatelessWidget {
               Row(
                 children: [
                   const Icon(
-                    Icons.public_rounded,
+                    Icons.phone_android_rounded,
                     color: TradeXColors.goldBright,
                     size: 19,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    '${_twoDigits(now.hour)}:${_twoDigits(now.minute)}:${_twoDigits(now.second)} UTC',
-                    style: const TextStyle(
-                      color: TradeXColors.primaryText,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: .4,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_twoDigits(now.hour)}:${_twoDigits(now.minute)}:${_twoDigits(now.second)}',
+                          style: const TextStyle(
+                            color: TradeXColors.primaryText,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: .4,
+                          ),
+                        ),
+                        Text(
+                          _timezone == 'UTC' ? 'Your device time' : _timezone,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: TradeXColors.secondaryText,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const Spacer(),
                   const _LivePill(),
                 ],
               ),
               const SizedBox(height: 15),
-              ...sessions.map(
-                (session) => _SessionRow(
-                  session: session,
-                  isOpen: session.isOpen(now.hour),
-                ),
-              ),
+              ...sessions.map((session) => _SessionRow(session: session)),
             ],
           ),
         );
@@ -342,18 +418,48 @@ class _SessionClockCard extends StatelessWidget {
     );
   }
 
+  List<_MarketSession> _fallbackSessions(DateTime utcNow) => [
+    _MarketSession.fromFallback(
+      'Sydney',
+      '22:00 - 07:00 UTC',
+      22,
+      7,
+      utcNow.hour,
+    ),
+    _MarketSession.fromFallback(
+      'Tokyo',
+      '00:00 - 09:00 UTC',
+      0,
+      9,
+      utcNow.hour,
+    ),
+    _MarketSession.fromFallback(
+      'London',
+      '08:00 - 17:00 UTC',
+      8,
+      17,
+      utcNow.hour,
+    ),
+    _MarketSession.fromFallback(
+      'New York',
+      '13:00 - 22:00 UTC',
+      13,
+      22,
+      utcNow.hour,
+    ),
+  ];
+
   String _twoDigits(int value) => value.toString().padLeft(2, '0');
 }
 
 class _SessionRow extends StatelessWidget {
-  const _SessionRow({required this.session, required this.isOpen});
+  const _SessionRow({required this.session});
 
-  final _TradingSession session;
-  final bool isOpen;
+  final _MarketSession session;
 
   @override
   Widget build(BuildContext context) {
-    final stateColor = isOpen
+    final stateColor = session.isOpen
         ? TradeXColors.success
         : TradeXColors.tertiaryText;
     return Padding(
@@ -379,7 +485,7 @@ class _SessionRow extends StatelessWidget {
             ),
           ),
           Text(
-            session.hours,
+            session.timeText,
             style: const TextStyle(
               color: TradeXColors.secondaryText,
               fontSize: 11,
@@ -387,7 +493,7 @@ class _SessionRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Text(
-            isOpen ? 'OPEN' : 'CLOSED',
+            session.isOpen ? 'OPEN' : 'CLOSED',
             style: TextStyle(
               color: stateColor,
               fontSize: 10,
@@ -2216,18 +2322,38 @@ class _LivePill extends StatelessWidget {
   }
 }
 
-class _TradingSession {
-  const _TradingSession(this.name, this.hours, this.startHour, this.endHour);
+class _MarketSession {
+  const _MarketSession({
+    required this.name,
+    required this.timeText,
+    required this.isOpen,
+  });
+
+  factory _MarketSession.fromJson(Map<String, dynamic> json) {
+    final status = json['status']?.toString().toLowerCase();
+    return _MarketSession(
+      name: json['name']?.toString() ?? 'Market',
+      timeText: json['local_time']?.toString() ?? '--:--:--',
+      isOpen: status == 'open',
+    );
+  }
+
+  factory _MarketSession.fromFallback(
+    String name,
+    String hours,
+    int startHour,
+    int endHour,
+    int utcHour,
+  ) {
+    final isOpen = startHour < endHour
+        ? utcHour >= startHour && utcHour < endHour
+        : utcHour >= startHour || utcHour < endHour;
+    return _MarketSession(name: name, timeText: hours, isOpen: isOpen);
+  }
 
   final String name;
-  final String hours;
-  final int startHour;
-  final int endHour;
-
-  bool isOpen(int utcHour) {
-    if (startHour < endHour) return utcHour >= startHour && utcHour < endHour;
-    return utcHour >= startHour || utcHour < endHour;
-  }
+  final String timeText;
+  final bool isOpen;
 }
 
 class _TabItem {
