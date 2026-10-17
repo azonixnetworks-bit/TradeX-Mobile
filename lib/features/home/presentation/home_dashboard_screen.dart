@@ -3368,7 +3368,7 @@ class _MenuRow extends StatelessWidget {
   }
 }
 
-class _DashboardNavBar extends StatelessWidget {
+class _DashboardNavBar extends StatefulWidget {
   const _DashboardNavBar({
     required this.selectedIndex,
     required this.onChanged,
@@ -3378,84 +3378,195 @@ class _DashboardNavBar extends StatelessWidget {
   final ValueChanged<int> onChanged;
 
   @override
+  State<_DashboardNavBar> createState() => _DashboardNavBarState();
+}
+
+class _DashboardNavBarState extends State<_DashboardNavBar> {
+  late double _previousIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _previousIndex = widget.selectedIndex.toDouble();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DashboardNavBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedIndex != widget.selectedIndex) {
+      _previousIndex = oldWidget.selectedIndex.toDouble();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: Color(0xFF080D0B),
-        border: Border(top: BorderSide(color: Color(0xFF624C16))),
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 69,
-          child: Row(
-            children: List.generate(_tabItems.length, (index) {
-              final item = _tabItems[index];
-              final selected = index == selectedIndex;
-              return Expanded(
-                child: InkWell(
-                  onTap: () => onChanged(index),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 230),
-                    curve: Curves.easeOutCubic,
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 230),
-                          width: selected ? 34 : 0,
-                          height: 3,
-                          margin: const EdgeInsets.only(bottom: 5),
+    return SafeArea(
+      top: false,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final itemWidth = constraints.maxWidth / _tabItems.length;
+          return TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 420),
+            curve: Curves.easeOutBack,
+            tween: Tween<double>(
+              begin: _previousIndex,
+              end: widget.selectedIndex.toDouble(),
+            ),
+            builder: (context, activeIndex, child) {
+              final activeCenter = (activeIndex + .5) * itemWidth;
+              return SizedBox(
+                height: 82,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(
+                      top: 17,
+                      child: ClipPath(
+                        clipper: _TradeXNavNotchClipper(
+                          notchCenter: activeCenter,
+                        ),
+                        child: Container(
                           decoration: BoxDecoration(
-                            color: TradeXColors.goldBright,
-                            borderRadius: BorderRadius.circular(99),
-                            boxShadow: selected
-                                ? [
-                                    BoxShadow(
-                                      color: TradeXColors.goldBright.withValues(
-                                        alpha: .65,
-                                      ),
-                                      blurRadius: 12,
-                                    ),
-                                  ]
-                                : null,
+                            color: const Color(0xFF0A100E),
+                            border: Border.all(
+                              color: TradeXColors.gold.withValues(alpha: .42),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: .38),
+                                blurRadius: 18,
+                                offset: const Offset(0, -5),
+                              ),
+                            ],
                           ),
                         ),
-                        AnimatedScale(
-                          scale: selected ? 1.13 : 1,
-                          duration: const Duration(milliseconds: 230),
-                          child: Icon(
-                            item.icon,
-                            size: 23,
-                            color: selected
-                                ? TradeXColors.goldBright
-                                : TradeXColors.secondaryText,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          item.label,
-                          style: TextStyle(
-                            color: selected
-                                ? TradeXColors.goldBright
-                                : TradeXColors.secondaryText,
-                            fontSize: 10,
-                            fontWeight: selected
-                                ? FontWeight.w800
-                                : FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    Positioned(
+                      left: activeCenter - 25,
+                      top: 0,
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFFFE58E), TradeXColors.gold],
+                          ),
+                          border: Border.all(
+                            color: const Color(0xFFFFF1AD),
+                            width: 1.4,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: TradeXColors.goldBright.withValues(
+                                alpha: .45,
+                              ),
+                              blurRadius: 16,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          _tabItems[widget.selectedIndex].icon,
+                          color: const Color(0xFF171308),
+                          size: 25,
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      top: 15,
+                      child: Row(
+                        children: List.generate(_tabItems.length, (index) {
+                          final item = _tabItems[index];
+                          final selected = index == widget.selectedIndex;
+                          return Expanded(
+                            child: InkWell(
+                              onTap: () => widget.onChanged(index),
+                              borderRadius: BorderRadius.circular(24),
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    AnimatedOpacity(
+                                      duration: const Duration(
+                                        milliseconds: 180,
+                                      ),
+                                      opacity: selected ? 0 : 1,
+                                      child: Icon(
+                                        item.icon,
+                                        size: 21,
+                                        color: TradeXColors.secondaryText,
+                                      ),
+                                    ),
+                                    SizedBox(height: selected ? 19 : 3),
+                                    AnimatedDefaultTextStyle(
+                                      duration: const Duration(
+                                        milliseconds: 220,
+                                      ),
+                                      style: TextStyle(
+                                        color: selected
+                                            ? TradeXColors.goldBright
+                                            : TradeXColors.secondaryText,
+                                        fontSize: 9.5,
+                                        fontWeight: selected
+                                            ? FontWeight.w900
+                                            : FontWeight.w600,
+                                      ),
+                                      child: Text(
+                                        item.label,
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
                 ),
               );
-            }),
-          ),
-        ),
+            },
+          );
+        },
       ),
     );
+  }
+}
+
+class _TradeXNavNotchClipper extends CustomClipper<Path> {
+  const _TradeXNavNotchClipper({required this.notchCenter});
+
+  final double notchCenter;
+
+  @override
+  Path getClip(Size size) {
+    const radius = 34.0;
+    const depth = 25.0;
+    final start = (notchCenter - radius).clamp(0.0, size.width).toDouble();
+    final end = (notchCenter + radius).clamp(0.0, size.width).toDouble();
+    final path = Path()..lineTo(start, 0);
+    path.cubicTo(start + 10, 0, notchCenter - 19, depth, notchCenter, depth);
+    path.cubicTo(notchCenter + 19, depth, end - 10, 0, end, 0);
+    path
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant _TradeXNavNotchClipper oldClipper) {
+    return oldClipper.notchCenter != notchCenter;
   }
 }
 
