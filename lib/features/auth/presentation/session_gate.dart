@@ -35,22 +35,56 @@ class SessionGate extends StatefulWidget {
   State<SessionGate> createState() => _SessionGateState();
 }
 
-class _SessionGateState extends State<SessionGate> {
+class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
   bool _loading = true;
   bool _authenticated = false;
   QuickUnlockConfig? _quickUnlock;
   bool _quickUnlockLocked = false;
+  DateTime? _backgroundedAt;
 
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
-    _restore();
+    _initialize();
   }
 
-  Future<void> _restore() async {
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      _backgroundedAt ??= DateTime.now();
+      return;
+    }
+
+    if (state != AppLifecycleState.resumed) return;
+    final backgroundedAt = _backgroundedAt;
+    _backgroundedAt = null;
+    if (backgroundedAt == null ||
+        !_authenticated ||
+        _quickUnlock == null ||
+        _quickUnlockLocked) {
+      return;
+    }
+
+    // Mirrors the current Laravel policy default. The authenticated UI is
+    // hidden but the rotating refresh session remains intact.
+    if (DateTime.now().difference(backgroundedAt) >=
+        const Duration(seconds: 30)) {
+      setState(() => _quickUnlockLocked = true);
+    }
+  }
+
+  Future<void> _initialize() async {
     if (mounted) {
       setState(() {
         _loading = true;
@@ -59,10 +93,23 @@ class _SessionGateState extends State<SessionGate> {
     }
 
     try {
-      final session = await widget.authRepository.restoreSession();
-      final quickUnlock = session == null
-          ? null
-          : await widget.authRepository.quickUnlockConfiguration();
+      final quickUnlock = await widget.authRepository
+          .quickUnlockConfiguration();
+
+      if (quickUnlock != null) {
+        if (!mounted) return;
+        setState(() {
+          _authenticated = true;
+          _quickUnlock = quickUnlock;
+          _quickUnlockLocked = true;
+          _loading = false;
+        });
+        return;
+      }
+
+      // Remember is off: clear any previous non-persistent session before a
+      // refresh call can make authenticated UI visible.
+      final session = await widget.authRepository.restoreRememberedSession();
 
       if (!mounted) {
         return;
@@ -70,8 +117,8 @@ class _SessionGateState extends State<SessionGate> {
 
       setState(() {
         _authenticated = session != null;
-        _quickUnlock = quickUnlock;
-        _quickUnlockLocked = quickUnlock != null;
+        _quickUnlock = null;
+        _quickUnlockLocked = false;
         _loading = false;
       });
     } on ApiException catch (error) {
@@ -90,6 +137,34 @@ class _SessionGateState extends State<SessionGate> {
 
       setState(() {
         _error = 'Unable to restore your TradeX session.';
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _restoreAfterQuickUnlock() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final session = await widget.authRepository
+          .restoreSessionAfterQuickUnlock();
+      if (!mounted) return;
+      setState(() {
+        _authenticated = session != null;
+        _quickUnlockLocked = false;
+        _loading = false;
+      });
+    } on ApiException catch (error) {
+      await widget.authRepository.logout();
+      if (!mounted) return;
+      setState(() {
+        _authenticated = false;
+        _quickUnlock = null;
+        _quickUnlockLocked = false;
+        _error = error.message;
         _loading = false;
       });
     }
@@ -123,7 +198,7 @@ class _SessionGateState extends State<SessionGate> {
     }
 
     if (_error != null) {
-      return _SessionErrorScreen(message: _error!, onRetry: _restore);
+      return _SessionErrorScreen(message: _error!, onRetry: _initialize);
     }
 
     if (_authenticated) {
@@ -131,7 +206,7 @@ class _SessionGateState extends State<SessionGate> {
         return QuickUnlockScreen(
           config: _quickUnlock!,
           sessionStore: SecureSessionStore(),
-          onUnlocked: () => setState(() => _quickUnlockLocked = false),
+          onUnlocked: _restoreAfterQuickUnlock,
           onSignOut: _logout,
         );
       }
