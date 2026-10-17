@@ -112,6 +112,13 @@ class TradeXApiClient {
     retryAfterRefresh: true,
   );
 
+  Future<Map<String, dynamic>> deleteJson(String path) => _send(
+    method: 'DELETE',
+    path: path,
+    authenticated: true,
+    retryAfterRefresh: true,
+  );
+
   static Dio _createPinnedDio() {
     final baseUrl = TradeXApiConfig.baseUrl;
     final host = Uri.parse(baseUrl).host;

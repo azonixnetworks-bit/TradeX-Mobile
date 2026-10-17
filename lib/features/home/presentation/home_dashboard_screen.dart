@@ -14,6 +14,8 @@ import '../../../core/theme/tradex_colors.dart';
 import '../data/trade_ideas_repository.dart';
 import '../data/learning_repository.dart';
 import '../../profile/presentation/trusted_devices_screen.dart';
+import '../../learn/data/learn_repository.dart';
+import '../../learn/presentation/learn_module.dart';
 
 bool _timeZoneDatabaseInitialized = false;
 
@@ -73,7 +75,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             ),
             1 => _LearnTab(
               key: const ValueKey('learn'),
-              onActionTap: _showComingSoon,
+              apiClient: widget.apiClient,
             ),
             2 => _TradeIdeasTab(
               key: const ValueKey('ideas'),
@@ -2234,34 +2236,13 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _LearnTab extends StatelessWidget {
-  const _LearnTab({super.key, required this.onActionTap});
+  const _LearnTab({super.key, required this.apiClient});
 
-  final ValueChanged<String> onActionTap;
+  final TradeXApiClient apiClient;
 
   @override
-  Widget build(BuildContext context) {
-    return _TabScrollView(
-      title: 'Learning Hub',
-      subtitle: 'Build skill, discipline and consistency.',
-      children: [
-        _LearningProgressCard(onTap: () => onActionTap('Resume course')),
-        const SizedBox(height: 22),
-        const _SectionTitle(
-          icon: Icons.auto_stories_rounded,
-          title: 'Your Learning Path',
-        ),
-        const SizedBox(height: 10),
-        _ModuleList(onTap: onActionTap),
-        const SizedBox(height: 22),
-        const _SectionTitle(
-          icon: Icons.workspace_premium_rounded,
-          title: 'Recommended for you',
-        ),
-        const SizedBox(height: 10),
-        _RecommendedCourseCard(onTap: () => onActionTap('Recommended course')),
-      ],
-    );
-  }
+  Widget build(BuildContext context) =>
+      LearnHomeScreen(repository: LearnRepository(apiClient));
 }
 
 class _TradeIdeasTab extends StatelessWidget {
@@ -2851,6 +2832,8 @@ class _TabScrollView extends StatelessWidget {
   }
 }
 
+// Kept temporarily for backwards-compatible golden references.
+// ignore: unused_element
 class _LearningProgressCard extends StatelessWidget {
   const _LearningProgressCard({required this.onTap});
 
@@ -2930,6 +2913,7 @@ class _LearningProgressCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _ModuleList extends StatelessWidget {
   const _ModuleList({required this.onTap});
 
@@ -3017,6 +3001,7 @@ class _ModuleList extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _RecommendedCourseCard extends StatelessWidget {
   const _RecommendedCourseCard({required this.onTap});
 
