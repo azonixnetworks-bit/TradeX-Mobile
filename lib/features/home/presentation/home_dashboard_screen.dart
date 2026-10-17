@@ -86,6 +86,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               key: const ValueKey('profile'),
               onActionTap: _showComingSoon,
               onLogout: widget.onLogout,
+              apiClient: widget.apiClient,
             ),
           },
         ),
@@ -2349,40 +2350,445 @@ class _AffiliateTab extends StatelessWidget {
   }
 }
 
-class _ProfileTab extends StatelessWidget {
+class _ProfileTab extends StatefulWidget {
   const _ProfileTab({
     super.key,
     required this.onActionTap,
     required this.onLogout,
+    required this.apiClient,
   });
 
   final ValueChanged<String> onActionTap;
   final Future<void> Function() onLogout;
+  final TradeXApiClient apiClient;
+
+  @override
+  State<_ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends State<_ProfileTab> {
+  late Future<_CustomerProfile> _profile;
+
+  @override
+  void initState() {
+    super.initState();
+    _profile = _loadProfile();
+  }
+
+  Future<_CustomerProfile> _loadProfile() async {
+    final response = await widget.apiClient.getJson('/api/v1/profile/settings');
+    final raw = response['data'];
+    if (raw is! Map) throw StateError('TradeX profile data is unavailable.');
+    return _CustomerProfile.fromJson(Map<String, dynamic>.from(raw));
+  }
+
+  void _refresh() => setState(() => _profile = _loadProfile());
 
   @override
   Widget build(BuildContext context) {
-    return _TabScrollView(
-      title: 'My Profile',
-      subtitle: 'Manage your TradeX account securely.',
-      children: [
-        _ProfileHero(onTap: () => onActionTap('Edit profile')),
-        const SizedBox(height: 20),
-        const _SectionTitle(
-          icon: Icons.verified_user_rounded,
-          title: 'Account & Security',
+    return FutureBuilder<_CustomerProfile>(
+      future: _profile,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(
+            child: CircularProgressIndicator(color: TradeXColors.goldBright),
+          );
+        }
+        if (snapshot.hasError) {
+          return _TabScrollView(
+            title: 'My Profile',
+            subtitle: 'Manage your TradeX account securely.',
+            children: [
+              _ProfileStatusCard(
+                icon: Icons.cloud_off_rounded,
+                title: 'Profile unavailable',
+                message:
+                    'Pull down or tap Retry when your connection is ready.',
+                actionLabel: 'Retry',
+                onTap: _refresh,
+              ),
+            ],
+          );
+        }
+        final profile = snapshot.requireData;
+        return _TabScrollView(
+          title: 'My Profile',
+          subtitle: 'Your account, security and payment preferences.',
+          children: [
+            _CustomerProfileHero(profile: profile),
+            const SizedBox(height: 20),
+            const _SectionTitle(
+              icon: Icons.person_outline_rounded,
+              title: 'Account',
+            ),
+            const SizedBox(height: 10),
+            Container(
+              decoration: _panelDecoration,
+              child: Column(
+                children: [
+                  _MenuRow(
+                    icon: Icons.mail_outline_rounded,
+                    title: profile.email,
+                    subtitle: 'Verified email · Locked for your security',
+                    onTap: () => widget.onActionTap('Email details'),
+                  ),
+                  const Divider(height: 1, color: TradeXColors.border),
+                  _MenuRow(
+                    icon: Icons.phone_outlined,
+                    title: profile.whatsApp,
+                    subtitle: profile.whatsAppVerified
+                        ? 'WhatsApp verified'
+                        : 'WhatsApp verification required',
+                    onTap: () => widget.onActionTap('WhatsApp contact'),
+                  ),
+                  const Divider(height: 1, color: TradeXColors.border),
+                  _MenuRow(
+                    icon: Icons.language_rounded,
+                    title: 'Learning language',
+                    subtitle: profile.languageLabel,
+                    onTap: () => widget.onActionTap('Learning language'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            const _SectionTitle(
+              icon: Icons.account_balance_wallet_outlined,
+              title: 'Withdrawal methods',
+            ),
+            const SizedBox(height: 10),
+            _FinancialMethodsCard(profile: profile, onTap: widget.onActionTap),
+            const SizedBox(height: 20),
+            const _SectionTitle(
+              icon: Icons.verified_user_rounded,
+              title: 'Security centre',
+            ),
+            const SizedBox(height: 10),
+            Container(
+              decoration: _panelDecoration,
+              child: Column(
+                children: [
+                  _MenuRow(
+                    icon: Icons.security_rounded,
+                    title: profile.totpConfirmed
+                        ? 'Authenticator protected'
+                        : 'Set up authenticator',
+                    subtitle: profile.totpConfirmed
+                        ? 'TOTP protects sensitive account changes'
+                        : 'Required before sensitive changes',
+                    onTap: () => widget.onActionTap('Authenticator security'),
+                  ),
+                  const Divider(height: 1, color: TradeXColors.border),
+                  _MenuRow(
+                    icon: Icons.devices_other_rounded,
+                    title: 'Trusted devices',
+                    subtitle: 'Review or revoke devices with TOTP',
+                    onTap: () => widget.onActionTap('Trusted devices'),
+                  ),
+                  const Divider(height: 1, color: TradeXColors.border),
+                  _MenuRow(
+                    icon: Icons.fingerprint_rounded,
+                    title: 'Quick unlock',
+                    subtitle: 'Fingerprint or passcode on this device',
+                    onTap: () => widget.onActionTap('Quick unlock'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            const _SectionTitle(
+              icon: Icons.support_agent_rounded,
+              title: 'Help & account',
+            ),
+            const SizedBox(height: 10),
+            Container(
+              decoration: _panelDecoration,
+              child: Column(
+                children: [
+                  _MenuRow(
+                    icon: Icons.forum_outlined,
+                    title: 'Support centre',
+                    subtitle: 'Get help with your TradeX account',
+                    onTap: () => widget.onActionTap('Support centre'),
+                  ),
+                  const Divider(height: 1, color: TradeXColors.border),
+                  _MenuRow(
+                    icon: Icons.logout_rounded,
+                    title: 'Sign out',
+                    subtitle: 'Sign out from this device',
+                    danger: true,
+                    onTap: () => widget.onLogout(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CustomerProfile {
+  const _CustomerProfile({
+    required this.name,
+    required this.email,
+    required this.accountType,
+    required this.referralCode,
+    required this.whatsApp,
+    required this.whatsAppVerified,
+    required this.languageLabel,
+    required this.totpConfirmed,
+    required this.financialMethods,
+  });
+
+  factory _CustomerProfile.fromJson(Map<String, dynamic> json) {
+    final profile = _asMap(json['profile']);
+    final identity = _asMap(profile['identity']);
+    final contact = _asMap(profile['contact']);
+    final preferences = _asMap(profile['preferences']);
+    final security = _asMap(profile['security']);
+    final financial = _asMap(profile['financial']);
+    final language = preferences['language_code']?.toString().toLowerCase();
+    return _CustomerProfile(
+      name: identity['name']?.toString() ?? 'TradeX Customer',
+      email: identity['email']?.toString() ?? 'Email unavailable',
+      accountType: identity['account_type']?.toString() ?? 'MEMBER',
+      referralCode: identity['referral_code']?.toString() ?? '—',
+      whatsApp: contact['whatsapp_number']?.toString() ?? 'Add WhatsApp number',
+      whatsAppVerified: contact['whatsapp_verified'] == true,
+      languageLabel:
+          const {
+            'en': 'English',
+            'ta': 'Tamil',
+            'si': 'Sinhala',
+            'hi': 'Hindi',
+            'ml': 'Malayalam',
+            'te': 'Telugu',
+            'ur': 'Urdu',
+          }[language] ??
+          'English',
+      totpConfirmed: security['totp_confirmed'] == true,
+      financialMethods: [
+        _FinancialMethod(
+          label: 'PayPal',
+          icon: Icons.paypal_rounded,
+          detail: _asMap(financial['paypal'])['email_masked']?.toString(),
+          configured: _asMap(financial['paypal'])['configured'] == true,
         ),
-        const SizedBox(height: 10),
-        _ProfileMenu(onActionTap: onActionTap, onLogout: onLogout),
-        const SizedBox(height: 20),
-        const _SectionTitle(
-          icon: Icons.support_agent_rounded,
-          title: 'Support',
+        _FinancialMethod(
+          label: 'Binance',
+          icon: Icons.currency_bitcoin_rounded,
+          detail: _asMap(financial['binance'])['email_masked']?.toString(),
+          configured: _asMap(financial['binance'])['configured'] == true,
         ),
-        const SizedBox(height: 10),
-        _SupportCard(onTap: () => onActionTap('Support centre')),
+        _FinancialMethod(
+          label: 'USDT TRC20',
+          icon: Icons.account_balance_wallet_outlined,
+          detail: _asMap(financial['usdt_trc20'])['address_masked']?.toString(),
+          configured: _asMap(financial['usdt_trc20'])['configured'] == true,
+        ),
+        _FinancialMethod(
+          label: 'Bank account',
+          icon: Icons.account_balance_outlined,
+          detail: _asMap(financial['bank'])['account_masked']?.toString(),
+          configured: _asMap(financial['bank'])['configured'] == true,
+        ),
       ],
     );
   }
+
+  final String name;
+  final String email;
+  final String accountType;
+  final String referralCode;
+  final String whatsApp;
+  final bool whatsAppVerified;
+  final String languageLabel;
+  final bool totpConfirmed;
+  final List<_FinancialMethod> financialMethods;
+}
+
+Map<String, dynamic> _asMap(Object? value) =>
+    value is Map ? Map<String, dynamic>.from(value) : const <String, dynamic>{};
+
+class _FinancialMethod {
+  const _FinancialMethod({
+    required this.label,
+    required this.icon,
+    required this.detail,
+    required this.configured,
+  });
+
+  final String label;
+  final IconData icon;
+  final String? detail;
+  final bool configured;
+}
+
+class _CustomerProfileHero extends StatelessWidget {
+  const _CustomerProfileHero({required this.profile});
+
+  final _CustomerProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF31250A), Color(0xFF111614)],
+        ),
+        border: Border.all(color: TradeXColors.gold.withValues(alpha: .65)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 62,
+            height: 62,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: TradeXColors.gold.withValues(alpha: .16),
+              border: Border.all(color: TradeXColors.goldBright, width: 1.3),
+            ),
+            child: Text(
+              profile.name.isEmpty ? 'T' : profile.name[0].toUpperCase(),
+              style: const TextStyle(
+                color: TradeXColors.goldBright,
+                fontSize: 25,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  profile.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: TradeXColors.primaryText,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  profile.email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: TradeXColors.secondaryText,
+                    fontSize: 11,
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Wrap(
+                  spacing: 7,
+                  children: [
+                    _SmallPill(
+                      label: profile.accountType.toUpperCase(),
+                      color: TradeXColors.goldBright,
+                    ),
+                    _SmallPill(
+                      label: 'REF ${profile.referralCode}',
+                      color: TradeXColors.success,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FinancialMethodsCard extends StatelessWidget {
+  const _FinancialMethodsCard({required this.profile, required this.onTap});
+
+  final _CustomerProfile profile;
+  final ValueChanged<String> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: _panelDecoration,
+      child: Column(
+        children: List.generate(profile.financialMethods.length, (index) {
+          final method = profile.financialMethods[index];
+          return Column(
+            children: [
+              _MenuRow(
+                icon: method.icon,
+                title: method.label,
+                subtitle: method.configured
+                    ? method.detail ?? 'Configured securely'
+                    : 'Not configured',
+                onTap: () => onTap('${method.label} withdrawal method'),
+              ),
+              if (index != profile.financialMethods.length - 1)
+                const Divider(height: 1, color: TradeXColors.border),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _ProfileStatusCard extends StatelessWidget {
+  const _ProfileStatusCard({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: _panelDecoration,
+    child: Column(
+      children: [
+        Icon(icon, size: 38, color: TradeXColors.goldBright),
+        const SizedBox(height: 12),
+        Text(
+          title,
+          style: const TextStyle(
+            color: TradeXColors.primaryText,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: TradeXColors.secondaryText,
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 14),
+        _GoldButton(label: actionLabel, onTap: onTap),
+      ],
+    ),
+  );
 }
 
 class _TabScrollView extends StatelessWidget {
@@ -3146,165 +3552,6 @@ class _AffiliateTools extends StatelessWidget {
             onTap: () => onActionTap('Rewards history'),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ProfileHero extends StatelessWidget {
-  const _ProfileHero({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(21),
-      child: Ink(
-        padding: const EdgeInsets.all(17),
-        decoration: _panelDecoration,
-        child: Row(
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: TradeXColors.goldBright, width: 1.3),
-                image: const DecorationImage(
-                  image: AssetImage('assets/branding/trade_x_final_logo.png'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(width: 13),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'TradeX Client',
-                    style: TextStyle(
-                      color: TradeXColors.primaryText,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Secure account · Verified access',
-                    style: TextStyle(
-                      color: TradeXColors.secondaryText,
-                      fontSize: 11,
-                    ),
-                  ),
-                  SizedBox(height: 7),
-                  _SmallPill(label: 'VERIFIED', color: TradeXColors.success),
-                ],
-              ),
-            ),
-            const Icon(Icons.edit_outlined, color: TradeXColors.goldBright),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileMenu extends StatelessWidget {
-  const _ProfileMenu({required this.onActionTap, required this.onLogout});
-
-  final ValueChanged<String> onActionTap;
-  final Future<void> Function() onLogout;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: _panelDecoration,
-      child: Column(
-        children: [
-          _MenuRow(
-            icon: Icons.person_outline_rounded,
-            title: 'Personal details',
-            subtitle: 'Name, email and mobile number',
-            onTap: () => onActionTap('Personal details'),
-          ),
-          const Divider(height: 1, color: TradeXColors.border),
-          _MenuRow(
-            icon: Icons.lock_outline_rounded,
-            title: 'Security',
-            subtitle: 'Password, authenticator and sessions',
-            onTap: () => onActionTap('Security'),
-          ),
-          const Divider(height: 1, color: TradeXColors.border),
-          _MenuRow(
-            icon: Icons.language_rounded,
-            title: 'Learning language',
-            subtitle: 'English',
-            onTap: () => onActionTap('Learning language'),
-          ),
-          const Divider(height: 1, color: TradeXColors.border),
-          _MenuRow(
-            icon: Icons.logout_rounded,
-            title: 'Sign out',
-            subtitle: 'Sign out from this device',
-            danger: true,
-            onTap: () async => onLogout(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SupportCard extends StatelessWidget {
-  const _SupportCard({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(19),
-      child: Ink(
-        padding: const EdgeInsets.all(16),
-        decoration: _panelDecoration,
-        child: const Row(
-          children: [
-            Icon(
-              Icons.forum_outlined,
-              color: TradeXColors.goldBright,
-              size: 28,
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Need help?',
-                    style: TextStyle(
-                      color: TradeXColors.primaryText,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  SizedBox(height: 3),
-                  Text(
-                    'Visit the TradeX Support Centre.',
-                    style: TextStyle(
-                      color: TradeXColors.secondaryText,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_rounded, color: TradeXColors.goldBright),
-          ],
-        ),
       ),
     );
   }
