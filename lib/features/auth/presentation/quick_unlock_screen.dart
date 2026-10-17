@@ -28,6 +28,30 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
   final _localAuth = LocalAuthentication();
   bool _busy = false;
   String? _error;
+  String _biometricLabel = 'Biometrics';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricLabel();
+  }
+
+  Future<void> _loadBiometricLabel() async {
+    if (widget.config.method != 'BIOMETRIC') return;
+    try {
+      final available = await _localAuth.getAvailableBiometrics();
+      final label = available.contains(BiometricType.face)
+          ? 'Face ID'
+          : available.contains(BiometricType.fingerprint)
+          ? 'Fingerprint'
+          : available.contains(BiometricType.strong)
+          ? 'Biometrics'
+          : 'Biometrics';
+      if (mounted) setState(() => _biometricLabel = label);
+    } on PlatformException {
+      // The lock screen retains the generic safe fallback label.
+    }
+  }
 
   @override
   void dispose() {
@@ -44,14 +68,16 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
       _busy = true;
       _error = null;
     });
-    final matches = await widget.sessionStore.verifyQuickUnlockPin(
+    final result = await widget.sessionStore.verifyQuickUnlockPin(
       _pinController.text,
     );
     if (!mounted) return;
-    if (!matches) {
+    if (result != QuickUnlockPinResult.success) {
       setState(() {
         _busy = false;
-        _error = 'Incorrect passcode. Try again.';
+        _error = result == QuickUnlockPinResult.locked
+            ? 'Too many attempts. Passcode unlock is locked for 5 minutes.'
+            : 'Incorrect passcode. Try again.';
         _pinController.clear();
       });
       return;
@@ -84,14 +110,15 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
       } else {
         setState(() {
           _busy = false;
-          _error = 'Fingerprint verification was not completed.';
+          _error = '$_biometricLabel verification was not completed.';
         });
       }
     } on PlatformException {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = 'Fingerprint is not available on this device. Sign in normally to choose a passcode.';
+        _error =
+            '$_biometricLabel is not available on this device. Sign in another way.';
       });
     }
   }
@@ -127,7 +154,9 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    biometric ? 'Unlock with Fingerprint' : 'Enter Passcode',
+                    biometric
+                        ? 'Unlock with $_biometricLabel'
+                        : 'Enter Passcode',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: TradeXColors.primaryText,
@@ -152,7 +181,9 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
                       child: FilledButton.icon(
                         onPressed: _busy ? null : _unlockWithBiometrics,
                         icon: const Icon(Icons.fingerprint_rounded),
-                        label: Text(_busy ? 'Verifying…' : 'Use Fingerprint'),
+                        label: Text(
+                          _busy ? 'Verifying…' : 'Use $_biometricLabel',
+                        ),
                       ),
                     )
                   else ...[
@@ -199,7 +230,7 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
                   const SizedBox(height: 14),
                   TextButton(
                     onPressed: _busy ? null : widget.onSignOut,
-                    child: const Text('Use another account'),
+                    child: const Text('Sign in another way'),
                   ),
                 ],
               ),

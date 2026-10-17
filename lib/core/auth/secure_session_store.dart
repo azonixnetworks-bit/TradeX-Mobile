@@ -89,7 +89,7 @@ class SecureSessionStore {
       method: normalizedMethod,
       email: email,
       pinSalt: salt,
-      pinHash: salt == null ? null : _pinHash(salt, pin!),
+      pinHash: salt == null ? null : _pinVerifier(salt, pin!),
     );
 
     await _storage.write(
@@ -98,15 +98,37 @@ class SecureSessionStore {
     );
   }
 
-  Future<bool> verifyQuickUnlockPin(String pin) async {
+  Future<QuickUnlockPinResult> verifyQuickUnlockPin(String pin) async {
     final config = await readQuickUnlock();
     if (config == null ||
         config.method != 'PIN' ||
         config.pinSalt == null ||
         config.pinHash == null) {
-      return false;
+      return QuickUnlockPinResult.unavailable;
     }
-    return _pinHash(config.pinSalt!, pin) == config.pinHash;
+
+    final now = DateTime.now();
+    if (config.lockedUntil != null && now.isBefore(config.lockedUntil!)) {
+      return QuickUnlockPinResult.locked;
+    }
+
+    if (_pinVerifier(config.pinSalt!, pin) == config.pinHash) {
+      await _writeQuickUnlock(
+        config.copyWith(failedAttempts: 0, clearLock: true),
+      );
+      return QuickUnlockPinResult.success;
+    }
+
+    final attempts = config.failedAttempts + 1;
+    final locked = attempts >= 5;
+    await _writeQuickUnlock(
+      config.copyWith(
+        failedAttempts: locked ? 0 : attempts,
+        lockedUntil: locked ? now.add(const Duration(minutes: 5)) : null,
+        clearLock: !locked,
+      ),
+    );
+    return locked ? QuickUnlockPinResult.locked : QuickUnlockPinResult.failed;
   }
 
   Future<void> clearQuickUnlock() {
@@ -127,10 +149,31 @@ class SecureSessionStore {
     return base64UrlEncode(values);
   }
 
-  String _pinHash(String salt, String pin) {
-    return sha256.convert(utf8.encode('$salt:$pin')).toString();
+  Future<void> _writeQuickUnlock(QuickUnlockConfig config) {
+    return _storage.write(
+      key: _quickUnlockKey,
+      value: jsonEncode(config.toJson()),
+    );
+  }
+
+  String _pinVerifier(String salt, String pin) {
+    // Secure storage is Keystore/Keychain protected. PBKDF2-style stretching
+    // also makes an extracted four-digit verifier expensive to brute-force.
+    final mac = Hmac(sha256, utf8.encode(pin));
+    var block = <int>[...utf8.encode(salt), 0, 0, 0, 1];
+    var digest = mac.convert(block).bytes;
+    final derived = List<int>.from(digest);
+    for (var index = 1; index < 60000; index++) {
+      digest = mac.convert(digest).bytes;
+      for (var byte = 0; byte < derived.length; byte++) {
+        derived[byte] ^= digest[byte];
+      }
+    }
+    return base64UrlEncode(derived);
   }
 }
+
+enum QuickUnlockPinResult { success, failed, locked, unavailable }
 
 class QuickUnlockConfig {
   const QuickUnlockConfig({
@@ -138,18 +181,37 @@ class QuickUnlockConfig {
     required this.email,
     this.pinSalt,
     this.pinHash,
+    this.failedAttempts = 0,
+    this.lockedUntil,
   });
 
   final String method;
   final String email;
   final String? pinSalt;
   final String? pinHash;
+  final int failedAttempts;
+  final DateTime? lockedUntil;
+
+  QuickUnlockConfig copyWith({
+    int? failedAttempts,
+    DateTime? lockedUntil,
+    bool clearLock = false,
+  }) => QuickUnlockConfig(
+    method: method,
+    email: email,
+    pinSalt: pinSalt,
+    pinHash: pinHash,
+    failedAttempts: failedAttempts ?? this.failedAttempts,
+    lockedUntil: clearLock ? null : lockedUntil ?? this.lockedUntil,
+  );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'method': method,
     'email': email,
     'pin_salt': pinSalt,
     'pin_hash': pinHash,
+    'failed_attempts': failedAttempts,
+    'locked_until': lockedUntil?.toIso8601String(),
   };
 
   factory QuickUnlockConfig.fromJson(Map<String, dynamic> json) {
@@ -165,6 +227,10 @@ class QuickUnlockConfig {
       email: email,
       pinSalt: json['pin_salt'] as String?,
       pinHash: json['pin_hash'] as String?,
+      failedAttempts: (json['failed_attempts'] as num?)?.toInt() ?? 0,
+      lockedUntil: json['locked_until'] is String
+          ? DateTime.tryParse(json['locked_until'] as String)
+          : null,
     );
   }
 }

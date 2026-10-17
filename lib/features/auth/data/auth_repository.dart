@@ -11,7 +11,25 @@ class AuthRepository {
   final SecureSessionStore _sessionStore;
   final DeviceIdentity _deviceIdentity;
 
-  Future<AuthSession?> restoreSession() async {
+  /// Restores a session only after local Quick Unlock has succeeded.
+  ///
+  /// A session created without "Remember this device" deliberately has no
+  /// Quick Unlock configuration. It is cleared at the next app launch rather
+  /// than becoming a silent persistent login.
+  Future<AuthSession?> restoreRememberedSession() async {
+    if (await _sessionStore.readQuickUnlock() == null) {
+      await _sessionStore.clearSession();
+      return null;
+    }
+
+    return _restoreStoredSession();
+  }
+
+  Future<AuthSession?> restoreSessionAfterQuickUnlock() {
+    return _restoreStoredSession();
+  }
+
+  Future<AuthSession?> _restoreStoredSession() async {
     final session = await _sessionStore.readSession();
 
     if (session == null) {
