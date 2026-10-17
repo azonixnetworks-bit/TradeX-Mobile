@@ -162,12 +162,16 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     required String password,
     String? totpCode,
     String? recoveryCode,
+    String? quickUnlockMethod,
+    String? quickUnlockPin,
   }) async {
     await widget.authRepository.login(
       email: email,
       password: password,
       totpCode: totpCode,
       recoveryCode: recoveryCode,
+      quickUnlockMethod: quickUnlockMethod,
+      quickUnlockPin: quickUnlockPin,
     );
 
     if (!mounted) {

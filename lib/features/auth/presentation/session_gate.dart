@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/auth/secure_session_store.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../../../core/network/tradex_api_client.dart';
@@ -7,6 +8,7 @@ import '../data/auth_repository.dart';
 import '../data/password_recovery_repository.dart';
 import '../data/registration_repository.dart';
 import 'auth_flow_screen.dart';
+import 'quick_unlock_screen.dart';
 import '../../home/presentation/home_dashboard_screen.dart';
 import '../../home/data/trade_ideas_repository.dart';
 import '../../home/data/learning_repository.dart';
@@ -36,6 +38,8 @@ class SessionGate extends StatefulWidget {
 class _SessionGateState extends State<SessionGate> {
   bool _loading = true;
   bool _authenticated = false;
+  QuickUnlockConfig? _quickUnlock;
+  bool _quickUnlockLocked = false;
 
   String? _error;
 
@@ -56,6 +60,9 @@ class _SessionGateState extends State<SessionGate> {
 
     try {
       final session = await widget.authRepository.restoreSession();
+      final quickUnlock = session == null
+          ? null
+          : await widget.authRepository.quickUnlockConfiguration();
 
       if (!mounted) {
         return;
@@ -63,6 +70,8 @@ class _SessionGateState extends State<SessionGate> {
 
       setState(() {
         _authenticated = session != null;
+        _quickUnlock = quickUnlock;
+        _quickUnlockLocked = quickUnlock != null;
         _loading = false;
       });
     } on ApiException catch (error) {
@@ -89,6 +98,7 @@ class _SessionGateState extends State<SessionGate> {
   void _onAuthenticated() {
     setState(() {
       _authenticated = true;
+      _quickUnlockLocked = false;
     });
   }
 
@@ -101,6 +111,8 @@ class _SessionGateState extends State<SessionGate> {
 
     setState(() {
       _authenticated = false;
+      _quickUnlock = null;
+      _quickUnlockLocked = false;
     });
   }
 
@@ -115,6 +127,14 @@ class _SessionGateState extends State<SessionGate> {
     }
 
     if (_authenticated) {
+      if (_quickUnlockLocked && _quickUnlock != null) {
+        return QuickUnlockScreen(
+          config: _quickUnlock!,
+          sessionStore: SecureSessionStore(),
+          onUnlocked: () => setState(() => _quickUnlockLocked = false),
+          onSignOut: _logout,
+        );
+      }
       return HomeDashboardScreen(
         onLogout: _logout,
         apiClient: widget.apiClient,
