@@ -21,6 +21,8 @@ class LoginScreen extends StatefulWidget {
     required String password,
     String? totpCode,
     String? recoveryCode,
+    String? quickUnlockMethod,
+    String? quickUnlockPin,
   })
   onLogin;
 
@@ -36,9 +38,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   final TextEditingController _securityCodeController = TextEditingController();
+  final TextEditingController _quickUnlockPinController =
+      TextEditingController();
 
   bool _obscurePassword = true;
   bool _useRecoveryCode = false;
+  bool _rememberDevice = false;
+  String _quickUnlockMethod = 'BIOMETRIC';
   bool _submitting = false;
 
   String? _errorMessage;
@@ -48,6 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _securityCodeController.dispose();
+    _quickUnlockPinController.dispose();
 
     super.dispose();
   }
@@ -92,6 +99,14 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
+  String? _validateQuickUnlockPin(String? value) {
+    if (!_rememberDevice || _quickUnlockMethod != 'PIN') return null;
+    if (!RegExp(r'^\d{4}$').hasMatch(value?.trim() ?? '')) {
+      return 'Create a 4-digit passcode.';
+    }
+    return null;
+  }
+
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
 
@@ -111,6 +126,10 @@ class _LoginScreenState extends State<LoginScreen> {
         totpCode: _useRecoveryCode ? null : _securityCodeController.text.trim(),
         recoveryCode: _useRecoveryCode
             ? _securityCodeController.text.trim()
+            : null,
+        quickUnlockMethod: _rememberDevice ? _quickUnlockMethod : null,
+        quickUnlockPin: _rememberDevice && _quickUnlockMethod == 'PIN'
+            ? _quickUnlockPinController.text.trim()
             : null,
       );
     } catch (error) {
@@ -173,17 +192,33 @@ class _LoginScreenState extends State<LoginScreen> {
                           useRecoveryCode: _useRecoveryCode,
                           submitting: _submitting,
                           errorMessage: _errorMessage,
+                          rememberDevice: _rememberDevice,
+                          quickUnlockMethod: _quickUnlockMethod,
+                          quickUnlockPinController: _quickUnlockPinController,
                           onPasswordVisibilityChanged: () {
                             setState(() {
                               _obscurePassword = !_obscurePassword;
                             });
                           },
                           onRecoveryModeChanged: _toggleRecoveryMode,
+                          onRememberDeviceChanged: (value) {
+                            setState(() {
+                              _rememberDevice = value;
+                              _errorMessage = null;
+                            });
+                          },
+                          onQuickUnlockMethodChanged: (value) {
+                            setState(() {
+                              _quickUnlockMethod = value;
+                              _quickUnlockPinController.clear();
+                            });
+                          },
                           onForgotPassword: widget.onForgotPassword,
                           onSubmit: _submit,
                           validateEmail: _validateEmail,
                           validatePassword: _validatePassword,
                           validateSecurityCode: _validateSecurityCode,
+                          validateQuickUnlockPin: _validateQuickUnlockPin,
                         ),
 
                         const SizedBox(height: 22),
@@ -288,13 +323,19 @@ class _LoginCard extends StatelessWidget {
     required this.useRecoveryCode,
     required this.submitting,
     required this.errorMessage,
+    required this.rememberDevice,
+    required this.quickUnlockMethod,
+    required this.quickUnlockPinController,
     required this.onPasswordVisibilityChanged,
     required this.onRecoveryModeChanged,
+    required this.onRememberDeviceChanged,
+    required this.onQuickUnlockMethodChanged,
     required this.onForgotPassword,
     required this.onSubmit,
     required this.validateEmail,
     required this.validatePassword,
     required this.validateSecurityCode,
+    required this.validateQuickUnlockPin,
   });
 
   final GlobalKey<FormState> formKey;
@@ -306,17 +347,23 @@ class _LoginCard extends StatelessWidget {
   final bool obscurePassword;
   final bool useRecoveryCode;
   final bool submitting;
+  final bool rememberDevice;
+  final String quickUnlockMethod;
 
   final String? errorMessage;
+  final TextEditingController quickUnlockPinController;
 
   final VoidCallback onPasswordVisibilityChanged;
   final VoidCallback onRecoveryModeChanged;
+  final ValueChanged<bool> onRememberDeviceChanged;
+  final ValueChanged<String> onQuickUnlockMethodChanged;
   final VoidCallback onForgotPassword;
   final VoidCallback onSubmit;
 
   final String? Function(String?) validateEmail;
   final String? Function(String?) validatePassword;
   final String? Function(String?) validateSecurityCode;
+  final String? Function(String?) validateQuickUnlockPin;
 
   @override
   Widget build(BuildContext context) {
@@ -499,6 +546,79 @@ class _LoginCard extends StatelessWidget {
               ],
             ),
 
+            const SizedBox(height: 8),
+
+            SwitchListTile.adaptive(
+              value: rememberDevice,
+              onChanged: submitting ? null : onRememberDeviceChanged,
+              contentPadding: EdgeInsets.zero,
+              activeThumbColor: TradeXColors.goldBright,
+              title: const Text(
+                'Remember this device',
+                style: TextStyle(
+                  color: TradeXColors.primaryText,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              subtitle: const Text(
+                'Unlock next time with fingerprint or passcode.',
+                style: TextStyle(
+                  color: TradeXColors.secondaryText,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+
+            if (rememberDevice) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: _QuickUnlockMethodButton(
+                      label: 'Fingerprint',
+                      icon: Icons.fingerprint_rounded,
+                      selected: quickUnlockMethod == 'BIOMETRIC',
+                      onTap: () => onQuickUnlockMethodChanged('BIOMETRIC'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _QuickUnlockMethodButton(
+                      label: 'Passcode',
+                      icon: Icons.pin_outlined,
+                      selected: quickUnlockMethod == 'PIN',
+                      onTap: () => onQuickUnlockMethodChanged('PIN'),
+                    ),
+                  ),
+                ],
+              ),
+              if (quickUnlockMethod == 'PIN') ...[
+                const SizedBox(height: 12),
+                _LoginField(
+                  controller: quickUnlockPinController,
+                  label: 'Create 4-digit passcode',
+                  icon: Icons.pin_outlined,
+                  keyboardType: TextInputType.number,
+                  obscureText: true,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(4),
+                  ],
+                  maxLength: 4,
+                  validator: validateQuickUnlockPin,
+                ),
+              ],
+              const SizedBox(height: 8),
+              const Text(
+                'Your passcode and biometric data stay only on this device.',
+                style: TextStyle(
+                  color: TradeXColors.secondaryText,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+
             if (errorMessage != null) ...[
               const SizedBox(height: 10),
 
@@ -599,6 +719,67 @@ class _LoginField extends StatelessWidget {
           borderSide: const BorderSide(color: TradeXColors.error, width: 1.3),
         ),
         errorStyle: const TextStyle(color: TradeXColors.error, fontSize: 11),
+      ),
+    );
+  }
+}
+
+class _QuickUnlockMethodButton extends StatelessWidget {
+  const _QuickUnlockMethodButton({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? TradeXColors.gold.withValues(alpha: 0.14)
+              : TradeXColors.background,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? TradeXColors.goldBright : TradeXColors.border,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: selected
+                  ? TradeXColors.goldBright
+                  : TradeXColors.secondaryText,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: selected
+                      ? TradeXColors.goldBright
+                      : TradeXColors.primaryText,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

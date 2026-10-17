@@ -5,11 +5,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
 
 class AuthRepository {
-  AuthRepository(
-    this._apiClient,
-    this._sessionStore,
-    this._deviceIdentity,
-  );
+  AuthRepository(this._apiClient, this._sessionStore, this._deviceIdentity);
 
   final TradeXApiClient _apiClient;
   final SecureSessionStore _sessionStore;
@@ -48,6 +44,8 @@ class AuthRepository {
     required String password,
     String? totpCode,
     String? recoveryCode,
+    String? quickUnlockMethod,
+    String? quickUnlockPin,
   }) async {
     final device = await _deviceIdentity.load();
 
@@ -63,6 +61,9 @@ class AuthRepository {
 
       if (recoveryCode != null && recoveryCode.trim().isNotEmpty)
         'recovery_code': recoveryCode.trim(),
+
+      if (quickUnlockMethod?.isNotEmpty == true)
+        'quick_unlock_method': quickUnlockMethod!,
     };
 
     final response = await _apiClient.publicPost('/api/v1/auth/login', payload);
@@ -94,6 +95,14 @@ class AuthRepository {
 
     await _sessionStore.writeSession(session);
 
+    if (quickUnlockMethod != null) {
+      await _sessionStore.writeQuickUnlock(
+        method: quickUnlockMethod,
+        email: email.trim().toLowerCase(),
+        pin: quickUnlockPin,
+      );
+    }
+
     return session;
   }
 
@@ -105,10 +114,15 @@ class AuthRepository {
       );
     } finally {
       await _sessionStore.clearSession();
+      await _sessionStore.clearQuickUnlock();
     }
   }
 
   Future<void> clearLocalSession() {
     return _sessionStore.clearSession();
+  }
+
+  Future<QuickUnlockConfig?> quickUnlockConfiguration() {
+    return _sessionStore.readQuickUnlock();
   }
 }
