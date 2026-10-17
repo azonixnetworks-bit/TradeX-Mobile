@@ -69,7 +69,6 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   PasswordRecoverySession? _recoverySession;
 
   String _registrationEmail = '';
-  String _registrationWhatsApp = '';
   String _recoveryEmail = '';
   String _recoveryWhatsApp = '';
 
@@ -170,7 +169,6 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     _registrationRecoveryCodes = null;
     _registrationDraft = null;
     _registrationEmail = '';
-    _registrationWhatsApp = '';
   }
 
   void _clearRecovery() {
@@ -275,7 +273,6 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     setState(() {
       _registrationSession = session;
       _registrationEmail = draft.email.trim();
-      _registrationWhatsApp = draft.whatsappNumber.trim();
       _step = _AuthStep.registerEmailOtp;
     });
   }

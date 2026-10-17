@@ -239,6 +239,8 @@ class _SessionClockCardState extends State<_SessionClockCard> {
   List<_MarketSession> _dialSessions = const [];
   String _timezone = 'Local time';
   Timer? _refreshTimer;
+  Timer? _clockTimer;
+  DateTime _now = DateTime.now();
 
   @override
   void initState() {
@@ -249,11 +251,15 @@ class _SessionClockCardState extends State<_SessionClockCard> {
       const Duration(minutes: 5),
       (_) => _loadLiveMarketClock(),
     );
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _clockTimer?.cancel();
     super.dispose();
   }
 
@@ -287,80 +293,75 @@ class _SessionClockCardState extends State<_SessionClockCard> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<int>(
-      stream: Stream<int>.periodic(const Duration(seconds: 1), (tick) => tick),
-      builder: (context, _) {
-        final now = DateTime.now();
-        final dialSessions = _dialSessions.isEmpty
-            ? _fallbackSessions(now.toUtc())
-            : _dialSessions;
-        final sessions = dialSessions
-            .where((session) => _featuredNames.contains(session.name))
-            .toList(growable: false);
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: _panelDecoration,
-          child: Column(
+    final now = _now;
+    final dialSessions = _dialSessions.isEmpty
+        ? _fallbackSessions(now.toUtc())
+        : _dialSessions;
+    final sessions = dialSessions
+        .where((session) => _featuredNames.contains(session.name))
+        .toList(growable: false);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _panelDecoration,
+      child: Column(
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.phone_android_rounded,
-                    color: TradeXColors.goldBright,
-                    size: 19,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${_twoDigits(now.hour)}:${_twoDigits(now.minute)}:${_twoDigits(now.second)}',
-                          style: const TextStyle(
-                            color: TradeXColors.primaryText,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: .4,
-                          ),
-                        ),
-                        Text(
-                          _timezone == 'UTC' ? 'Your device time' : _timezone,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: TradeXColors.secondaryText,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const _LivePill(),
-                ],
+              const Icon(
+                Icons.phone_android_rounded,
+                color: TradeXColors.goldBright,
+                size: 19,
               ),
-              const SizedBox(height: 15),
-              AspectRatio(
-                aspectRatio: 1,
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    painter: _MarketClockDialPainter(
-                      sessions: dialSessions,
-                      now: now,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_twoDigits(now.hour)}:${_twoDigits(now.minute)}:${_twoDigits(now.second)}',
+                      style: const TextStyle(
+                        color: TradeXColors.primaryText,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: .4,
+                      ),
                     ),
-                  ),
+                    Text(
+                      _timezone == 'UTC' ? 'Your device time' : _timezone,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: TradeXColors.secondaryText,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
-              const _ClockLegend(),
-              const SizedBox(height: 8),
-              ...sessions.map((session) => _SessionRow(session: session)),
-              const SizedBox(height: 16),
-              _WorldClockGrid(now: now, deviceTimezone: _timezone),
+              const _LivePill(),
             ],
           ),
-        );
-      },
+          const SizedBox(height: 15),
+          AspectRatio(
+            aspectRatio: 1,
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: _MarketClockDialPainter(
+                  sessions: dialSessions,
+                  now: now,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          const _ClockLegend(),
+          const SizedBox(height: 8),
+          ...sessions.map((session) => _SessionRow(session: session)),
+          const SizedBox(height: 16),
+          _WorldClockGrid(now: now, deviceTimezone: _timezone),
+        ],
+      ),
     );
   }
 
