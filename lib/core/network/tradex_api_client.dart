@@ -99,6 +99,17 @@ class TradeXApiClient {
     retryAfterRefresh: true,
   );
 
+  Future<Map<String, dynamic>> putJson(
+    String path,
+    Map<String, dynamic> body,
+  ) => _send(
+    method: 'PUT',
+    path: path,
+    body: body,
+    authenticated: true,
+    retryAfterRefresh: true,
+  );
+
   Future<Map<String, dynamic>> _send({
     required String method,
     required String path,
