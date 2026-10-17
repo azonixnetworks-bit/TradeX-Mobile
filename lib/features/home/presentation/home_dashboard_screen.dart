@@ -1848,22 +1848,29 @@ class _LatestContentCard extends StatefulWidget {
 }
 
 class _LatestContentCardState extends State<_LatestContentCard> {
-  late Future<_ChannelVideo?> _video;
+  late Future<List<_ChannelVideo>> _videos;
 
   @override
   void initState() {
     super.initState();
-    _video = _loadVideo();
+    _videos = _loadVideos();
   }
 
-  Future<_ChannelVideo?> _loadVideo() async {
-    final response = await widget.apiClient.getJson('/api/v1/dashboard');
+  Future<List<_ChannelVideo>> _loadVideos() async {
+    final response = await widget.apiClient.getJson(
+      '/api/v1/our-channel/videos?per_page=12',
+    );
     final data = response['data'];
-    final channel = data is Map ? data['our_channel'] : null;
-    final video = channel is Map ? channel['latest_video'] : null;
-    return video is Map
-        ? _ChannelVideo.fromJson(Map<String, dynamic>.from(video))
-        : null;
+    final videos = data is Map ? data['videos'] : null;
+    if (videos is! List) return const [];
+    final result = videos
+        .whereType<Map>()
+        .map(
+          (video) => _ChannelVideo.fromJson(Map<String, dynamic>.from(video)),
+        )
+        .toList();
+    result.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+    return result;
   }
 
   Future<void> _react(_ChannelVideo video, String reaction) async {
@@ -1905,11 +1912,11 @@ class _LatestContentCardState extends State<_LatestContentCard> {
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<_ChannelVideo?>(
-    future: _video,
+  Widget build(BuildContext context) => FutureBuilder<List<_ChannelVideo>>(
+    future: _videos,
     builder: (context, snapshot) {
-      final video = snapshot.data;
-      if (video == null) {
+      final videos = snapshot.data ?? const <_ChannelVideo>[];
+      if (videos.isEmpty) {
         return Container(
           padding: const EdgeInsets.all(18),
           decoration: _panelDecoration,
@@ -1934,68 +1941,99 @@ class _LatestContentCardState extends State<_LatestContentCard> {
         );
       }
 
-      return InkWell(
-        onTap: () => _openVideo(video.watchUrl),
-        borderRadius: BorderRadius.circular(20),
-        child: Ink(
-          padding: const EdgeInsets.all(12),
-          decoration: _panelDecoration,
-          child: Row(
-            children: [
-              _YoutubeThumbnail(video: video),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      video.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: TradeXColors.primaryText,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    if (video.description.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        video.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: TradeXColors.secondaryText,
-                          fontSize: 11,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 9),
-                    Row(
-                      children: [
-                        _ReactionButton(
-                          icon: Icons.thumb_up_alt_outlined,
-                          count: video.likesCount,
-                          selected: video.viewerReaction == 'LIKE',
-                          onTap: () => _react(video, 'LIKE'),
-                        ),
-                        const SizedBox(width: 8),
-                        _ReactionButton(
-                          icon: Icons.thumb_down_alt_outlined,
-                          count: video.dislikesCount,
-                          selected: video.viewerReaction == 'DISLIKE',
-                          onTap: () => _react(video, 'DISLIKE'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+      return SizedBox(
+        height: 126,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.only(right: 16),
+          itemCount: videos.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 12),
+          itemBuilder: (context, index) => SizedBox(
+            width: 298,
+            child: _LatestVideoCard(
+              video: videos[index],
+              onOpen: _openVideo,
+              onReact: _react,
+            ),
           ),
         ),
       );
     },
+  );
+}
+
+class _LatestVideoCard extends StatelessWidget {
+  const _LatestVideoCard({
+    required this.video,
+    required this.onOpen,
+    required this.onReact,
+  });
+
+  final _ChannelVideo video;
+  final ValueChanged<String?> onOpen;
+  final Future<void> Function(_ChannelVideo, String) onReact;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: () => onOpen(video.watchUrl),
+    borderRadius: BorderRadius.circular(20),
+    child: Ink(
+      padding: const EdgeInsets.all(12),
+      decoration: _panelDecoration,
+      child: Row(
+        children: [
+          _YoutubeThumbnail(video: video),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  video.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: TradeXColors.primaryText,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (video.description.isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Text(
+                    video.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: TradeXColors.secondaryText,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                Row(
+                  children: [
+                    _ReactionButton(
+                      icon: Icons.thumb_up_alt_outlined,
+                      count: video.likesCount,
+                      selected: video.viewerReaction == 'LIKE',
+                      onTap: () => onReact(video, 'LIKE'),
+                    ),
+                    const SizedBox(width: 8),
+                    _ReactionButton(
+                      icon: Icons.thumb_down_alt_outlined,
+                      count: video.dislikesCount,
+                      selected: video.viewerReaction == 'DISLIKE',
+                      onTap: () => onReact(video, 'DISLIKE'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
   );
 }
 
@@ -2095,6 +2133,7 @@ class _ChannelVideo {
     required this.likesCount,
     required this.dislikesCount,
     required this.viewerReaction,
+    required this.publishedAt,
   });
 
   factory _ChannelVideo.fromJson(Map<String, dynamic> json) {
@@ -2113,6 +2152,9 @@ class _ChannelVideo {
       likesCount: (reactions['likes_count'] as num?)?.toInt() ?? 0,
       dislikesCount: (reactions['dislikes_count'] as num?)?.toInt() ?? 0,
       viewerReaction: reactions['viewer_reaction']?.toString(),
+      publishedAt:
+          DateTime.tryParse(json['published_at']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
 
@@ -2124,6 +2166,7 @@ class _ChannelVideo {
   int likesCount;
   int dislikesCount;
   String? viewerReaction;
+  final DateTime publishedAt;
 
   void applyReaction(String? next) {
     if (viewerReaction == next) return;
