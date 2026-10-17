@@ -1778,18 +1778,6 @@ class _CategoryTile extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(17),
-                  gradient: const LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [Color(0xBE020504), Color(0x26020504)],
-                  ),
-                ),
-              ),
-            ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
