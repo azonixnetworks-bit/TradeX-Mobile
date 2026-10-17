@@ -143,4 +143,12 @@ class AuthRepository {
   Future<QuickUnlockConfig?> quickUnlockConfiguration() {
     return _sessionStore.readQuickUnlock();
   }
+
+  Future<bool> hasCompletedFirstLogin() {
+    return _sessionStore.hasCompletedFirstLogin();
+  }
+
+  Future<void> markFirstLoginCompleted() {
+    return _sessionStore.markFirstLoginCompleted();
+  }
 }

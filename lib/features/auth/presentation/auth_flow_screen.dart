@@ -59,6 +59,7 @@ class AuthFlowScreen extends StatefulWidget {
 
 class _AuthFlowScreenState extends State<AuthFlowScreen> {
   _AuthStep _step = _AuthStep.splash;
+  bool? _hasCompletedFirstLogin;
 
   RegistrationSession? _registrationSession;
   RegistrationTotpSetup? _registrationTotpSetup;
@@ -72,6 +73,19 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   String _recoveryEmail = '';
   String _recoveryWhatsApp = '';
 
+  @override
+  void initState() {
+    super.initState();
+    _loadLoginHistory();
+  }
+
+  Future<void> _loadLoginHistory() async {
+    final completed = await widget.authRepository.hasCompletedFirstLogin();
+    if (mounted) {
+      setState(() => _hasCompletedFirstLogin = completed);
+    }
+  }
+
   void _setStep(_AuthStep step) {
     if (!mounted) {
       return;
@@ -83,6 +97,14 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   }
 
   void _showWelcome() => _setStep(_AuthStep.welcome);
+
+  Future<void> _continueAfterSplash() async {
+    final completed =
+        _hasCompletedFirstLogin ??
+        await widget.authRepository.hasCompletedFirstLogin();
+    if (!mounted) return;
+    _setStep(completed ? _AuthStep.login : _AuthStep.welcome);
+  }
 
   void _showLogin() {
     _clearRegistration();
@@ -173,6 +195,8 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       quickUnlockMethod: quickUnlockMethod,
       quickUnlockPin: quickUnlockPin,
     );
+
+    await widget.authRepository.markFirstLoginCompleted();
 
     if (!mounted) {
       return;
@@ -453,7 +477,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   Widget _buildStep(BuildContext context) {
     switch (_step) {
       case _AuthStep.splash:
-        return SplashScreen(onFinished: _showWelcome);
+        return SplashScreen(onFinished: _continueAfterSplash);
 
       case _AuthStep.welcome:
         return WelcomeScreen(
