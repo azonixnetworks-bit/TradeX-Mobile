@@ -13,6 +13,7 @@ import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../data/trade_ideas_repository.dart';
 import '../data/learning_repository.dart';
+import '../../profile/presentation/trusted_devices_screen.dart';
 
 bool _timeZoneDatabaseInitialized = false;
 
@@ -2484,7 +2485,12 @@ class _ProfileTabState extends State<_ProfileTab> {
                     icon: Icons.devices_other_rounded,
                     title: 'Trusted devices',
                     subtitle: 'Review or revoke devices with TOTP',
-                    onTap: () => widget.onActionTap('Trusted devices'),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            TrustedDevicesScreen(apiClient: widget.apiClient),
+                      ),
+                    ),
                   ),
                   const Divider(height: 1, color: TradeXColors.border),
                   _MenuRow(

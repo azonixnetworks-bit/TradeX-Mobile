@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 
 import '../auth/auth_session.dart';
 import '../auth/secure_session_store.dart';
@@ -12,18 +14,7 @@ import 'app_messenger.dart';
 
 class TradeXApiClient {
   TradeXApiClient(this._sessionStore, this._deviceIdentity, {Dio? dio})
-    : _dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              baseUrl: TradeXApiConfig.baseUrl,
-              connectTimeout: TradeXApiConfig.requestTimeout,
-              sendTimeout: TradeXApiConfig.requestTimeout,
-              receiveTimeout: TradeXApiConfig.requestTimeout,
-              responseType: ResponseType.json,
-              validateStatus: (_) => true,
-            ),
-          );
+    : _dio = dio ?? _createPinnedDio();
 
   final SecureSessionStore _sessionStore;
   final DeviceIdentity _deviceIdentity;
@@ -110,6 +101,44 @@ class TradeXApiClient {
     retryAfterRefresh: true,
   );
 
+  Future<Map<String, dynamic>> patchJson(
+    String path,
+    Map<String, dynamic> body,
+  ) => _send(
+    method: 'PATCH',
+    path: path,
+    body: body,
+    authenticated: true,
+    retryAfterRefresh: true,
+  );
+
+  static Dio _createPinnedDio() {
+    final baseUrl = TradeXApiConfig.baseUrl;
+    final host = Uri.parse(baseUrl).host;
+    final pins = TradeXApiConfig.certificatePinsFor(host);
+    final client = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        connectTimeout: TradeXApiConfig.requestTimeout,
+        sendTimeout: TradeXApiConfig.requestTimeout,
+        receiveTimeout: TradeXApiConfig.requestTimeout,
+        responseType: ResponseType.json,
+        validateStatus: (_) => true,
+      ),
+    );
+
+    if (pins.isNotEmpty) {
+      client.httpClientAdapter = IOHttpClientAdapter(
+        validateCertificate: (certificate, certificateHost, _) {
+          if (certificate == null || certificateHost != host) return false;
+          return pins.contains(sha256.convert(certificate.der).toString());
+        },
+      );
+    }
+
+    return client;
+  }
+
   Future<Map<String, dynamic>> _send({
     required String method,
     required String path,
@@ -184,6 +213,13 @@ class TradeXApiClient {
         ),
       );
     } on DioException catch (error) {
+      if (error.type == DioExceptionType.badCertificate) {
+        throw const ApiException(
+          message: 'TradeX could not verify the server security certificate. Please update the app or contact support.',
+          code: 'CERTIFICATE_PIN_MISMATCH',
+        );
+      }
+
       if (_isNoInternetError(error)) {
         AppMessenger.showNoInternetConnection();
         throw const ApiException(
