@@ -41,10 +41,23 @@ class TradeIdeasRepository {
       return null;
     }
   }
+
+  Future<Map<String, dynamic>> react(
+    DashboardTradeIdea idea,
+    String? reaction,
+  ) async {
+    final response = await _apiClient.putJson(
+      '/api/v1/trade-ideas/${idea.uuid}/reaction',
+      reaction == null ? const {} : {'reaction': reaction},
+    );
+    final data = response['data'];
+    final summary = data is Map ? data['reaction'] : null;
+    return summary is Map ? Map<String, dynamic>.from(summary) : const {};
+  }
 }
 
 class DashboardTradeIdea {
-  const DashboardTradeIdea({
+  DashboardTradeIdea({
     required this.uuid,
     required this.symbol,
     required this.instrumentName,
@@ -56,6 +69,9 @@ class DashboardTradeIdea {
     required this.chartAvailable,
     required this.tradingViewUrl,
     required this.latestUpdate,
+    required this.likesCount,
+    required this.dislikesCount,
+    required this.viewerReaction,
   });
 
   factory DashboardTradeIdea.fromJson(Map<String, dynamic> json) {
@@ -63,6 +79,7 @@ class DashboardTradeIdea {
     final stopLoss = json['stop_loss'];
     final timeline = json['timeline'];
     final targets = json['targets'];
+    final reactions = json['reactions'];
     return DashboardTradeIdea(
       uuid: json['uuid']?.toString() ?? '',
       symbol: json['symbol']?.toString() ?? 'MARKET',
@@ -89,6 +106,15 @@ class DashboardTradeIdea {
               Map<String, dynamic>.from(timeline.first as Map),
             )
           : null,
+      likesCount: reactions is Map
+          ? (reactions['likes_count'] as num?)?.toInt() ?? 0
+          : 0,
+      dislikesCount: reactions is Map
+          ? (reactions['dislikes_count'] as num?)?.toInt() ?? 0
+          : 0,
+      viewerReaction: reactions is Map
+          ? reactions['viewer_reaction']?.toString()
+          : null,
     );
   }
 
@@ -103,6 +129,24 @@ class DashboardTradeIdea {
   final bool chartAvailable;
   final String? tradingViewUrl;
   final TradeIdeaUpdate? latestUpdate;
+  int likesCount;
+  int dislikesCount;
+  String? viewerReaction;
+
+  void applyReaction(String? next) {
+    if (viewerReaction == next) return;
+    if (viewerReaction == 'LIKE') likesCount--;
+    if (viewerReaction == 'DISLIKE') dislikesCount--;
+    if (next == 'LIKE') likesCount++;
+    if (next == 'DISLIKE') dislikesCount++;
+    viewerReaction = next;
+  }
+
+  void applyReactionSummary(Map<String, dynamic> json) {
+    likesCount = (json['likes_count'] as num?)?.toInt() ?? likesCount;
+    dislikesCount = (json['dislikes_count'] as num?)?.toInt() ?? dislikesCount;
+    viewerReaction = json['viewer_reaction']?.toString();
+  }
 }
 
 class DashboardTradeTarget {

@@ -167,7 +167,10 @@ class _HomeContent extends StatelessWidget {
                 onAction: () => onActionTap('TradeX content'),
               ),
               const SizedBox(height: 10),
-              _LatestContentCard(onTap: () => onActionTap('Market outlook')),
+              _LatestContentCard(
+                apiClient: apiClient,
+                onActionTap: onActionTap,
+              ),
             ]),
           ),
         ),
@@ -1354,7 +1357,7 @@ class _LiveTradeIdeasCarouselState extends State<_LiveTradeIdeasCarousel> {
         }
 
         return SizedBox(
-          height: 266,
+          height: 300,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -1521,6 +1524,24 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
               ),
             ),
           const SizedBox(height: 8),
+          Row(
+            children: [
+              _ReactionButton(
+                icon: Icons.thumb_up_alt_outlined,
+                count: idea.likesCount,
+                selected: idea.viewerReaction == 'LIKE',
+                onTap: () => _react(idea, 'LIKE'),
+              ),
+              const SizedBox(width: 10),
+              _ReactionButton(
+                icon: Icons.thumb_down_alt_outlined,
+                count: idea.dislikesCount,
+                selected: idea.viewerReaction == 'DISLIKE',
+                onTap: () => _react(idea, 'DISLIKE'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
           InkWell(
             onTap: idea.tradingViewUrl == null
                 ? null
@@ -1559,6 +1580,23 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
         ],
       ),
     );
+  }
+
+  Future<void> _react(DashboardTradeIdea idea, String reaction) async {
+    final previous = idea.viewerReaction;
+    final next = previous == reaction ? null : reaction;
+    setState(() => idea.applyReaction(next));
+    try {
+      final summary = await widget.repository.react(idea, next);
+      if (mounted) setState(() => idea.applyReactionSummary(summary));
+    } catch (_) {
+      if (mounted) {
+        setState(() => idea.applyReaction(previous));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to save your reaction.')),
+        );
+      }
+    }
   }
 
   Future<void> _openTradingView(BuildContext context, String rawUrl) async {
@@ -1808,82 +1846,310 @@ class _CategoryTile extends StatelessWidget {
   }
 }
 
-class _LatestContentCard extends StatelessWidget {
-  const _LatestContentCard({required this.onTap});
+class _LatestContentCard extends StatefulWidget {
+  const _LatestContentCard({
+    required this.apiClient,
+    required this.onActionTap,
+  });
 
-  final VoidCallback onTap;
+  final TradeXApiClient apiClient;
+  final ValueChanged<String> onActionTap;
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Ink(
-        padding: const EdgeInsets.all(12),
-        decoration: _panelDecoration,
-        child: Row(
-          children: [
-            _CourseThumbnail(label: 'MARKET\nOUTLOOK', compact: true),
-            const SizedBox(width: 13),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Market Outlook: Gold & USD',
-                    style: TextStyle(
-                      color: TradeXColors.primaryText,
-                      fontWeight: FontWeight.w800,
-                    ),
+  State<_LatestContentCard> createState() => _LatestContentCardState();
+}
+
+class _LatestContentCardState extends State<_LatestContentCard> {
+  late Future<_ChannelVideo?> _video;
+
+  @override
+  void initState() {
+    super.initState();
+    _video = _loadVideo();
+  }
+
+  Future<_ChannelVideo?> _loadVideo() async {
+    final response = await widget.apiClient.getJson('/api/v1/dashboard');
+    final data = response['data'];
+    final channel = data is Map ? data['our_channel'] : null;
+    final video = channel is Map ? channel['latest_video'] : null;
+    return video is Map
+        ? _ChannelVideo.fromJson(Map<String, dynamic>.from(video))
+        : null;
+  }
+
+  Future<void> _react(_ChannelVideo video, String reaction) async {
+    final previous = video.viewerReaction;
+    final next = previous == reaction ? null : reaction;
+    setState(() => video.applyReaction(next));
+    try {
+      final response = await widget.apiClient.putJson(
+        '/api/v1/our-channel/videos/${video.uuid}/reaction',
+        next == null ? const {} : {'reaction': next},
+      );
+      final data = response['data'];
+      final raw = data is Map ? data['reaction'] : null;
+      if (mounted && raw is Map) {
+        setState(
+          () => video.applyReactionSummary(Map<String, dynamic>.from(raw)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => video.applyReaction(previous));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to save your reaction.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _openVideo(String? rawUrl) async {
+    final uri = rawUrl == null ? null : Uri.tryParse(rawUrl);
+    if (uri == null ||
+        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to open YouTube right now.')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<_ChannelVideo?>(
+    future: _video,
+    builder: (context, snapshot) {
+      final video = snapshot.data;
+      if (video == null) {
+        return Container(
+          padding: const EdgeInsets.all(18),
+          decoration: _panelDecoration,
+          child: const Row(
+            children: [
+              Icon(
+                Icons.ondemand_video_rounded,
+                color: TradeXColors.goldBright,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'New TradeX videos will appear here as soon as they are published.',
+                  style: TextStyle(
+                    color: TradeXColors.secondaryText,
+                    fontSize: 11,
                   ),
-                  SizedBox(height: 6),
-                  Text(
-                    'Key levels and setups to watch this week.',
-                    style: TextStyle(
-                      color: TradeXColors.secondaryText,
-                      fontSize: 11,
-                      height: 1.3,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.schedule_rounded,
-                        color: TradeXColors.secondaryText,
-                        size: 14,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return InkWell(
+        onTap: () => _openVideo(video.watchUrl),
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          padding: const EdgeInsets.all(12),
+          decoration: _panelDecoration,
+          child: Row(
+            children: [
+              _YoutubeThumbnail(video: video),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      video.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: TradeXColors.primaryText,
+                        fontWeight: FontWeight.w800,
                       ),
-                      SizedBox(width: 4),
+                    ),
+                    if (video.description.isNotEmpty) ...[
+                      const SizedBox(height: 6),
                       Text(
-                        '24:35',
-                        style: TextStyle(
+                        video.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
                           color: TradeXColors.secondaryText,
                           fontSize: 11,
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Icon(
-                        Icons.remove_red_eye_outlined,
-                        color: TradeXColors.secondaryText,
-                        size: 15,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        '12.4K',
-                        style: TextStyle(
-                          color: TradeXColors.secondaryText,
-                          fontSize: 11,
+                          height: 1.3,
                         ),
                       ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: 9),
+                    Row(
+                      children: [
+                        _ReactionButton(
+                          icon: Icons.thumb_up_alt_outlined,
+                          count: video.likesCount,
+                          selected: video.viewerReaction == 'LIKE',
+                          onTap: () => _react(video, 'LIKE'),
+                        ),
+                        const SizedBox(width: 8),
+                        _ReactionButton(
+                          icon: Icons.thumb_down_alt_outlined,
+                          count: video.dislikesCount,
+                          selected: video.viewerReaction == 'DISLIKE',
+                          onTap: () => _react(video, 'DISLIKE'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+      );
+    },
+  );
+}
+
+class _YoutubeThumbnail extends StatelessWidget {
+  const _YoutubeThumbnail({required this.video});
+
+  final _ChannelVideo video;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(14),
+    child: SizedBox(
+      width: 102,
+      height: 78,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (video.thumbnailUrl != null)
+            Image.network(
+              video.thumbnailUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => _fallback(),
+            )
+          else
+            _fallback(),
+          const Center(
+            child: Icon(
+              Icons.play_circle_fill_rounded,
+              color: TradeXColors.goldBright,
+              size: 29,
+            ),
+          ),
+        ],
       ),
+    ),
+  );
+
+  Widget _fallback() => Image.asset(
+    'assets/branding/tradex_bull_bear_trading_emblem.png',
+    fit: BoxFit.cover,
+  );
+}
+
+class _ReactionButton extends StatelessWidget {
+  const _ReactionButton({
+    required this.icon,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(99),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 15,
+            color: selected
+                ? TradeXColors.goldBright
+                : TradeXColors.secondaryText,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '$count',
+            style: TextStyle(
+              color: selected
+                  ? TradeXColors.goldBright
+                  : TradeXColors.secondaryText,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _ChannelVideo {
+  _ChannelVideo({
+    required this.uuid,
+    required this.title,
+    required this.description,
+    required this.thumbnailUrl,
+    required this.watchUrl,
+    required this.likesCount,
+    required this.dislikesCount,
+    required this.viewerReaction,
+  });
+
+  factory _ChannelVideo.fromJson(Map<String, dynamic> json) {
+    final youtube = json['youtube'] is Map
+        ? Map<String, dynamic>.from(json['youtube'] as Map)
+        : const <String, dynamic>{};
+    final reactions = json['reactions'] is Map
+        ? Map<String, dynamic>.from(json['reactions'] as Map)
+        : const <String, dynamic>{};
+    return _ChannelVideo(
+      uuid: json['uuid']?.toString() ?? '',
+      title: json['title']?.toString() ?? 'Latest from TradeX',
+      description: json['short_description']?.toString() ?? '',
+      thumbnailUrl: youtube['thumbnail_url']?.toString(),
+      watchUrl: youtube['watch_url']?.toString(),
+      likesCount: (reactions['likes_count'] as num?)?.toInt() ?? 0,
+      dislikesCount: (reactions['dislikes_count'] as num?)?.toInt() ?? 0,
+      viewerReaction: reactions['viewer_reaction']?.toString(),
     );
+  }
+
+  final String uuid;
+  final String title;
+  final String description;
+  final String? thumbnailUrl;
+  final String? watchUrl;
+  int likesCount;
+  int dislikesCount;
+  String? viewerReaction;
+
+  void applyReaction(String? next) {
+    if (viewerReaction == next) return;
+    if (viewerReaction == 'LIKE') likesCount--;
+    if (viewerReaction == 'DISLIKE') dislikesCount--;
+    if (next == 'LIKE') likesCount++;
+    if (next == 'DISLIKE') dislikesCount++;
+    viewerReaction = next;
+  }
+
+  void applyReactionSummary(Map<String, dynamic> json) {
+    likesCount = (json['likes_count'] as num?)?.toInt() ?? likesCount;
+    dislikesCount = (json['dislikes_count'] as num?)?.toInt() ?? dislikesCount;
+    viewerReaction = json['viewer_reaction']?.toString();
   }
 }
 
