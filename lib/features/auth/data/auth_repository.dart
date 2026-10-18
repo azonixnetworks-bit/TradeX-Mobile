@@ -25,17 +25,14 @@ class AuthRepository {
     return _restoreStoredSession();
   }
 
-  Future<AuthSession?> restoreSessionAfterQuickUnlock(String totpCode) async {
+  Future<AuthSession?> restoreSessionAfterQuickUnlock() async {
     final session = await _sessionStore.readSession();
     if (session == null || session.refreshTokenExpired) {
       await _sessionStore.clearSession();
       return null;
     }
 
-    return _apiClient.refreshSession(
-      force: true,
-      quickUnlockTotpCode: totpCode,
-    );
+    return _apiClient.refreshSession(force: true);
   }
 
   Future<AuthSession?> _restoreStoredSession() async {
