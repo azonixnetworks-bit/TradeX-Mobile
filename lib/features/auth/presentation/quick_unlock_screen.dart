@@ -16,7 +16,7 @@ class QuickUnlockScreen extends StatefulWidget {
 
   final QuickUnlockConfig config;
   final SecureSessionStore sessionStore;
-  final VoidCallback onUnlocked;
+  final Future<void> Function(String totpCode) onUnlocked;
   final Future<void> Function() onSignOut;
 
   @override
@@ -25,6 +25,7 @@ class QuickUnlockScreen extends StatefulWidget {
 
 class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
   final _pinController = TextEditingController();
+  final _totpController = TextEditingController();
   final _localAuth = LocalAuthentication();
   bool _busy = false;
   String? _error;
@@ -56,12 +57,17 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
   @override
   void dispose() {
     _pinController.dispose();
+    _totpController.dispose();
     super.dispose();
   }
 
   Future<void> _unlockWithPin() async {
     if (_pinController.text.length != 4) {
       setState(() => _error = 'Enter your 4-digit passcode.');
+      return;
+    }
+    if (_totpController.text.length != 6) {
+      setState(() => _error = 'Enter your 6-digit authenticator code.');
       return;
     }
     setState(() {
@@ -82,10 +88,14 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
       });
       return;
     }
-    widget.onUnlocked();
+    await widget.onUnlocked(_totpController.text);
   }
 
   Future<void> _unlockWithBiometrics() async {
+    if (_totpController.text.length != 6) {
+      setState(() => _error = 'Enter your 6-digit authenticator code.');
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -106,7 +116,7 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
       );
       if (!mounted) return;
       if (unlocked) {
-        widget.onUnlocked();
+        await widget.onUnlocked(_totpController.text);
       } else {
         setState(() {
           _busy = false;
@@ -164,15 +174,6 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.config.email,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: TradeXColors.secondaryText,
-                      fontSize: 13,
-                    ),
-                  ),
                   const SizedBox(height: 24),
                   if (biometric)
                     SizedBox(
@@ -207,6 +208,27 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
+                  ],
+                  TextField(
+                    controller: _totpController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    autofocus: biometric,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: TradeXColors.primaryText,
+                      fontSize: 22,
+                      letterSpacing: 8,
+                    ),
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                      labelText: 'Authenticator Code',
+                      hintText: '••••••',
+                      counterText: '',
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  if (!biometric)
                     SizedBox(
                       width: double.infinity,
                       height: 54,
@@ -215,7 +237,6 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
                         child: Text(_busy ? 'Unlocking…' : 'Unlock TradeX'),
                       ),
                     ),
-                  ],
                   if (_error != null) ...[
                     const SizedBox(height: 14),
                     Text(

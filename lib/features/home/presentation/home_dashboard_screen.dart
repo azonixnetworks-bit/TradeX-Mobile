@@ -16,6 +16,8 @@ import '../data/learning_repository.dart';
 import '../../profile/presentation/trusted_devices_screen.dart';
 import '../../learn/data/learn_repository.dart';
 import '../../learn/presentation/learn_module.dart';
+import '../../auth/presentation/quick_unlock_settings_screen.dart';
+import '../../auth/data/auth_repository.dart';
 
 bool _timeZoneDatabaseInitialized = false;
 
@@ -32,12 +34,14 @@ class HomeDashboardScreen extends StatefulWidget {
     required this.apiClient,
     required this.tradeIdeasRepository,
     required this.learningRepository,
+    required this.authRepository,
   });
 
   final Future<void> Function() onLogout;
   final TradeXApiClient apiClient;
   final TradeIdeasRepository tradeIdeasRepository;
   final LearningRepository learningRepository;
+  final AuthRepository authRepository;
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -90,6 +94,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               onActionTap: _showComingSoon,
               onLogout: widget.onLogout,
               apiClient: widget.apiClient,
+              authRepository: widget.authRepository,
             ),
           },
         ),
@@ -2339,11 +2344,13 @@ class _ProfileTab extends StatefulWidget {
     required this.onActionTap,
     required this.onLogout,
     required this.apiClient,
+    required this.authRepository,
   });
 
   final ValueChanged<String> onActionTap;
   final Future<void> Function() onLogout;
   final TradeXApiClient apiClient;
+  final AuthRepository authRepository;
 
   @override
   State<_ProfileTab> createState() => _ProfileTabState();
@@ -2478,7 +2485,15 @@ class _ProfileTabState extends State<_ProfileTab> {
                     icon: Icons.fingerprint_rounded,
                     title: 'Quick unlock',
                     subtitle: 'Fingerprint or passcode on this device',
-                    onTap: () => widget.onActionTap('Quick unlock'),
+                    onTap: () => Navigator.of(context)
+                        .push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => QuickUnlockSettingsScreen(
+                              repository: widget.authRepository,
+                            ),
+                          ),
+                        )
+                        .then((_) => _refresh()),
                   ),
                 ],
               ),

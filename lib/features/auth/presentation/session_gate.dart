@@ -142,7 +142,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _restoreAfterQuickUnlock() async {
+  Future<void> _restoreAfterQuickUnlock(String totpCode) async {
     setState(() {
       _loading = true;
       _error = null;
@@ -150,7 +150,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
 
     try {
       final session = await widget.authRepository
-          .restoreSessionAfterQuickUnlock();
+          .restoreSessionAfterQuickUnlock(totpCode);
       if (!mounted) return;
       setState(() {
         _authenticated = session != null;
@@ -215,6 +215,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
         apiClient: widget.apiClient,
         tradeIdeasRepository: widget.tradeIdeasRepository,
         learningRepository: widget.learningRepository,
+        authRepository: widget.authRepository,
       );
     }
 
