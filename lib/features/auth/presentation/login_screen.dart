@@ -127,12 +127,14 @@ class _LoginScreenState extends State<LoginScreen> {
           stickyAuth: true,
         ),
       );
-      if (!confirmed) {
+      if (mounted) {
         setState(() {
-          _errorMessage = 'Fingerprint confirmation was not completed.';
+          _biometricConfirmed = confirmed;
+          _errorMessage = confirmed
+              ? null
+              : 'Fingerprint confirmation was not completed.';
         });
       }
-      _biometricConfirmed = confirmed;
       return confirmed;
     } on PlatformException {
       if (mounted) {
@@ -141,6 +143,32 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
       return false;
+    }
+  }
+
+  Future<void> _selectQuickUnlockMethod(String value) async {
+    setState(() {
+      _quickUnlockMethod = value;
+      _quickUnlockPinController.clear();
+      _biometricConfirmed = false;
+      _errorMessage = null;
+    });
+    if (value == 'BIOMETRIC') {
+      await _confirmFingerprint();
+    }
+  }
+
+  Future<void> _toggleRememberDevice(bool value) async {
+    setState(() {
+      _rememberDevice = value;
+      _errorMessage = null;
+      if (!value) {
+        _quickUnlockPinController.clear();
+        _biometricConfirmed = false;
+      }
+    });
+    if (value && _quickUnlockMethod == 'BIOMETRIC') {
+      await _confirmFingerprint();
     }
   }
 
@@ -248,6 +276,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           errorMessage: _errorMessage,
                           rememberDevice: _rememberDevice,
                           quickUnlockMethod: _quickUnlockMethod,
+                          biometricConfirmed: _biometricConfirmed,
                           quickUnlockPinController: _quickUnlockPinController,
                           onPasswordVisibilityChanged: () {
                             setState(() {
@@ -255,23 +284,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             });
                           },
                           onRecoveryModeChanged: _toggleRecoveryMode,
-                          onRememberDeviceChanged: (value) {
-                            setState(() {
-                              _rememberDevice = value;
-                              _errorMessage = null;
-                              if (!value) {
-                                _quickUnlockPinController.clear();
-                                _biometricConfirmed = false;
-                              }
-                            });
-                          },
-                          onQuickUnlockMethodChanged: (value) {
-                            setState(() {
-                              _quickUnlockMethod = value;
-                              _quickUnlockPinController.clear();
-                              _biometricConfirmed = false;
-                            });
-                          },
+                          onRememberDeviceChanged: _toggleRememberDevice,
+                          onQuickUnlockMethodChanged: _selectQuickUnlockMethod,
                           onForgotPassword: widget.onForgotPassword,
                           onSubmit: _submit,
                           validateEmail: _validateEmail,
@@ -384,6 +398,7 @@ class _LoginCard extends StatelessWidget {
     required this.errorMessage,
     required this.rememberDevice,
     required this.quickUnlockMethod,
+    required this.biometricConfirmed,
     required this.quickUnlockPinController,
     required this.onPasswordVisibilityChanged,
     required this.onRecoveryModeChanged,
@@ -408,6 +423,7 @@ class _LoginCard extends StatelessWidget {
   final bool submitting;
   final bool rememberDevice;
   final String quickUnlockMethod;
+  final bool biometricConfirmed;
 
   final String? errorMessage;
   final TextEditingController quickUnlockPinController;
@@ -676,13 +692,33 @@ class _LoginCard extends StatelessWidget {
                 ),
               ] else ...[
                 const SizedBox(height: 12),
-                const Text(
-                  'After you sign in, TradeX will ask for your fingerprint to confirm this device.',
-                  style: TextStyle(
-                    color: TradeXColors.secondaryText,
-                    fontSize: 11,
-                    height: 1.35,
-                  ),
+                Row(
+                  children: [
+                    Icon(
+                      biometricConfirmed
+                          ? Icons.verified_rounded
+                          : Icons.touch_app_rounded,
+                      size: 18,
+                      color: biometricConfirmed
+                          ? TradeXColors.success
+                          : TradeXColors.goldBright,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        biometricConfirmed
+                            ? 'Fingerprint verified. Tap Sign In to continue.'
+                            : 'Tap Fingerprint and place your finger on the mobile sensor.',
+                        style: TextStyle(
+                          color: biometricConfirmed
+                              ? TradeXColors.success
+                              : TradeXColors.secondaryText,
+                          fontSize: 11,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
               const SizedBox(height: 8),
