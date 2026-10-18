@@ -112,6 +112,13 @@ class TradeXApiClient {
     retryAfterRefresh: true,
   );
 
+  Future<Map<String, dynamic>> deleteJson(String path) => _send(
+    method: 'DELETE',
+    path: path,
+    authenticated: true,
+    retryAfterRefresh: true,
+  );
+
   static Dio _createPinnedDio() {
     final baseUrl = TradeXApiConfig.baseUrl;
     final host = Uri.parse(baseUrl).host;
@@ -249,11 +256,17 @@ class TradeXApiClient {
         error.error is SocketException;
   }
 
-  Future<AuthSession> refreshSession({bool force = false}) async {
+  Future<AuthSession> refreshSession({
+    bool force = false,
+    String? quickUnlockTotpCode,
+  }) async {
     final existing = _refreshInFlight;
     if (existing != null) return existing;
 
-    final operation = _performRefresh(force: force);
+    final operation = _performRefresh(
+      force: force,
+      quickUnlockTotpCode: quickUnlockTotpCode,
+    );
     _refreshInFlight = operation;
 
     try {
@@ -263,7 +276,10 @@ class TradeXApiClient {
     }
   }
 
-  Future<AuthSession> _performRefresh({required bool force}) async {
+  Future<AuthSession> _performRefresh({
+    required bool force,
+    String? quickUnlockTotpCode,
+  }) async {
     final current = await _sessionStore.readSession();
 
     if (current == null) {
@@ -292,6 +308,8 @@ class TradeXApiClient {
       body: <String, dynamic>{
         'refresh_token': current.refreshToken,
         'installation_id': device.installationId,
+        if (quickUnlockTotpCode?.trim().isNotEmpty == true)
+          'quick_unlock_totp_code': quickUnlockTotpCode!.trim(),
       },
     );
 

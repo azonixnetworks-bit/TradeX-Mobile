@@ -83,7 +83,7 @@ class SecureSessionStore {
       );
     }
     if (normalizedMethod == 'PIN' &&
-        (pin == null || !RegExp(r'^\\d{4}$').hasMatch(pin))) {
+        (pin == null || !RegExp(r'^\d{4}$').hasMatch(pin))) {
       throw ArgumentError.value(pin, 'pin', 'A 4-digit passcode is required.');
     }
 

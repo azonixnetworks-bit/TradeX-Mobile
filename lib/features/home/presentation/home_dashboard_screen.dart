@@ -14,6 +14,10 @@ import '../../../core/theme/tradex_colors.dart';
 import '../data/trade_ideas_repository.dart';
 import '../data/learning_repository.dart';
 import '../../profile/presentation/trusted_devices_screen.dart';
+import '../../learn/data/learn_repository.dart';
+import '../../learn/presentation/learn_module.dart';
+import '../../auth/presentation/quick_unlock_settings_screen.dart';
+import '../../auth/data/auth_repository.dart';
 
 bool _timeZoneDatabaseInitialized = false;
 
@@ -30,12 +34,14 @@ class HomeDashboardScreen extends StatefulWidget {
     required this.apiClient,
     required this.tradeIdeasRepository,
     required this.learningRepository,
+    required this.authRepository,
   });
 
   final Future<void> Function() onLogout;
   final TradeXApiClient apiClient;
   final TradeIdeasRepository tradeIdeasRepository;
   final LearningRepository learningRepository;
+  final AuthRepository authRepository;
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -73,7 +79,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             ),
             1 => _LearnTab(
               key: const ValueKey('learn'),
-              onActionTap: _showComingSoon,
+              apiClient: widget.apiClient,
             ),
             2 => _TradeIdeasTab(
               key: const ValueKey('ideas'),
@@ -88,6 +94,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               onActionTap: _showComingSoon,
               onLogout: widget.onLogout,
               apiClient: widget.apiClient,
+              authRepository: widget.authRepository,
             ),
           },
         ),
@@ -2234,34 +2241,13 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _LearnTab extends StatelessWidget {
-  const _LearnTab({super.key, required this.onActionTap});
+  const _LearnTab({super.key, required this.apiClient});
 
-  final ValueChanged<String> onActionTap;
+  final TradeXApiClient apiClient;
 
   @override
-  Widget build(BuildContext context) {
-    return _TabScrollView(
-      title: 'Learning Hub',
-      subtitle: 'Build skill, discipline and consistency.',
-      children: [
-        _LearningProgressCard(onTap: () => onActionTap('Resume course')),
-        const SizedBox(height: 22),
-        const _SectionTitle(
-          icon: Icons.auto_stories_rounded,
-          title: 'Your Learning Path',
-        ),
-        const SizedBox(height: 10),
-        _ModuleList(onTap: onActionTap),
-        const SizedBox(height: 22),
-        const _SectionTitle(
-          icon: Icons.workspace_premium_rounded,
-          title: 'Recommended for you',
-        ),
-        const SizedBox(height: 10),
-        _RecommendedCourseCard(onTap: () => onActionTap('Recommended course')),
-      ],
-    );
-  }
+  Widget build(BuildContext context) =>
+      LearnHomeScreen(repository: LearnRepository(apiClient));
 }
 
 class _TradeIdeasTab extends StatelessWidget {
@@ -2358,11 +2344,13 @@ class _ProfileTab extends StatefulWidget {
     required this.onActionTap,
     required this.onLogout,
     required this.apiClient,
+    required this.authRepository,
   });
 
   final ValueChanged<String> onActionTap;
   final Future<void> Function() onLogout;
   final TradeXApiClient apiClient;
+  final AuthRepository authRepository;
 
   @override
   State<_ProfileTab> createState() => _ProfileTabState();
@@ -2497,7 +2485,15 @@ class _ProfileTabState extends State<_ProfileTab> {
                     icon: Icons.fingerprint_rounded,
                     title: 'Quick unlock',
                     subtitle: 'Fingerprint or passcode on this device',
-                    onTap: () => widget.onActionTap('Quick unlock'),
+                    onTap: () => Navigator.of(context)
+                        .push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => QuickUnlockSettingsScreen(
+                              repository: widget.authRepository,
+                            ),
+                          ),
+                        )
+                        .then((_) => _refresh()),
                   ),
                 ],
               ),
@@ -2851,6 +2847,8 @@ class _TabScrollView extends StatelessWidget {
   }
 }
 
+// Kept temporarily for backwards-compatible golden references.
+// ignore: unused_element
 class _LearningProgressCard extends StatelessWidget {
   const _LearningProgressCard({required this.onTap});
 
@@ -2930,6 +2928,7 @@ class _LearningProgressCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _ModuleList extends StatelessWidget {
   const _ModuleList({required this.onTap});
 
@@ -3017,6 +3016,7 @@ class _ModuleList extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _RecommendedCourseCard extends StatelessWidget {
   const _RecommendedCourseCard({required this.onTap});
 

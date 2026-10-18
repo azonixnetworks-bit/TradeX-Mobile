@@ -178,6 +178,18 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
   }
 
   Future<void> _logout() async {
+    if (_quickUnlock != null) {
+      setState(() {
+        _authenticated = true;
+        _quickUnlockLocked = true;
+      });
+      return;
+    }
+
+    await _signOutCompletely();
+  }
+
+  Future<void> _signOutCompletely() async {
     await widget.authRepository.logout();
 
     if (!mounted) {
@@ -207,7 +219,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
           config: _quickUnlock!,
           sessionStore: SecureSessionStore(),
           onUnlocked: _restoreAfterQuickUnlock,
-          onSignOut: _logout,
+          onSignOut: _signOutCompletely,
         );
       }
       return HomeDashboardScreen(
@@ -215,6 +227,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
         apiClient: widget.apiClient,
         tradeIdeasRepository: widget.tradeIdeasRepository,
         learningRepository: widget.learningRepository,
+        authRepository: widget.authRepository,
       );
     }
 

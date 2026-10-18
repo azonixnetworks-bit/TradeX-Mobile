@@ -158,6 +158,16 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
 
+    if (_rememberDevice &&
+        (_emailController.text.trim().isEmpty ||
+            _passwordController.text.isEmpty ||
+            _securityCodeController.text.trim().isEmpty)) {
+      setState(() {
+        _errorMessage = 'To remember this device for the first time, switch it off, enter your email, password and authenticator code, then switch it on.';
+      });
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -487,137 +497,6 @@ class _LoginCard extends StatelessWidget {
 
             const SizedBox(height: 22),
 
-            _LoginField(
-              controller: emailController,
-              label: 'Email Address',
-              icon: Icons.mail_outline_rounded,
-              keyboardType: TextInputType.emailAddress,
-              textInputAction: TextInputAction.next,
-              autofillHints: const [
-                AutofillHints.username,
-                AutofillHints.email,
-              ],
-              validator: validateEmail,
-            ),
-
-            const SizedBox(height: 13),
-
-            _LoginField(
-              controller: passwordController,
-              label: 'Password',
-              icon: Icons.lock_outline_rounded,
-              obscureText: obscurePassword,
-              textInputAction: TextInputAction.next,
-              autofillHints: const [AutofillHints.password],
-              validator: validatePassword,
-              suffixIcon: IconButton(
-                onPressed: onPasswordVisibilityChanged,
-                icon: Icon(
-                  obscurePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  color: TradeXColors.secondaryText,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 13),
-
-            _LoginField(
-              controller: securityCodeController,
-              label: useRecoveryCode
-                  ? 'Recovery Code'
-                  : 'Authenticator Code (6 digits)',
-              icon: Icons.shield_outlined,
-              keyboardType: useRecoveryCode
-                  ? TextInputType.text
-                  : TextInputType.number,
-              textInputAction: TextInputAction.done,
-              inputFormatters: useRecoveryCode
-                  ? null
-                  : [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(6),
-                    ],
-              maxLength: useRecoveryCode ? null : 6,
-              validator: validateSecurityCode,
-              onFieldSubmitted: (_) {
-                if (!submitting) {
-                  onSubmit();
-                }
-              },
-            ),
-
-            const SizedBox(height: 4),
-
-            Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: onRecoveryModeChanged,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(5),
-                              border: Border.all(
-                                color: useRecoveryCode
-                                    ? TradeXColors.goldBright
-                                    : TradeXColors.borderStrong,
-                              ),
-                              color: useRecoveryCode
-                                  ? TradeXColors.goldBright
-                                  : Colors.transparent,
-                            ),
-                            child: useRecoveryCode
-                                ? const Icon(
-                                    Icons.check_rounded,
-                                    size: 15,
-                                    color: Colors.black,
-                                  )
-                                : null,
-                          ),
-
-                          const SizedBox(width: 9),
-
-                          const Flexible(
-                            child: Text(
-                              'Use recovery code instead',
-                              style: TextStyle(
-                                color: TradeXColors.secondaryText,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                TextButton(
-                  onPressed: onForgotPassword,
-                  style: TextButton.styleFrom(
-                    foregroundColor: TradeXColors.goldBright,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                  ),
-                  child: const Text(
-                    'Forgot Password?',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
             SwitchListTile.adaptive(
               value: rememberDevice,
               onChanged: submitting ? null : onRememberDeviceChanged,
@@ -631,14 +510,152 @@ class _LoginCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              subtitle: const Text(
-                'Unlock next time with fingerprint or passcode.',
-                style: TextStyle(
+              subtitle: Text(
+                rememberDevice
+                    ? 'Use fingerprint or passcode for quick unlock.'
+                    : 'Use your email, password and authenticator code.',
+                style: const TextStyle(
                   color: TradeXColors.secondaryText,
                   fontSize: 11,
                 ),
               ),
             ),
+
+            const SizedBox(height: 10),
+
+            if (!rememberDevice) ...[
+              _LoginField(
+                controller: emailController,
+                label: 'Email Address',
+                icon: Icons.mail_outline_rounded,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [
+                  AutofillHints.username,
+                  AutofillHints.email,
+                ],
+                validator: validateEmail,
+              ),
+
+              const SizedBox(height: 13),
+
+              _LoginField(
+                controller: passwordController,
+                label: 'Password',
+                icon: Icons.lock_outline_rounded,
+                obscureText: obscurePassword,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.password],
+                validator: validatePassword,
+                suffixIcon: IconButton(
+                  onPressed: onPasswordVisibilityChanged,
+                  icon: Icon(
+                    obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: TradeXColors.secondaryText,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 13),
+
+              _LoginField(
+                controller: securityCodeController,
+                label: useRecoveryCode
+                    ? 'Recovery Code'
+                    : 'Authenticator Code (6 digits)',
+                icon: Icons.shield_outlined,
+                keyboardType: useRecoveryCode
+                    ? TextInputType.text
+                    : TextInputType.number,
+                textInputAction: TextInputAction.done,
+                inputFormatters: useRecoveryCode
+                    ? null
+                    : [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(6),
+                      ],
+                maxLength: useRecoveryCode ? null : 6,
+                validator: validateSecurityCode,
+                onFieldSubmitted: (_) {
+                  if (!submitting) {
+                    onSubmit();
+                  }
+                },
+              ),
+
+              const SizedBox(height: 4),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: onRecoveryModeChanged,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(5),
+                                border: Border.all(
+                                  color: useRecoveryCode
+                                      ? TradeXColors.goldBright
+                                      : TradeXColors.borderStrong,
+                                ),
+                                color: useRecoveryCode
+                                    ? TradeXColors.goldBright
+                                    : Colors.transparent,
+                              ),
+                              child: useRecoveryCode
+                                  ? const Icon(
+                                      Icons.check_rounded,
+                                      size: 15,
+                                      color: Colors.black,
+                                    )
+                                  : null,
+                            ),
+
+                            const SizedBox(width: 9),
+
+                            const Flexible(
+                              child: Text(
+                                'Use recovery code instead',
+                                style: TextStyle(
+                                  color: TradeXColors.secondaryText,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  TextButton(
+                    onPressed: onForgotPassword,
+                    style: TextButton.styleFrom(
+                      foregroundColor: TradeXColors.goldBright,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                    ),
+                    child: const Text(
+                      'Forgot Password?',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
 
             if (rememberDevice) ...[
               const SizedBox(height: 6),

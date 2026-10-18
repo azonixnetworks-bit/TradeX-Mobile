@@ -25,8 +25,14 @@ class AuthRepository {
     return _restoreStoredSession();
   }
 
-  Future<AuthSession?> restoreSessionAfterQuickUnlock() {
-    return _restoreStoredSession();
+  Future<AuthSession?> restoreSessionAfterQuickUnlock() async {
+    final session = await _sessionStore.readSession();
+    if (session == null || session.refreshTokenExpired) {
+      await _sessionStore.clearSession();
+      return null;
+    }
+
+    return _apiClient.refreshSession(force: true);
   }
 
   Future<AuthSession?> _restoreStoredSession() async {
@@ -142,6 +148,37 @@ class AuthRepository {
 
   Future<QuickUnlockConfig?> quickUnlockConfiguration() {
     return _sessionStore.readQuickUnlock();
+  }
+
+  Future<Map<String, dynamic>> quickUnlockStatus() async {
+    final response = await _apiClient.getJson('/api/v1/security/quick-unlock');
+    final data = response['data'];
+    return data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{};
+  }
+
+  Future<void> configureQuickUnlock({
+    required bool enabled,
+    String? method,
+    required String totpCode,
+    String? pin,
+  }) async {
+    await _apiClient.patchJson('/api/v1/security/quick-unlock', {
+      'enabled': enabled,
+      if (enabled && method != null) 'method': method,
+      'totp_code': totpCode,
+    });
+
+    if (!enabled) {
+      await _sessionStore.clearQuickUnlock();
+      return;
+    }
+
+    await _sessionStore.writeQuickUnlock(
+      method: method!,
+      email:
+          (await _sessionStore.readSession())?.user['email']?.toString() ?? '',
+      pin: pin,
+    );
   }
 
   Future<bool> hasCompletedFirstLogin() {
