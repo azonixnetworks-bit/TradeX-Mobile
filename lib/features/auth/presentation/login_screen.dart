@@ -41,8 +41,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _securityCodeController = TextEditingController();
   final TextEditingController _quickUnlockPinController =
       TextEditingController();
-  final TextEditingController _quickUnlockPinConfirmationController =
-      TextEditingController();
   final LocalAuthentication _localAuth = LocalAuthentication();
 
   bool _obscurePassword = true;
@@ -60,7 +58,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordController.dispose();
     _securityCodeController.dispose();
     _quickUnlockPinController.dispose();
-    _quickUnlockPinConfirmationController.dispose();
 
     super.dispose();
   }
@@ -109,14 +106,6 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_rememberDevice || _quickUnlockMethod != 'PIN') return null;
     if (!RegExp(r'^\d{4}$').hasMatch(value?.trim() ?? '')) {
       return 'Create a 4-digit passcode.';
-    }
-    return null;
-  }
-
-  String? _validateQuickUnlockPinConfirmation(String? value) {
-    if (!_rememberDevice || _quickUnlockMethod != 'PIN') return null;
-    if (value?.trim() != _quickUnlockPinController.text.trim()) {
-      return 'Passcodes do not match.';
     }
     return null;
   }
@@ -260,8 +249,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           rememberDevice: _rememberDevice,
                           quickUnlockMethod: _quickUnlockMethod,
                           quickUnlockPinController: _quickUnlockPinController,
-                          quickUnlockPinConfirmationController:
-                              _quickUnlockPinConfirmationController,
                           onPasswordVisibilityChanged: () {
                             setState(() {
                               _obscurePassword = !_obscurePassword;
@@ -274,7 +261,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               _errorMessage = null;
                               if (!value) {
                                 _quickUnlockPinController.clear();
-                                _quickUnlockPinConfirmationController.clear();
                                 _biometricConfirmed = false;
                               }
                             });
@@ -283,7 +269,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             setState(() {
                               _quickUnlockMethod = value;
                               _quickUnlockPinController.clear();
-                              _quickUnlockPinConfirmationController.clear();
                               _biometricConfirmed = false;
                             });
                           },
@@ -293,8 +278,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           validatePassword: _validatePassword,
                           validateSecurityCode: _validateSecurityCode,
                           validateQuickUnlockPin: _validateQuickUnlockPin,
-                          validateQuickUnlockPinConfirmation:
-                              _validateQuickUnlockPinConfirmation,
                         ),
 
                         const SizedBox(height: 22),
@@ -402,7 +385,6 @@ class _LoginCard extends StatelessWidget {
     required this.rememberDevice,
     required this.quickUnlockMethod,
     required this.quickUnlockPinController,
-    required this.quickUnlockPinConfirmationController,
     required this.onPasswordVisibilityChanged,
     required this.onRecoveryModeChanged,
     required this.onRememberDeviceChanged,
@@ -413,7 +395,6 @@ class _LoginCard extends StatelessWidget {
     required this.validatePassword,
     required this.validateSecurityCode,
     required this.validateQuickUnlockPin,
-    required this.validateQuickUnlockPinConfirmation,
   });
 
   final GlobalKey<FormState> formKey;
@@ -430,7 +411,6 @@ class _LoginCard extends StatelessWidget {
 
   final String? errorMessage;
   final TextEditingController quickUnlockPinController;
-  final TextEditingController quickUnlockPinConfirmationController;
 
   final VoidCallback onPasswordVisibilityChanged;
   final VoidCallback onRecoveryModeChanged;
@@ -443,7 +423,6 @@ class _LoginCard extends StatelessWidget {
   final String? Function(String?) validatePassword;
   final String? Function(String?) validateSecurityCode;
   final String? Function(String?) validateQuickUnlockPin;
-  final String? Function(String?) validateQuickUnlockPinConfirmation;
 
   @override
   Widget build(BuildContext context) {
@@ -684,7 +663,7 @@ class _LoginCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 _LoginField(
                   controller: quickUnlockPinController,
-                  label: 'Create 4-digit passcode',
+                  label: 'Enter 4-digit passcode',
                   icon: Icons.pin_outlined,
                   keyboardType: TextInputType.number,
                   obscureText: true,
@@ -694,20 +673,6 @@ class _LoginCard extends StatelessWidget {
                   ],
                   maxLength: 4,
                   validator: validateQuickUnlockPin,
-                ),
-                const SizedBox(height: 12),
-                _LoginField(
-                  controller: quickUnlockPinConfirmationController,
-                  label: 'Confirm 4-digit passcode',
-                  icon: Icons.verified_user_outlined,
-                  keyboardType: TextInputType.number,
-                  obscureText: true,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(4),
-                  ],
-                  maxLength: 4,
-                  validator: validateQuickUnlockPinConfirmation,
                 ),
               ] else ...[
                 const SizedBox(height: 12),
