@@ -178,9 +178,14 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
   }
 
   Future<void> _logout() async {
-    if (_quickUnlock != null) {
+    final configuredQuickUnlock =
+        _quickUnlock ?? await widget.authRepository.quickUnlockConfiguration();
+
+    if (configuredQuickUnlock != null) {
+      if (!mounted) return;
       setState(() {
         _authenticated = true;
+        _quickUnlock = configuredQuickUnlock;
         _quickUnlockLocked = true;
       });
       return;

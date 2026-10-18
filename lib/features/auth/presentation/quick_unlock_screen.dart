@@ -34,6 +34,11 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
   void initState() {
     super.initState();
     _loadBiometricLabel();
+    if (widget.config.method == 'BIOMETRIC') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _unlockWithBiometrics();
+      });
+    }
   }
 
   Future<void> _loadBiometricLabel() async {

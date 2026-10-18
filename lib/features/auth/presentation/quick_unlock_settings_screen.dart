@@ -128,19 +128,69 @@ class _QuickUnlockSettingsScreenState extends State<QuickUnlockSettingsScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'On future sign-in, enter your authenticator code and use this device\'s fingerprint or passcode. Your local secret never leaves this device.',
+                  'Use this device\'s fingerprint or passcode for future quick unlocks. Your local secret never leaves this device.',
                   style: TextStyle(
                     color: TradeXColors.secondaryText,
                     height: 1.4,
                   ),
                 ),
+                if (_enabled) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: TradeXColors.gold.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: TradeXColors.gold.withValues(alpha: 0.55),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _method == 'BIOMETRIC'
+                              ? Icons.fingerprint_rounded
+                              : Icons.pin_rounded,
+                          color: TradeXColors.goldBright,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _method == 'BIOMETRIC'
+                                ? 'Fingerprint added to this device'
+                                : 'Passcode added to this device',
+                            style: const TextStyle(
+                              color: TradeXColors.primaryText,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: _method == 'BIOMETRIC'
+                              ? 'Remove fingerprint unlock'
+                              : 'Remove passcode unlock',
+                          onPressed: _saving
+                              ? null
+                              : () => setState(() {
+                                  _enabled = false;
+                                  _error = 'Enter your authenticator code, then tap Remove quick unlock.';
+                                }),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: TradeXColors.primaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 18),
                 SwitchListTile(
                   value: _enabled,
                   onChanged: (value) => setState(() => _enabled = value),
                   activeThumbColor: TradeXColors.goldBright,
                   title: const Text('Remember this device'),
-                  subtitle: const Text('Require authenticator + local unlock'),
+                  subtitle: const Text('Use local device verification'),
                 ),
                 if (_enabled) ...[
                   const SizedBox(height: 12),
@@ -190,7 +240,13 @@ class _QuickUnlockSettingsScreenState extends State<QuickUnlockSettingsScreen> {
                 const SizedBox(height: 18),
                 FilledButton(
                   onPressed: _saving ? null : _save,
-                  child: Text(_saving ? 'Saving…' : 'Save security setting'),
+                  child: Text(
+                    _saving
+                        ? 'Saving…'
+                        : _enabled
+                        ? 'Save security setting'
+                        : 'Remove quick unlock',
+                  ),
                 ),
               ],
             ),
