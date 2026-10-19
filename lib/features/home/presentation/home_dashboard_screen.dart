@@ -247,7 +247,8 @@ class _SessionClockCard extends StatefulWidget {
   State<_SessionClockCard> createState() => _SessionClockCardState();
 }
 
-class _SessionClockCardState extends State<_SessionClockCard> {
+class _SessionClockCardState extends State<_SessionClockCard>
+    with WidgetsBindingObserver {
   static const _featuredNames = {'Sydney', 'Tokyo', 'London', 'New York'};
 
   List<_MarketSession> _dialSessions = const [];
@@ -255,12 +256,23 @@ class _SessionClockCardState extends State<_SessionClockCard> {
   Timer? _refreshTimer;
   Timer? _clockTimer;
   DateTime _now = DateTime.now();
+  late final Future<String> _deviceTimezone;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _ensureTimeZoneDatabase();
+    _deviceTimezone = FlutterTimezone.getLocalTimezone().then(
+      (timezone) => timezone.identifier,
+    );
     _loadLiveMarketClock();
+    _startTimers();
+  }
+
+  void _startTimers() {
+    _refreshTimer?.cancel();
+    _clockTimer?.cancel();
     _refreshTimer = Timer.periodic(
       const Duration(minutes: 5),
       (_) => _loadLiveMarketClock(),
@@ -270,17 +282,40 @@ class _SessionClockCardState extends State<_SessionClockCard> {
     });
   }
 
-  @override
-  void dispose() {
+  void _stopTimers() {
     _refreshTimer?.cancel();
     _clockTimer?.cancel();
+    _refreshTimer = null;
+    _clockTimer = null;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (mounted) setState(() => _now = DateTime.now());
+      _loadLiveMarketClock();
+      _startTimers();
+      return;
+    }
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _stopTimers();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopTimers();
     super.dispose();
   }
 
   Future<void> _loadLiveMarketClock() async {
     var timezone = 'UTC';
     try {
-      timezone = (await FlutterTimezone.getLocalTimezone()).identifier;
+      timezone = await _deviceTimezone;
       final response = await widget.apiClient.getJson(
         '/api/v1/market-clock?timezone=${Uri.encodeQueryComponent(timezone)}',
       );
@@ -2071,6 +2106,8 @@ class _YoutubeThumbnail extends StatelessWidget {
             Image.network(
               video.thumbnailUrl!,
               fit: BoxFit.cover,
+              cacheWidth: 306,
+              cacheHeight: 234,
               errorBuilder: (_, _, _) => _fallback(),
             )
           else
@@ -2090,6 +2127,7 @@ class _YoutubeThumbnail extends StatelessWidget {
   Widget _fallback() => Image.asset(
     'assets/branding/tradex_bull_bear_trading_emblem.png',
     fit: BoxFit.cover,
+    cacheWidth: 306,
   );
 }
 

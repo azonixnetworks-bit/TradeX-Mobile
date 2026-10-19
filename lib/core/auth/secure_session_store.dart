@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:isolate';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -97,7 +98,7 @@ class SecureSessionStore {
       email: email,
       credentialId: credentialId,
       pinSalt: salt,
-      pinHash: salt == null ? null : _pinVerifier(salt, pin!),
+      pinHash: salt == null ? null : await _pinVerifier(salt, pin!),
     );
 
     await _storage.write(
@@ -120,7 +121,7 @@ class SecureSessionStore {
       return QuickUnlockPinResult.locked;
     }
 
-    if (_pinVerifier(config.pinSalt!, pin) == config.pinHash) {
+    if (await _pinVerifier(config.pinSalt!, pin) == config.pinHash) {
       await _writeQuickUnlock(
         config.copyWith(failedAttempts: 0, clearLock: true),
       );
@@ -180,21 +181,26 @@ class SecureSessionStore {
     );
   }
 
-  String _pinVerifier(String salt, String pin) {
-    // Secure storage is Keystore/Keychain protected. PBKDF2-style stretching
-    // also makes an extracted four-digit verifier expensive to brute-force.
-    final mac = Hmac(sha256, utf8.encode(pin));
-    var block = <int>[...utf8.encode(salt), 0, 0, 0, 1];
-    var digest = mac.convert(block).bytes;
-    final derived = List<int>.from(digest);
-    for (var index = 1; index < 60000; index++) {
-      digest = mac.convert(digest).bytes;
-      for (var byte = 0; byte < derived.length; byte++) {
-        derived[byte] ^= digest[byte];
-      }
+  Future<String> _pinVerifier(String salt, String pin) =>
+      Isolate.run(() => _derivePinVerifier(salt, pin));
+}
+
+String _derivePinVerifier(String salt, String pin) {
+  // Secure storage is Keystore/Keychain protected. PBKDF2-style stretching
+  // also makes an extracted four-digit verifier expensive to brute-force.
+  // Run the deliberately expensive derivation outside the UI isolate so
+  // passcode setup and unlock never stall animations or touch feedback.
+  final mac = Hmac(sha256, utf8.encode(pin));
+  final block = <int>[...utf8.encode(salt), 0, 0, 0, 1];
+  var digest = mac.convert(block).bytes;
+  final derived = List<int>.from(digest);
+  for (var index = 1; index < 60000; index++) {
+    digest = mac.convert(digest).bytes;
+    for (var byte = 0; byte < derived.length; byte++) {
+      derived[byte] ^= digest[byte];
     }
-    return base64UrlEncode(derived);
   }
+  return base64UrlEncode(derived);
 }
 
 enum QuickUnlockPinResult { success, failed, locked, unavailable }

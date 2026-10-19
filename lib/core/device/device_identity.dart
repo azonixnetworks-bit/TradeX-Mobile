@@ -15,7 +15,24 @@ class DeviceIdentity {
 
   final Uuid _uuid = const Uuid();
 
-  Future<DeviceMetadata> load() async {
+  Future<DeviceMetadata>? _cachedMetadata;
+
+  Future<DeviceMetadata> load() {
+    final cached = _cachedMetadata;
+    if (cached != null) return cached;
+
+    final operation = _loadMetadata();
+    _cachedMetadata = operation;
+    operation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace stackTrace) {
+        if (identical(_cachedMetadata, operation)) _cachedMetadata = null;
+      },
+    );
+    return operation;
+  }
+
+  Future<DeviceMetadata> _loadMetadata() async {
     var installationId = await _sessionStore.readInstallationId();
 
     if (installationId == null || installationId.isEmpty) {
