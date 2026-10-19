@@ -37,6 +37,40 @@ void main() {
     );
   });
 
+  test(
+    'legacy biometric enrollment migrates to independent capability flags',
+    () {
+      final config = QuickUnlockConfig.fromJson(<String, dynamic>{
+        'method': 'BIOMETRIC',
+        'email': 'trader@example.test',
+        'credential_id': 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      });
+
+      expect(config.hasBiometric, isTrue);
+      expect(config.hasPasscode, isFalse);
+      expect(config.toJson()['biometric_enabled'], isTrue);
+      expect(config.toJson()['version'], 2);
+    },
+  );
+
+  test(
+    'combined enrollment exposes fingerprint and passcode independently',
+    () {
+      final config = QuickUnlockConfig.fromJson(<String, dynamic>{
+        'version': 2,
+        'method': 'BOTH',
+        'email': 'trader@example.test',
+        'credential_id': 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        'biometric_enabled': true,
+        'pin_salt': 'salt',
+        'pin_hash': 'hash',
+      });
+
+      expect(config.hasBiometric, isTrue);
+      expect(config.hasPasscode, isTrue);
+    },
+  );
+
   testWidgets('passcode quick login shows exactly one enter-passcode field', (
     tester,
   ) async {

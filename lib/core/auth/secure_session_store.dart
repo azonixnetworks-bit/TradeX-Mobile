@@ -92,27 +92,64 @@ class SecureSessionStore {
       throw ArgumentError.value(pin, 'pin', 'A 4-digit passcode is required.');
     }
 
-    final salt = normalizedMethod == 'PIN' ? _newSalt() : null;
-    final config = QuickUnlockConfig(
-      method: normalizedMethod,
+    await writeQuickUnlockMethods(
       email: email,
       credentialId: credentialId,
-      pinSalt: salt,
-      pinHash: salt == null ? null : await _pinVerifier(salt, pin!),
+      biometricEnabled: normalizedMethod == 'BIOMETRIC',
+      passcodeEnabled: normalizedMethod == 'PIN',
+      pin: pin,
     );
+  }
 
-    await _storage.write(
-      key: _quickUnlockKey,
-      value: jsonEncode(config.toJson()),
+  Future<void> writeQuickUnlockMethods({
+    required String email,
+    required String credentialId,
+    required bool biometricEnabled,
+    required bool passcodeEnabled,
+    String? pin,
+    QuickUnlockConfig? previous,
+  }) async {
+    if (!biometricEnabled && !passcodeEnabled) {
+      throw ArgumentError('At least one quick unlock method is required.');
+    }
+
+    String? pinSalt;
+    String? pinHash;
+    if (passcodeEnabled) {
+      if (pin != null && RegExp(r'^\d{4}$').hasMatch(pin)) {
+        pinSalt = _newSalt();
+        pinHash = await _pinVerifier(pinSalt, pin);
+      } else if (pin == null && previous?.hasPasscode == true) {
+        pinSalt = previous!.pinSalt;
+        pinHash = previous.pinHash;
+      } else {
+        throw ArgumentError.value(
+          pin,
+          'pin',
+          'A 4-digit passcode is required.',
+        );
+      }
+    }
+
+    final method = biometricEnabled && passcodeEnabled
+        ? 'BOTH'
+        : biometricEnabled
+        ? 'BIOMETRIC'
+        : 'PIN';
+    final config = QuickUnlockConfig(
+      method: method,
+      email: email,
+      credentialId: credentialId,
+      biometricEnabled: biometricEnabled,
+      pinSalt: pinSalt,
+      pinHash: pinHash,
     );
+    await _writeQuickUnlock(config);
   }
 
   Future<QuickUnlockPinResult> verifyQuickUnlockPin(String pin) async {
     final config = await readQuickUnlock();
-    if (config == null ||
-        config.method != 'PIN' ||
-        config.pinSalt == null ||
-        config.pinHash == null) {
+    if (config == null || !config.hasPasscode) {
       return QuickUnlockPinResult.unavailable;
     }
 
@@ -210,6 +247,7 @@ class QuickUnlockConfig {
     required this.method,
     required this.email,
     required this.credentialId,
+    this.biometricEnabled = false,
     this.pinSalt,
     this.pinHash,
     this.failedAttempts = 0,
@@ -219,10 +257,16 @@ class QuickUnlockConfig {
   final String method;
   final String email;
   final String credentialId;
+  final bool biometricEnabled;
   final String? pinSalt;
   final String? pinHash;
   final int failedAttempts;
   final DateTime? lockedUntil;
+
+  bool get hasBiometric =>
+      biometricEnabled || method == 'BIOMETRIC' || method == 'BOTH';
+
+  bool get hasPasscode => pinSalt != null && pinHash != null;
 
   QuickUnlockConfig copyWith({
     int? failedAttempts,
@@ -232,6 +276,7 @@ class QuickUnlockConfig {
     method: method,
     email: email,
     credentialId: credentialId,
+    biometricEnabled: biometricEnabled,
     pinSalt: pinSalt,
     pinHash: pinHash,
     failedAttempts: failedAttempts ?? this.failedAttempts,
@@ -239,9 +284,11 @@ class QuickUnlockConfig {
   );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
+    'version': 2,
     'method': method,
     'email': email,
     'credential_id': credentialId,
+    'biometric_enabled': hasBiometric,
     'pin_salt': pinSalt,
     'pin_hash': pinHash,
     'failed_attempts': failedAttempts,
@@ -252,7 +299,7 @@ class QuickUnlockConfig {
     final method = json['method'] as String?;
     final email = json['email'] as String?;
     final credentialId = json['credential_id'] as String?;
-    if ((method != 'PIN' && method != 'BIOMETRIC') ||
+    if ((method != 'PIN' && method != 'BIOMETRIC' && method != 'BOTH') ||
         email == null ||
         email.isEmpty ||
         credentialId == null ||
@@ -263,6 +310,9 @@ class QuickUnlockConfig {
       method: method!,
       email: email,
       credentialId: credentialId,
+      biometricEnabled:
+          json['biometric_enabled'] as bool? ??
+          (method == 'BIOMETRIC' || method == 'BOTH'),
       pinSalt: json['pin_salt'] as String?,
       pinHash: json['pin_hash'] as String?,
       failedAttempts: (json['failed_attempts'] as num?)?.toInt() ?? 0,

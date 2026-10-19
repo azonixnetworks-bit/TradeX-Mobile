@@ -222,6 +222,8 @@ class AuthRepository {
         await _credentialService.delete(local.credentialId);
         await _sessionStore.clearQuickUnlock();
       }
+      status['local_biometric_enabled'] = false;
+      status['local_passcode_enabled'] = false;
       return status;
     }
 
@@ -240,7 +242,14 @@ class AuthRepository {
       status['local_state'] = 'CREDENTIAL_MISSING';
     }
 
+    status['local_biometric_enabled'] = localReady && local.hasBiometric;
+    status['local_passcode_enabled'] = localReady && local.hasPasscode;
+
     return status;
+  }
+
+  Future<QuickUnlockConfig?> readLocalQuickUnlockConfig() {
+    return _sessionStore.readQuickUnlock();
   }
 
   Future<void> configureQuickUnlock({
@@ -249,7 +258,21 @@ class AuthRepository {
     required String totpCode,
     String? pin,
   }) async {
-    if (!enabled) {
+    await configureQuickUnlockMethods(
+      biometricEnabled: enabled && method == 'BIOMETRIC',
+      passcodeEnabled: enabled && method == 'PIN',
+      totpCode: totpCode,
+      pin: pin,
+    );
+  }
+
+  Future<void> configureQuickUnlockMethods({
+    required bool biometricEnabled,
+    required bool passcodeEnabled,
+    required String totpCode,
+    String? pin,
+  }) async {
+    if (!biometricEnabled && !passcodeEnabled) {
       await _apiClient.patchJson('/api/v1/security/quick-unlock', {
         'enabled': false,
         'totp_code': totpCode,
@@ -262,9 +285,18 @@ class AuthRepository {
       return;
     }
 
+    final method = biometricEnabled && passcodeEnabled
+        ? 'BOTH'
+        : biometricEnabled
+        ? 'BIOMETRIC'
+        : 'PIN';
+    final previous = await _sessionStore.readQuickUnlock();
     final credential = await _credentialService.create(
       credentialId: _uuid.v4(),
-      requireBiometric: method == 'BIOMETRIC',
+      // When passcode is available the app must be able to sign after its
+      // own secure local PIN verification. Biometric-only credentials stay
+      // hardware-bound to a successful biometric prompt.
+      requireBiometric: biometricEnabled && !passcodeEnabled,
     );
     try {
       await _apiClient.patchJson('/api/v1/security/quick-unlock', {
@@ -281,14 +313,15 @@ class AuthRepository {
     }
 
     try {
-      final previous = await _sessionStore.readQuickUnlock();
-      await _sessionStore.writeQuickUnlock(
-        method: method!,
+      await _sessionStore.writeQuickUnlockMethods(
         email:
             (await _sessionStore.readSession())?.user['email']?.toString() ??
             '',
         credentialId: credential.id,
+        biometricEnabled: biometricEnabled,
+        passcodeEnabled: passcodeEnabled,
         pin: pin,
+        previous: previous,
       );
       if (previous != null && previous.credentialId != credential.id) {
         await _credentialService.delete(previous.credentialId);

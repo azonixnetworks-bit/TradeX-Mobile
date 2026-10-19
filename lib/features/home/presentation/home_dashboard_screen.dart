@@ -5,11 +5,13 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/tradex_api_client.dart';
+import '../../../core/profile/local_profile_photo_store.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../data/trade_ideas_repository.dart';
 import '../data/learning_repository.dart';
@@ -2405,7 +2407,13 @@ class _ProfileTab extends StatefulWidget {
 }
 
 class _ProfileTabState extends State<_ProfileTab> {
+  static const _photoStore = LocalProfilePhotoStore();
+  final _imagePicker = ImagePicker();
   late Future<_CustomerProfile> _profile;
+  Uint8List? _profilePhoto;
+  String? _profileEmail;
+  bool _fingerprintAdded = false;
+  bool _passcodeAdded = false;
 
   @override
   void initState() {
@@ -2417,10 +2425,106 @@ class _ProfileTabState extends State<_ProfileTab> {
     final response = await widget.apiClient.getJson('/api/v1/profile/settings');
     final raw = response['data'];
     if (raw is! Map) throw StateError('TradeX profile data is unavailable.');
-    return _CustomerProfile.fromJson(Map<String, dynamic>.from(raw));
+    final profile = _CustomerProfile.fromJson(Map<String, dynamic>.from(raw));
+    _profileEmail = profile.email;
+    try {
+      _profilePhoto = await _photoStore.read(profile.email);
+      final quickUnlock = await widget.authRepository
+          .readLocalQuickUnlockConfig();
+      _fingerprintAdded = quickUnlock?.hasBiometric == true;
+      _passcodeAdded = quickUnlock?.hasPasscode == true;
+    } catch (_) {
+      // The remote profile remains usable if optional local state is missing.
+    }
+    return profile;
   }
 
   void _refresh() => setState(() => _profile = _loadProfile());
+
+  Future<void> _openQuickUnlockSettings() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            QuickUnlockSettingsScreen(repository: widget.authRepository),
+      ),
+    );
+    if (mounted) _refresh();
+  }
+
+  Future<void> _chooseProfilePhoto() async {
+    final email = _profileEmail;
+    if (email == null) return;
+    try {
+      final selected = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 86,
+      );
+      if (selected == null) return;
+      final bytes = await _photoStore.saveFromPath(
+        accountEmail: email,
+        sourcePath: selected.path,
+      );
+      if (mounted) setState(() => _profilePhoto = bytes);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save the profile picture.')),
+      );
+    }
+  }
+
+  Future<void> _removeProfilePhoto() async {
+    final email = _profileEmail;
+    if (email == null) return;
+    await _photoStore.remove(email);
+    if (mounted) setState(() => _profilePhoto = null);
+  }
+
+  Future<void> _showProfilePhotoActions() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: TradeXColors.surface,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_library_outlined,
+                  color: TradeXColors.goldBright,
+                ),
+                title: Text(
+                  _profilePhoto == null
+                      ? 'Add profile picture'
+                      : 'Change profile picture',
+                ),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _chooseProfilePhoto();
+                },
+              ),
+              if (_profilePhoto != null)
+                ListTile(
+                  leading: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: TradeXColors.error,
+                  ),
+                  title: const Text('Remove profile picture'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _removeProfilePhoto();
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2453,7 +2557,11 @@ class _ProfileTabState extends State<_ProfileTab> {
           title: 'My Profile',
           subtitle: 'Your account, security and payment preferences.',
           children: [
-            _CustomerProfileHero(profile: profile),
+            _CustomerProfileHero(
+              profile: profile,
+              photo: _profilePhoto,
+              onPhotoTap: _showProfilePhotoActions,
+            ),
             const SizedBox(height: 20),
             const _SectionTitle(
               icon: Icons.person_outline_rounded,
@@ -2531,17 +2639,22 @@ class _ProfileTabState extends State<_ProfileTab> {
                   const Divider(height: 1, color: TradeXColors.border),
                   _MenuRow(
                     icon: Icons.fingerprint_rounded,
-                    title: 'Quick unlock',
-                    subtitle: 'Fingerprint or passcode on this device',
-                    onTap: () => Navigator.of(context)
-                        .push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => QuickUnlockSettingsScreen(
-                              repository: widget.authRepository,
-                            ),
-                          ),
-                        )
-                        .then((_) => _refresh()),
+                    title:
+                        'Fingerprint: ${_fingerprintAdded ? 'Added' : 'Not added'}',
+                    subtitle: _fingerprintAdded
+                        ? 'Tap to manage or remove fingerprint login'
+                        : 'Add fingerprint login on this mobile',
+                    onTap: _openQuickUnlockSettings,
+                  ),
+                  const Divider(height: 1, color: TradeXColors.border),
+                  _MenuRow(
+                    icon: Icons.pin_rounded,
+                    title:
+                        'Passcode: ${_passcodeAdded ? 'Added' : 'Not added'}',
+                    subtitle: _passcodeAdded
+                        ? 'Tap to change or remove your passcode'
+                        : 'Add a secure 4-digit passcode',
+                    onTap: _openQuickUnlockSettings,
                   ),
                 ],
               ),
@@ -2694,9 +2807,15 @@ class _FinancialMethod {
 }
 
 class _CustomerProfileHero extends StatelessWidget {
-  const _CustomerProfileHero({required this.profile});
+  const _CustomerProfileHero({
+    required this.profile,
+    required this.photo,
+    required this.onPhotoTap,
+  });
 
   final _CustomerProfile profile;
+  final Uint8List? photo;
+  final VoidCallback onPhotoTap;
 
   @override
   Widget build(BuildContext context) {
@@ -2713,21 +2832,68 @@ class _CustomerProfileHero extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 62,
-            height: 62,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: TradeXColors.gold.withValues(alpha: .16),
-              border: Border.all(color: TradeXColors.goldBright, width: 1.3),
-            ),
-            child: Text(
-              profile.name.isEmpty ? 'T' : profile.name[0].toUpperCase(),
-              style: const TextStyle(
-                color: TradeXColors.goldBright,
-                fontSize: 25,
-                fontWeight: FontWeight.w900,
+          Semantics(
+            button: true,
+            label: 'Change profile picture',
+            child: InkWell(
+              onTap: onPhotoTap,
+              customBorder: const CircleBorder(),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 66,
+                    height: 66,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: TradeXColors.gold.withValues(alpha: .16),
+                      border: Border.all(
+                        color: TradeXColors.goldBright,
+                        width: 1.3,
+                      ),
+                      image: photo == null
+                          ? null
+                          : DecorationImage(
+                              image: MemoryImage(photo!),
+                              fit: BoxFit.cover,
+                            ),
+                    ),
+                    child: photo == null
+                        ? Text(
+                            profile.name.isEmpty
+                                ? 'T'
+                                : profile.name[0].toUpperCase(),
+                            style: const TextStyle(
+                              color: TradeXColors.goldBright,
+                              fontSize: 25,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          )
+                        : null,
+                  ),
+                  Positioned(
+                    right: -3,
+                    bottom: -3,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: TradeXColors.goldBright,
+                        border: Border.all(
+                          color: TradeXColors.background,
+                          width: 2,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt_rounded,
+                        size: 13,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

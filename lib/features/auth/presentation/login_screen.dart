@@ -65,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final config = widget.quickUnlockConfig;
     if (config != null) {
       _rememberDevice = true;
-      _quickUnlockMethod = config.method;
+      _quickUnlockMethod = config.hasBiometric ? 'BIOMETRIC' : 'PIN';
     }
   }
 
@@ -174,9 +174,11 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
     final config = widget.quickUnlockConfig;
-    final passcodeAvailable =
-        config?.pinSalt != null && config?.pinHash != null;
-    if (config == null || (value == 'PIN' && !passcodeAvailable)) {
+    final passcodeAvailable = config?.hasPasscode == true;
+    final biometricAvailable = config?.hasBiometric == true;
+    if (config == null ||
+        (value == 'PIN' && !passcodeAvailable) ||
+        (value == 'BIOMETRIC' && !biometricAvailable)) {
       setState(() {
         _errorMessage = value == 'BIOMETRIC'
             ? 'Fingerprint login is not set up. Add it from Profile > Quick Unlock.'
@@ -228,10 +230,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submitQuickLogin() async {
     final config = widget.quickUnlockConfig;
-    final passcodeAvailable =
-        config?.pinSalt != null && config?.pinHash != null;
+    final passcodeAvailable = config?.hasPasscode == true;
+    final biometricAvailable = config?.hasBiometric == true;
     if (config == null ||
-        (_quickUnlockMethod == 'PIN' && !passcodeAvailable)) {
+        (_quickUnlockMethod == 'PIN' && !passcodeAvailable) ||
+        (_quickUnlockMethod == 'BIOMETRIC' && !biometricAvailable)) {
       setState(
         () => _errorMessage =
             'Authentication failed. Set up this login method from Profile.',

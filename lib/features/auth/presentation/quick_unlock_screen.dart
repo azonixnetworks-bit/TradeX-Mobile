@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
@@ -31,12 +29,14 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
   bool _busy = false;
   String? _error;
   String _biometricLabel = 'Biometrics';
+  late String _method;
 
   @override
   void initState() {
     super.initState();
+    _method = widget.config.hasBiometric ? 'BIOMETRIC' : 'PIN';
     _loadBiometricLabel();
-    if (widget.config.method == 'BIOMETRIC') {
+    if (widget.config.hasBiometric) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _unlockWithBiometrics();
       });
@@ -44,7 +44,7 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
   }
 
   Future<void> _loadBiometricLabel() async {
-    if (widget.config.method != 'BIOMETRIC') return;
+    if (!widget.config.hasBiometric) return;
     try {
       final available = await _localAuth.getAvailableBiometrics();
       final label = available.contains(BiometricType.face)
@@ -104,15 +104,13 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
       if (!canAuthenticate) {
         throw PlatformException(code: 'NOT_AVAILABLE');
       }
-      final unlocked = Platform.isIOS
-          ? true // Secure Enclave signing presents the bound native prompt.
-          : await _localAuth.authenticate(
-              localizedReason: 'Verify your identity to unlock TradeX.',
-              options: const AuthenticationOptions(
-                biometricOnly: true,
-                stickyAuth: true,
-              ),
-            );
+      final unlocked = await _localAuth.authenticate(
+        localizedReason: 'Verify your identity to unlock TradeX.',
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          stickyAuth: true,
+        ),
+      );
       if (!mounted) return;
       if (unlocked) {
         await widget.onUnlocked();
@@ -134,7 +132,8 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final biometric = widget.config.method == 'BIOMETRIC';
+    final biometric = _method == 'BIOMETRIC';
+    final hasBoth = widget.config.hasBiometric && widget.config.hasPasscode;
     return Scaffold(
       backgroundColor: TradeXColors.background,
       body: SafeArea(
@@ -174,6 +173,31 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  if (hasBoth) ...[
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(
+                          value: 'BIOMETRIC',
+                          icon: Icon(Icons.fingerprint_rounded),
+                          label: Text('Fingerprint'),
+                        ),
+                        ButtonSegment(
+                          value: 'PIN',
+                          icon: Icon(Icons.pin_rounded),
+                          label: Text('Passcode'),
+                        ),
+                      ],
+                      selected: {_method},
+                      onSelectionChanged: _busy
+                          ? null
+                          : (selection) => setState(() {
+                              _method = selection.first;
+                              _pinController.clear();
+                              _error = null;
+                            }),
+                    ),
+                    const SizedBox(height: 18),
+                  ],
                   if (biometric)
                     SizedBox(
                       width: double.infinity,
