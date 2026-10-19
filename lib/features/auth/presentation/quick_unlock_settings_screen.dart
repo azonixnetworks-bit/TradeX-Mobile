@@ -47,6 +47,9 @@ class _QuickUnlockSettingsScreenState extends State<QuickUnlockSettingsScreen> {
       setState(() {
         _enabled = status['enabled'] == true;
         _method = status['method']?.toString() == 'PIN' ? 'PIN' : 'BIOMETRIC';
+        _error = status['requires_reenrollment'] == true
+            ? 'Quick login setup is incomplete or was revoked. Re-enroll this device with your authenticator code.'
+            : null;
         _loading = false;
       });
     } catch (error) {

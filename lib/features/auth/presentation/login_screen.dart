@@ -175,16 +175,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
 
-    if (_rememberDevice &&
-        (_emailController.text.trim().isEmpty ||
-            _passwordController.text.isEmpty ||
-            _securityCodeController.text.trim().isEmpty)) {
-      setState(() {
-        _errorMessage = 'To remember this device for the first time, switch it off, enter your email, password and authenticator code, then switch it on.';
-      });
-      return;
-    }
-
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -518,7 +508,7 @@ class _LoginCard extends StatelessWidget {
 
             const SizedBox(height: 10),
 
-            if (!rememberDevice) ...[
+            ...[
               _LoginField(
                 controller: emailController,
                 label: 'Email Address',

@@ -31,6 +31,8 @@ class HomeDashboardScreen extends StatefulWidget {
   const HomeDashboardScreen({
     super.key,
     required this.onLogout,
+    required this.onForgetDevice,
+    required this.onLogoutAll,
     required this.apiClient,
     required this.tradeIdeasRepository,
     required this.learningRepository,
@@ -38,6 +40,8 @@ class HomeDashboardScreen extends StatefulWidget {
   });
 
   final Future<void> Function() onLogout;
+  final Future<void> Function() onForgetDevice;
+  final Future<void> Function() onLogoutAll;
   final TradeXApiClient apiClient;
   final TradeIdeasRepository tradeIdeasRepository;
   final LearningRepository learningRepository;
@@ -93,6 +97,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               key: const ValueKey('profile'),
               onActionTap: _showComingSoon,
               onLogout: widget.onLogout,
+              onForgetDevice: widget.onForgetDevice,
+              onLogoutAll: widget.onLogoutAll,
               apiClient: widget.apiClient,
               authRepository: widget.authRepository,
             ),
@@ -2343,12 +2349,16 @@ class _ProfileTab extends StatefulWidget {
     super.key,
     required this.onActionTap,
     required this.onLogout,
+    required this.onForgetDevice,
+    required this.onLogoutAll,
     required this.apiClient,
     required this.authRepository,
   });
 
   final ValueChanged<String> onActionTap;
   final Future<void> Function() onLogout;
+  final Future<void> Function() onForgetDevice;
+  final Future<void> Function() onLogoutAll;
   final TradeXApiClient apiClient;
   final AuthRepository authRepository;
 
@@ -2518,9 +2528,25 @@ class _ProfileTabState extends State<_ProfileTab> {
                   _MenuRow(
                     icon: Icons.logout_rounded,
                     title: 'Sign out',
-                    subtitle: 'Sign out from this device',
+                    subtitle: 'Keep quick login on this trusted device',
                     danger: true,
                     onTap: () => widget.onLogout(),
+                  ),
+                  const Divider(height: 1, color: TradeXColors.border),
+                  _MenuRow(
+                    icon: Icons.phonelink_erase_rounded,
+                    title: 'Sign out and forget this device',
+                    subtitle: 'Remove fingerprint or passcode quick login',
+                    danger: true,
+                    onTap: () => widget.onForgetDevice(),
+                  ),
+                  const Divider(height: 1, color: TradeXColors.border),
+                  _MenuRow(
+                    icon: Icons.logout_rounded,
+                    title: 'Sign out from all devices',
+                    subtitle: 'Revoke every active TradeX session',
+                    danger: true,
+                    onTap: () => widget.onLogoutAll(),
                   ),
                 ],
               ),

@@ -72,6 +72,7 @@ class SecureSessionStore {
   Future<void> writeQuickUnlock({
     required String method,
     required String email,
+    required String credentialId,
     String? pin,
   }) async {
     final normalizedMethod = method.toUpperCase();
@@ -91,6 +92,7 @@ class SecureSessionStore {
     final config = QuickUnlockConfig(
       method: normalizedMethod,
       email: email,
+      credentialId: credentialId,
       pinSalt: salt,
       pinHash: salt == null ? null : _pinVerifier(salt, pin!),
     );
@@ -190,6 +192,7 @@ class QuickUnlockConfig {
   const QuickUnlockConfig({
     required this.method,
     required this.email,
+    required this.credentialId,
     this.pinSalt,
     this.pinHash,
     this.failedAttempts = 0,
@@ -198,6 +201,7 @@ class QuickUnlockConfig {
 
   final String method;
   final String email;
+  final String credentialId;
   final String? pinSalt;
   final String? pinHash;
   final int failedAttempts;
@@ -210,6 +214,7 @@ class QuickUnlockConfig {
   }) => QuickUnlockConfig(
     method: method,
     email: email,
+    credentialId: credentialId,
     pinSalt: pinSalt,
     pinHash: pinHash,
     failedAttempts: failedAttempts ?? this.failedAttempts,
@@ -219,6 +224,7 @@ class QuickUnlockConfig {
   Map<String, dynamic> toJson() => <String, dynamic>{
     'method': method,
     'email': email,
+    'credential_id': credentialId,
     'pin_salt': pinSalt,
     'pin_hash': pinHash,
     'failed_attempts': failedAttempts,
@@ -228,14 +234,18 @@ class QuickUnlockConfig {
   factory QuickUnlockConfig.fromJson(Map<String, dynamic> json) {
     final method = json['method'] as String?;
     final email = json['email'] as String?;
+    final credentialId = json['credential_id'] as String?;
     if ((method != 'PIN' && method != 'BIOMETRIC') ||
         email == null ||
-        email.isEmpty) {
+        email.isEmpty ||
+        credentialId == null ||
+        credentialId.isEmpty) {
       throw const FormatException();
     }
     return QuickUnlockConfig(
       method: method!,
       email: email,
+      credentialId: credentialId,
       pinSalt: json['pin_salt'] as String?,
       pinHash: json['pin_hash'] as String?,
       failedAttempts: (json['failed_attempts'] as num?)?.toInt() ?? 0,

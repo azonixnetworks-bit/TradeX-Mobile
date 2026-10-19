@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
@@ -102,13 +104,15 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
       if (!canAuthenticate) {
         throw PlatformException(code: 'NOT_AVAILABLE');
       }
-      final unlocked = await _localAuth.authenticate(
-        localizedReason: 'Verify your identity to unlock TradeX.',
-        options: const AuthenticationOptions(
-          biometricOnly: true,
-          stickyAuth: true,
-        ),
-      );
+      final unlocked = Platform.isIOS
+          ? true // Secure Enclave signing presents the bound native prompt.
+          : await _localAuth.authenticate(
+              localizedReason: 'Verify your identity to unlock TradeX.',
+              options: const AuthenticationOptions(
+                biometricOnly: true,
+                stickyAuth: true,
+              ),
+            );
       if (!mounted) return;
       if (unlocked) {
         await widget.onUnlocked();

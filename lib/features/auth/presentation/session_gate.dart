@@ -158,12 +158,21 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
         _loading = false;
       });
     } on ApiException catch (error) {
-      await widget.authRepository.logout();
+      final enrollmentInvalid = <String>{
+        'QUICK_UNLOCK_ENROLLMENT_UNAVAILABLE',
+        'QUICK_UNLOCK_CREDENTIAL_MISSING',
+        'QUICK_UNLOCK_CHALLENGE_INVALID',
+        'QUICK_UNLOCK_SIGNATURE_INVALID',
+        'DEVICE_SESSION_REVOKED',
+      }.contains(error.code);
+      if (enrollmentInvalid) {
+        await widget.authRepository.clearLocalQuickUnlock();
+      }
       if (!mounted) return;
       setState(() {
-        _authenticated = false;
-        _quickUnlock = null;
-        _quickUnlockLocked = false;
+        _authenticated = !enrollmentInvalid;
+        _quickUnlock = enrollmentInvalid ? null : _quickUnlock;
+        _quickUnlockLocked = !enrollmentInvalid;
         _error = error.message;
         _loading = false;
       });
@@ -182,6 +191,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
         _quickUnlock ?? await widget.authRepository.quickUnlockConfiguration();
 
     if (configuredQuickUnlock != null) {
+      await widget.authRepository.logout();
       if (!mounted) return;
       setState(() {
         _authenticated = true;
@@ -201,6 +211,26 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       return;
     }
 
+    setState(() {
+      _authenticated = false;
+      _quickUnlock = null;
+      _quickUnlockLocked = false;
+    });
+  }
+
+  Future<void> _signOutAndForgetDevice() async {
+    await widget.authRepository.logout(forgetDevice: true);
+    if (!mounted) return;
+    setState(() {
+      _authenticated = false;
+      _quickUnlock = null;
+      _quickUnlockLocked = false;
+    });
+  }
+
+  Future<void> _signOutAllDevices() async {
+    await widget.authRepository.logoutAll();
+    if (!mounted) return;
     setState(() {
       _authenticated = false;
       _quickUnlock = null;
@@ -229,6 +259,8 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       }
       return HomeDashboardScreen(
         onLogout: _logout,
+        onForgetDevice: _signOutAndForgetDevice,
+        onLogoutAll: _signOutAllDevices,
         apiClient: widget.apiClient,
         tradeIdeasRepository: widget.tradeIdeasRepository,
         learningRepository: widget.learningRepository,
