@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tradex_mobile/core/auth/device_credential_service.dart';
 import 'package:tradex_mobile/core/auth/secure_session_store.dart';
+import 'package:tradex_mobile/features/auth/presentation/login_screen.dart';
 import 'package:tradex_mobile/features/auth/presentation/quick_unlock_screen.dart';
 
 void main() {
@@ -60,4 +61,41 @@ void main() {
     expect(find.text('Enter passcode'), findsOneWidget);
     expect(find.textContaining('Confirm'), findsNothing);
   });
+
+  testWidgets(
+    'remembered passcode login hides password and authenticator fields',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: LoginScreen(
+            onBack: () {},
+            onForgotPassword: () {},
+            onCreateAccount: () {},
+            quickUnlockConfig: const QuickUnlockConfig(
+              method: 'PIN',
+              email: 'trader@example.test',
+              credentialId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+              pinSalt: 'salt',
+              pinHash: 'hash',
+            ),
+            onQuickUnlock: () async {},
+            onLogin: ({
+              required email,
+              required password,
+              totpCode,
+              recoveryCode,
+              quickUnlockMethod,
+              quickUnlockPin,
+            }) async {},
+          ),
+        ),
+      );
+
+      expect(find.text('Email Address'), findsNothing);
+      expect(find.text('Password'), findsNothing);
+      expect(find.text('Authenticator Code (6 digits)'), findsNothing);
+      expect(find.text('Enter passcode'), findsOneWidget);
+      expect(find.byType(TextFormField), findsOneWidget);
+    },
+  );
 }

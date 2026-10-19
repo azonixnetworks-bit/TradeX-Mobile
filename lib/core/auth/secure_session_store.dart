@@ -19,6 +19,9 @@ class SecureSessionStore {
   static const String _completedFirstLoginKey =
       'tradex.auth.completed_first_login.v1';
 
+  static const String _quickUnlockPromptShownKey =
+      'tradex.auth.quick_unlock_prompt_shown.v1';
+
   final FlutterSecureStorage _storage;
 
   Future<AuthSession?> readSession() async {
@@ -146,6 +149,14 @@ class SecureSessionStore {
 
   Future<void> markFirstLoginCompleted() {
     return _storage.write(key: _completedFirstLoginKey, value: 'true');
+  }
+
+  Future<bool> hasShownQuickUnlockSetupPrompt() async {
+    return (await _storage.read(key: _quickUnlockPromptShownKey)) == 'true';
+  }
+
+  Future<void> markQuickUnlockSetupPromptShown() {
+    return _storage.write(key: _quickUnlockPromptShownKey, value: 'true');
   }
 
   Future<String?> readInstallationId() {

@@ -9,6 +9,7 @@ import '../data/password_recovery_repository.dart';
 import '../data/registration_repository.dart';
 import 'auth_flow_screen.dart';
 import 'quick_unlock_screen.dart';
+import 'quick_unlock_settings_screen.dart';
 import '../../home/presentation/home_dashboard_screen.dart';
 import '../../home/data/trade_ideas_repository.dart';
 import '../../home/data/learning_repository.dart';
@@ -99,9 +100,9 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       if (quickUnlock != null) {
         if (!mounted) return;
         setState(() {
-          _authenticated = true;
+          _authenticated = false;
           _quickUnlock = quickUnlock;
-          _quickUnlockLocked = true;
+          _quickUnlockLocked = false;
           _loading = false;
         });
         return;
@@ -184,6 +185,62 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       _authenticated = true;
       _quickUnlockLocked = false;
     });
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _offerQuickUnlockSetup(),
+    );
+  }
+
+  Future<void> _completeQuickLogin() async {
+    final config = _quickUnlock;
+    if (config == null) return;
+    await widget.authRepository.quickLogin(config);
+    if (!mounted) return;
+    setState(() {
+      _authenticated = true;
+      _quickUnlockLocked = false;
+      _error = null;
+    });
+  }
+
+  Future<void> _offerQuickUnlockSetup() async {
+    if (!mounted) return;
+    final existing = await widget.authRepository.quickUnlockConfiguration();
+    final sessionStore = SecureSessionStore();
+    final alreadyShown = await sessionStore.hasShownQuickUnlockSetupPrompt();
+    if (!mounted || existing != null || alreadyShown) {
+      return;
+    }
+    await sessionStore.markQuickUnlockSetupPromptShown();
+    if (!mounted) return;
+    final openSettings = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Secure your next sign-in'),
+        content: const Text(
+          'Set up fingerprint or a 4-digit passcode now for quick, secure login on this device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Later'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Set up now'),
+          ),
+        ],
+      ),
+    );
+    if (openSettings != true || !mounted) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) =>
+            QuickUnlockSettingsScreen(repository: widget.authRepository),
+      ),
+    );
+    final config = await widget.authRepository.quickUnlockConfiguration();
+    if (mounted) setState(() => _quickUnlock = config);
   }
 
   Future<void> _logout() async {
@@ -194,9 +251,9 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       await widget.authRepository.logout();
       if (!mounted) return;
       setState(() {
-        _authenticated = true;
+        _authenticated = false;
         _quickUnlock = configuredQuickUnlock;
-        _quickUnlockLocked = true;
+        _quickUnlockLocked = false;
       });
       return;
     }
@@ -273,6 +330,8 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       registrationRepository: widget.registrationRepository,
       passwordRecoveryRepository: widget.passwordRecoveryRepository,
       onAuthenticated: _onAuthenticated,
+      quickUnlockConfig: _quickUnlock,
+      onQuickUnlock: _quickUnlock == null ? null : _completeQuickLogin,
     );
   }
 }

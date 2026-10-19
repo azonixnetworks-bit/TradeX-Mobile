@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
+import '../../../core/auth/secure_session_store.dart';
 import '../../../core/theme/tradex_colors.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -11,11 +12,15 @@ class LoginScreen extends StatefulWidget {
     required this.onForgotPassword,
     required this.onCreateAccount,
     required this.onLogin,
+    this.quickUnlockConfig,
+    this.onQuickUnlock,
   });
 
   final VoidCallback onBack;
   final VoidCallback onForgotPassword;
   final VoidCallback onCreateAccount;
+  final QuickUnlockConfig? quickUnlockConfig;
+  final Future<void> Function()? onQuickUnlock;
 
   final Future<void> Function({
     required String email,
@@ -52,6 +57,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? _errorMessage;
 
+  bool get _quickLoginAvailable => widget.quickUnlockConfig != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final config = widget.quickUnlockConfig;
+    if (config != null) {
+      _rememberDevice = true;
+      _quickUnlockMethod = config.method;
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -63,6 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String? _validateEmail(String? value) {
+    if (_rememberDevice && _quickLoginAvailable) return null;
     final email = value?.trim() ?? '';
 
     if (email.isEmpty) {
@@ -79,6 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String? _validatePassword(String? value) {
+    if (_rememberDevice && _quickLoginAvailable) return null;
     if (value == null || value.isEmpty) {
       return 'Password is required.';
     }
@@ -87,6 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String? _validateSecurityCode(String? value) {
+    if (_rememberDevice && _quickLoginAvailable) return null;
     final code = value?.trim() ?? '';
 
     if (code.isEmpty) {
@@ -105,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _validateQuickUnlockPin(String? value) {
     if (!_rememberDevice || _quickUnlockMethod != 'PIN') return null;
     if (!RegExp(r'^\d{4}$').hasMatch(value?.trim() ?? '')) {
-      return 'Create a 4-digit passcode.';
+      return 'Enter your 4-digit passcode.';
     }
     return null;
   }
@@ -121,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final confirmed = await _localAuth.authenticate(
         localizedReason:
-            'Confirm your fingerprint to enable TradeX quick unlock.',
+            'Place your finger on the sensor to sign in to TradeX.',
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,
@@ -132,14 +152,14 @@ class _LoginScreenState extends State<LoginScreen> {
           _biometricConfirmed = confirmed;
           _errorMessage = confirmed
               ? null
-              : 'Fingerprint confirmation was not completed.';
+              : 'Authentication failed. Fingerprint was not recognized.';
         });
       }
       return confirmed;
     } on PlatformException {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Fingerprint is not available. Choose passcode or enable a fingerprint in device settings.';
+          _errorMessage = 'Authentication failed. Fingerprint is not available on this device.';
         });
       }
       return false;
@@ -153,8 +173,17 @@ class _LoginScreenState extends State<LoginScreen> {
       _biometricConfirmed = false;
       _errorMessage = null;
     });
-    if (value == 'BIOMETRIC') {
-      await _confirmFingerprint();
+    final configured = widget.quickUnlockConfig?.method;
+    if (configured != value) {
+      setState(() {
+        _errorMessage = value == 'BIOMETRIC'
+            ? 'Fingerprint login is not set up. Add it from Profile > Quick Unlock.'
+            : 'Passcode login is not set up. Add it from Profile > Quick Unlock.';
+      });
+      return;
+    }
+    if (value == 'BIOMETRIC' && await _confirmFingerprint()) {
+      await _completeQuickLogin();
     }
   }
 
@@ -167,22 +196,73 @@ class _LoginScreenState extends State<LoginScreen> {
         _biometricConfirmed = false;
       }
     });
-    if (value && _quickUnlockMethod == 'BIOMETRIC') {
-      await _confirmFingerprint();
+    if (value && !_quickLoginAvailable) {
+      setState(() {
+        _rememberDevice = false;
+        _errorMessage = 'Set up fingerprint or passcode from your Profile after signing in.';
+      });
     }
+  }
+
+  Future<void> _completeQuickLogin() async {
+    final callback = widget.onQuickUnlock;
+    if (callback == null) return;
+    setState(() {
+      _submitting = true;
+      _errorMessage = null;
+    });
+    try {
+      await callback();
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _errorMessage = 'Authentication failed. ${error.toString()}',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _submitQuickLogin() async {
+    final config = widget.quickUnlockConfig;
+    if (config == null || config.method != _quickUnlockMethod) {
+      setState(
+        () => _errorMessage =
+            'Authentication failed. Set up this login method from Profile.',
+      );
+      return;
+    }
+    if (_quickUnlockMethod == 'BIOMETRIC') {
+      if (await _confirmFingerprint()) await _completeQuickLogin();
+      return;
+    }
+    if (!_formKey.currentState!.validate()) return;
+    final result = await SecureSessionStore().verifyQuickUnlockPin(
+      _quickUnlockPinController.text.trim(),
+    );
+    if (!mounted) return;
+    if (result != QuickUnlockPinResult.success) {
+      setState(() {
+        _quickUnlockPinController.clear();
+        _errorMessage = result == QuickUnlockPinResult.locked
+            ? 'Authentication failed. Too many attempts; try again in 5 minutes.'
+            : 'Authentication failed. Incorrect passcode.';
+      });
+      return;
+    }
+    await _completeQuickLogin();
   }
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
 
-    if (!_formKey.currentState!.validate()) {
+    if (_rememberDevice && _quickLoginAvailable) {
+      await _submitQuickLogin();
       return;
     }
 
-    if (_rememberDevice &&
-        _quickUnlockMethod == 'BIOMETRIC' &&
-        !_biometricConfirmed &&
-        !await _confirmFingerprint()) {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
@@ -199,10 +279,8 @@ class _LoginScreenState extends State<LoginScreen> {
         recoveryCode: _useRecoveryCode
             ? _securityCodeController.text.trim()
             : null,
-        quickUnlockMethod: _rememberDevice ? _quickUnlockMethod : null,
-        quickUnlockPin: _rememberDevice && _quickUnlockMethod == 'PIN'
-            ? _quickUnlockPinController.text.trim()
-            : null,
+        quickUnlockMethod: null,
+        quickUnlockPin: null,
       );
     } catch (error) {
       if (!mounted) {
@@ -267,6 +345,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           rememberDevice: _rememberDevice,
                           quickUnlockMethod: _quickUnlockMethod,
                           biometricConfirmed: _biometricConfirmed,
+                          quickLoginAvailable: _quickLoginAvailable,
                           quickUnlockPinController: _quickUnlockPinController,
                           onPasswordVisibilityChanged: () {
                             setState(() {
@@ -389,6 +468,7 @@ class _LoginCard extends StatelessWidget {
     required this.rememberDevice,
     required this.quickUnlockMethod,
     required this.biometricConfirmed,
+    required this.quickLoginAvailable,
     required this.quickUnlockPinController,
     required this.onPasswordVisibilityChanged,
     required this.onRecoveryModeChanged,
@@ -414,6 +494,7 @@ class _LoginCard extends StatelessWidget {
   final bool rememberDevice;
   final String quickUnlockMethod;
   final bool biometricConfirmed;
+  final bool quickLoginAvailable;
 
   final String? errorMessage;
   final TextEditingController quickUnlockPinController;
@@ -508,7 +589,7 @@ class _LoginCard extends StatelessWidget {
 
             const SizedBox(height: 10),
 
-            ...[
+            if (!rememberDevice) ...[
               _LoginField(
                 controller: emailController,
                 label: 'Email Address',
@@ -669,7 +750,7 @@ class _LoginCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 _LoginField(
                   controller: quickUnlockPinController,
-                  label: 'Enter 4-digit passcode',
+                  label: 'Enter passcode',
                   icon: Icons.pin_outlined,
                   keyboardType: TextInputType.number,
                   obscureText: true,
@@ -697,8 +778,8 @@ class _LoginCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         biometricConfirmed
-                            ? 'Fingerprint verified. Tap Sign In to continue.'
-                            : 'Tap Fingerprint and place your finger on the mobile sensor.',
+                            ? 'Fingerprint verified. Signing in securely…'
+                            : 'Select Fingerprint and place your finger on the mobile sensor.',
                         style: TextStyle(
                           color: biometricConfirmed
                               ? TradeXColors.success
@@ -719,6 +800,16 @@ class _LoginCard extends StatelessWidget {
                   fontSize: 10,
                 ),
               ),
+              if (!quickLoginAvailable) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  'Sign in normally, then set up fingerprint or passcode from Profile.',
+                  style: TextStyle(
+                    color: TradeXColors.goldBright,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
             ],
 
             if (errorMessage != null) ...[

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/auth/secure_session_store.dart';
 import '../data/auth_repository.dart';
 import '../data/password_recovery_repository.dart';
 import '../data/registration_repository.dart';
@@ -46,12 +47,16 @@ class AuthFlowScreen extends StatefulWidget {
     required this.registrationRepository,
     required this.passwordRecoveryRepository,
     required this.onAuthenticated,
+    this.quickUnlockConfig,
+    this.onQuickUnlock,
   });
 
   final AuthRepository authRepository;
   final RegistrationRepository registrationRepository;
   final PasswordRecoveryRepository passwordRecoveryRepository;
   final VoidCallback onAuthenticated;
+  final QuickUnlockConfig? quickUnlockConfig;
+  final Future<void> Function()? onQuickUnlock;
 
   @override
   State<AuthFlowScreen> createState() => _AuthFlowScreenState();
@@ -489,6 +494,8 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
           onForgotPassword: _showForgotPassword,
           onCreateAccount: _showRegister,
           onLogin: _login,
+          quickUnlockConfig: widget.quickUnlockConfig,
+          onQuickUnlock: widget.onQuickUnlock,
         );
 
       case _AuthStep.register:
