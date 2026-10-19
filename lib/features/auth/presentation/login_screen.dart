@@ -173,8 +173,10 @@ class _LoginScreenState extends State<LoginScreen> {
       _biometricConfirmed = false;
       _errorMessage = null;
     });
-    final configured = widget.quickUnlockConfig?.method;
-    if (configured != value) {
+    final config = widget.quickUnlockConfig;
+    final passcodeAvailable =
+        config?.pinSalt != null && config?.pinHash != null;
+    if (config == null || (value == 'PIN' && !passcodeAvailable)) {
       setState(() {
         _errorMessage = value == 'BIOMETRIC'
             ? 'Fingerprint login is not set up. Add it from Profile > Quick Unlock.'
@@ -226,7 +228,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submitQuickLogin() async {
     final config = widget.quickUnlockConfig;
-    if (config == null || config.method != _quickUnlockMethod) {
+    final passcodeAvailable =
+        config?.pinSalt != null && config?.pinHash != null;
+    if (config == null ||
+        (_quickUnlockMethod == 'PIN' && !passcodeAvailable)) {
       setState(
         () => _errorMessage =
             'Authentication failed. Set up this login method from Profile.',
@@ -247,7 +252,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _quickUnlockPinController.clear();
         _errorMessage = result == QuickUnlockPinResult.locked
             ? 'Authentication failed. Too many attempts; try again in 5 minutes.'
-            : 'Authentication failed. Incorrect passcode.';
+            : 'Authentication failed. Incorrect passcode. Try again.';
       });
       return;
     }
