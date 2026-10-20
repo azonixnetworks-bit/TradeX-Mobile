@@ -9,9 +9,11 @@ import 'features/auth/data/password_recovery_repository.dart';
 import 'features/auth/data/registration_repository.dart';
 import 'features/home/data/trade_ideas_repository.dart';
 import 'features/home/data/learning_repository.dart';
+import 'core/preferences/app_preferences.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppPreferences.instance.load();
 
   final sessionStore = SecureSessionStore();
   final deviceIdentity = DeviceIdentity(sessionStore);

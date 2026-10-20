@@ -20,6 +20,8 @@ import '../../learn/data/learn_repository.dart';
 import '../../learn/presentation/learn_module.dart';
 import '../../auth/presentation/quick_unlock_settings_screen.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../catalog/models/feature_spec.dart';
+import '../../catalog/presentation/feature_catalog_screen.dart';
 
 bool _timeZoneDatabaseInitialized = false;
 
@@ -56,19 +58,67 @@ class HomeDashboardScreen extends StatefulWidget {
 class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   int _selectedTab = 0;
 
-  void _showComingSoon(String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text('$label is coming soon.'),
-      ),
-    );
+  void _openAction(String label) {
+    final normalized = label.toLowerCase();
+    if (normalized == 'learning library' ||
+        normalized.startsWith('free lesson:')) {
+      setState(() => _selectedTab = 1);
+      return;
+    }
+    if (normalized == 'trade ideas') {
+      setState(() => _selectedTab = 2);
+      return;
+    }
+    if (normalized == 'services') {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => FeatureCatalogScreen(apiClient: widget.apiClient),
+        ),
+      );
+      return;
+    }
+    if (normalized == 'tradex content') {
+      openTradeXFeature(
+        context,
+        widget.apiClient,
+        const FeatureSpec(
+          id: 'our-channel',
+          group: 'Notifications & Support',
+          title: 'Our Channel / Videos',
+          subtitle: 'Published TradeX videos and details',
+          icon: Icons.ondemand_video_rounded,
+          endpoint: '/api/v1/our-channel/videos',
+        ),
+      );
+      return;
+    }
+
+    final id = switch (normalized) {
+      'notifications' => 'notifications',
+      'market categories' => 'market-screener',
+      'premium access' => 'products',
+      'share referral link' => 'direct-referrals',
+      'affiliate milestones' => 'qualified-sales',
+      'my referrals' => 'direct-referrals',
+      'rewards history' => 'commissions',
+      'email details' => 'edit-profile',
+      'whatsapp contact' => 'contact-number',
+      'learning language' => 'preferences',
+      'authenticator security' => 'recovery-codes',
+      'support centre' => 'help-faq',
+      _
+          when normalized.endsWith('trade ideas') ||
+              normalized.endsWith('trade idea') =>
+        'trade-idea-details',
+      _ => 'help-faq',
+    };
+    openTradeXFeature(context, widget.apiClient, featureById(id));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: TradeXColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 260),
@@ -77,7 +127,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           child: switch (_selectedTab) {
             0 => _HomeContent(
               key: const ValueKey('home'),
-              onActionTap: _showComingSoon,
+              onActionTap: _openAction,
               onLogout: widget.onLogout,
               apiClient: widget.apiClient,
               tradeIdeasRepository: widget.tradeIdeasRepository,
@@ -89,15 +139,17 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             ),
             2 => _TradeIdeasTab(
               key: const ValueKey('ideas'),
-              onActionTap: _showComingSoon,
+              onActionTap: _openAction,
+              apiClient: widget.apiClient,
             ),
             3 => _AffiliateTab(
               key: const ValueKey('affiliate'),
-              onActionTap: _showComingSoon,
+              onActionTap: _openAction,
+              apiClient: widget.apiClient,
             ),
             _ => _ProfileTab(
               key: const ValueKey('profile'),
-              onActionTap: _showComingSoon,
+              onActionTap: _openAction,
               onLogout: widget.onLogout,
               onForgetDevice: widget.onForgetDevice,
               onLogoutAll: widget.onLogoutAll,
@@ -219,9 +271,9 @@ class _Header extends StatelessWidget {
           icon: Badge(
             smallSize: 9,
             backgroundColor: TradeXColors.goldBright,
-            child: const Icon(
+            child: Icon(
               Icons.notifications_none_rounded,
-              color: TradeXColors.primaryText,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -230,8 +282,10 @@ class _Header extends StatelessWidget {
           icon: const Icon(Icons.more_horiz_rounded, color: TradeXColors.gold),
           onSelected: (value) async {
             if (value == 'logout') await onLogout();
+            if (value == 'services') onNotificationTap('Services');
           },
           itemBuilder: (context) => const [
+            PopupMenuItem(value: 'services', child: Text('TradeX services')),
             PopupMenuItem(value: 'logout', child: Text('Sign out')),
           ],
         ),
@@ -353,7 +407,7 @@ class _SessionClockCardState extends State<_SessionClockCard>
         .toList(growable: false);
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: Column(
         children: [
           Row(
@@ -580,8 +634,8 @@ class _WorldClockTile extends StatelessWidget {
           clock.label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: TradeXColors.primaryText,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 10,
             fontWeight: FontWeight.w800,
           ),
@@ -1132,7 +1186,7 @@ class _PremiumLockedLearningCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    decoration: _panelDecoration,
+    decoration: _panelDecoration(context),
     child: Stack(
       alignment: Alignment.center,
       children: [
@@ -1212,7 +1266,7 @@ class _PremiumContinueLearningCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: Ink(
         padding: const EdgeInsets.all(12),
-        decoration: _panelDecoration,
+        decoration: _panelDecoration(context),
         child: Row(
           children: [
             _CourseThumbnail(
@@ -1441,7 +1495,7 @@ class _NoTradeIdeasCard extends StatelessWidget {
     child: Ink(
       height: 146,
       padding: const EdgeInsets.all(18),
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: const Row(
         children: [
           Icon(
@@ -1503,7 +1557,7 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
     return Container(
       width: 306,
       padding: const EdgeInsets.all(12),
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1972,7 +2026,7 @@ class _LatestContentCardState extends State<_LatestContentCard> {
       if (videos.isEmpty) {
         return Container(
           padding: const EdgeInsets.all(18),
-          decoration: _panelDecoration,
+          decoration: _panelDecoration(context),
           child: const Row(
             children: [
               Icon(
@@ -2033,7 +2087,7 @@ class _LatestVideoCard extends StatelessWidget {
     borderRadius: BorderRadius.circular(20),
     child: Ink(
       padding: const EdgeInsets.all(12),
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: Row(
         children: [
           _YoutubeThumbnail(video: video),
@@ -2297,91 +2351,304 @@ class _LearnTab extends StatelessWidget {
 }
 
 class _TradeIdeasTab extends StatelessWidget {
-  const _TradeIdeasTab({super.key, required this.onActionTap});
+  const _TradeIdeasTab({
+    super.key,
+    required this.onActionTap,
+    required this.apiClient,
+  });
 
   final ValueChanged<String> onActionTap;
+  final TradeXApiClient apiClient;
 
   @override
   Widget build(BuildContext context) {
-    return _TabScrollView(
+    return _EntitlementAwareTab(
+      apiClient: apiClient,
       title: 'Trade Ideas',
-      subtitle: 'Educational market ideas. Always manage your own risk.',
-      children: [
-        const _RiskNotice(),
-        const SizedBox(height: 16),
-        _MarketFilterBar(onActionTap: onActionTap),
-        const SizedBox(height: 15),
-        _ExpandedIdeaCard(
-          symbol: 'XAUUSD',
-          market: 'GOLD',
-          direction: 'BUY',
-          entry: '2340 - 2345',
-          target: '2360 / 2375',
-          stop: '2320',
-          status: 'ACTIVE',
-          isPositive: true,
-          onTap: () => onActionTap('XAUUSD trade idea'),
+      introduction: 'Explore TradeX market-analysis tools. Protected prices, levels, charts and full analysis are requested only after the server confirms your membership.',
+      protectedFeatures: [featureById('trade-idea-details')],
+    );
+  }
+}
+
+class _AffiliateTab extends StatelessWidget {
+  const _AffiliateTab({
+    super.key,
+    required this.onActionTap,
+    required this.apiClient,
+  });
+
+  final ValueChanged<String> onActionTap;
+  final TradeXApiClient apiClient;
+
+  @override
+  Widget build(BuildContext context) {
+    return _EntitlementAwareTab(
+      apiClient: apiClient,
+      title: 'Affiliate Centre',
+      introduction: 'Share your TradeX referral after activation, then follow direct referrals, qualified sales, progressive stages and verified commission records.',
+      protectedFeatures: const [
+        FeatureSpec(
+          id: 'affiliate-overview',
+          group: 'Affiliate & Referrals',
+          title: 'Affiliate Overview',
+          subtitle: 'Verified referral progress and current stage',
+          icon: Icons.hub_rounded,
+          endpoint: '/api/v1/affiliate/overview',
         ),
-        const SizedBox(height: 12),
-        _ExpandedIdeaCard(
-          symbol: 'BTCUSD',
-          market: 'CRYPTO',
-          direction: 'SELL',
-          entry: '67,950 - 68,300',
-          target: '66,800 / 66,200',
-          stop: '68,800',
-          status: 'WATCHING',
-          isPositive: false,
-          onTap: () => onActionTap('BTCUSD trade idea'),
+        FeatureSpec(
+          id: 'direct-referrals',
+          group: 'Affiliate & Referrals',
+          title: 'Direct Referrals',
+          subtitle: 'Your authorized direct referral records',
+          icon: Icons.people_alt_rounded,
+          endpoint: '/api/v1/affiliate/referrals',
         ),
-        const SizedBox(height: 12),
-        _ExpandedIdeaCard(
-          symbol: 'EURUSD',
-          market: 'FOREX',
-          direction: 'BUY',
-          entry: '1.0820 - 1.0830',
-          target: '1.0880 / 1.0910',
-          stop: '1.0790',
-          status: 'ACTIVE',
-          isPositive: true,
-          onTap: () => onActionTap('EURUSD trade idea'),
+        FeatureSpec(
+          id: 'qualified-sales',
+          group: 'Affiliate & Referrals',
+          title: 'Qualified Sales',
+          subtitle: 'Server-verified sale qualification history',
+          icon: Icons.point_of_sale_rounded,
+          endpoint: '/api/v1/affiliate/sales',
+        ),
+        FeatureSpec(
+          id: 'commissions',
+          group: 'Affiliate & Referrals',
+          title: 'Commission Earnings',
+          subtitle: 'Protected commission ledger and adjustments',
+          icon: Icons.savings_rounded,
+          endpoint: '/api/v1/affiliate/commissions',
         ),
       ],
     );
   }
 }
 
-class _AffiliateTab extends StatelessWidget {
-  const _AffiliateTab({super.key, required this.onActionTap});
+class _EntitlementAwareTab extends StatefulWidget {
+  const _EntitlementAwareTab({
+    required this.apiClient,
+    required this.title,
+    required this.introduction,
+    required this.protectedFeatures,
+  });
 
-  final ValueChanged<String> onActionTap;
+  final TradeXApiClient apiClient;
+  final String title;
+  final String introduction;
+  final List<FeatureSpec> protectedFeatures;
 
   @override
-  Widget build(BuildContext context) {
-    return _TabScrollView(
-      title: 'Affiliate Centre',
-      subtitle: 'Share TradeX. Build your community.',
-      children: [
-        _AffiliateHero(onShare: () => onActionTap('Share referral link')),
-        const SizedBox(height: 20),
-        const _SectionTitle(
-          icon: Icons.account_tree_rounded,
-          title: 'Your Performance',
-        ),
-        const SizedBox(height: 10),
-        const _AffiliateMetrics(),
-        const SizedBox(height: 20),
-        const _SectionTitle(
-          icon: Icons.emoji_events_rounded,
-          title: 'Next Milestone',
-        ),
-        const SizedBox(height: 10),
-        _MilestoneCard(onTap: () => onActionTap('Affiliate milestones')),
-        const SizedBox(height: 20),
-        _AffiliateTools(onActionTap: onActionTap),
-      ],
+  State<_EntitlementAwareTab> createState() => _EntitlementAwareTabState();
+}
+
+class _EntitlementAwareTabState extends State<_EntitlementAwareTab> {
+  late Future<bool> _status = _loadStatus();
+  late Future<JsonMap> _products = LearnRepository(widget.apiClient).products();
+
+  Future<bool> _loadStatus() async {
+    final response = await widget.apiClient.getJson(
+      '/api/v1/payments/activation-status',
     );
+    final data = response['data'];
+    return data is Map && data['premium_active'] == true;
   }
+
+  void _reload() => setState(() {
+    _status = _loadStatus();
+    _products = LearnRepository(widget.apiClient).products();
+  });
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<bool>(
+    future: _status,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const Center(
+          child: CircularProgressIndicator(color: TradeXColors.goldBright),
+        );
+      }
+      if (snapshot.data == true && widget.protectedFeatures.length == 1) {
+        return TradeXFeatureScreen(
+          apiClient: widget.apiClient,
+          spec: widget.protectedFeatures.first,
+        );
+      }
+      return _ProtectedFeaturePreview(
+        title: widget.title,
+        introduction: widget.introduction,
+        statusUnavailable: snapshot.hasError,
+        premiumActive: snapshot.data == true,
+        products: _products,
+        features: widget.protectedFeatures,
+        onOpen: _openProtected,
+        onRetry: _reload,
+      );
+    },
+  );
+
+  Future<void> _openProtected(FeatureSpec feature) async {
+    var active = false;
+    try {
+      active = await _loadStatus();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'An internet connection is required to verify premium access.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    if (!active) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => PremiumAccessScreen(
+            repository: LearnRepository(widget.apiClient),
+          ),
+        ),
+      );
+      if (!mounted) return;
+      try {
+        active = await _loadStatus();
+      } catch (_) {
+        active = false;
+      }
+    }
+    if (!mounted) return;
+    if (active) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              TradeXFeatureScreen(apiClient: widget.apiClient, spec: feature),
+        ),
+      );
+    }
+    if (mounted) _reload();
+  }
+}
+
+class _ProtectedFeaturePreview extends StatelessWidget {
+  const _ProtectedFeaturePreview({
+    required this.title,
+    required this.introduction,
+    required this.statusUnavailable,
+    required this.premiumActive,
+    required this.products,
+    required this.features,
+    required this.onOpen,
+    required this.onRetry,
+  });
+
+  final String title;
+  final String introduction;
+  final bool statusUnavailable;
+  final bool premiumActive;
+  final Future<JsonMap> products;
+  final List<FeatureSpec> features;
+  final ValueChanged<FeatureSpec> onOpen;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: ListView(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.headlineMedium
+              ?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 8),
+        Text(introduction, style: Theme.of(context).textTheme.bodyLarge),
+        const SizedBox(height: 16),
+        FutureBuilder<JsonMap>(
+          future: products,
+          builder: (context, snapshot) {
+            final items = LearnRepository.list(snapshot.data?['items']);
+            if (items.isEmpty) return const SizedBox.shrink();
+            final product = LearnRepository.map(items.first);
+            final price = LearnRepository.map(product['price']);
+            final amount = [
+              LearnRepository.text(price['currency']),
+              LearnRepository.text(price['amount']),
+            ].where((part) => part.isNotEmpty).join(' ');
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Card(
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.workspace_premium_rounded,
+                    color: TradeXColors.goldBright,
+                  ),
+                  title: Text(
+                    LearnRepository.text(product['name'], 'TradeX membership'),
+                  ),
+                  subtitle: Text(
+                    [
+                      amount,
+                      LearnRepository.text(product['description']),
+                    ].where((part) => part.isNotEmpty).join(' • '),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        if (statusUnavailable)
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.cloud_off_rounded),
+              title: const Text('Membership status unavailable'),
+              subtitle: const Text(
+                'Program information remains available. Reconnect to verify protected access.',
+              ),
+              trailing: IconButton(
+                tooltip: 'Retry',
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ),
+          ),
+        const _RiskNotice(),
+        const SizedBox(height: 16),
+        Text(
+          premiumActive
+              ? 'Your available membership features'
+              : 'Protected membership features',
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+        for (final feature in features)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Card(
+              child: ListTile(
+                leading: CircleAvatar(child: Icon(feature.icon)),
+                title: Text(feature.title),
+                subtitle: Text(feature.subtitle),
+                trailing: Icon(
+                  premiumActive
+                      ? Icons.chevron_right_rounded
+                      : Icons.lock_outline_rounded,
+                ),
+                onTap: () => onOpen(feature),
+              ),
+            ),
+          ),
+        const SizedBox(height: 4),
+        Text(
+          'No referral totals, earnings, trade levels or charts are stored in this preview. TradeX requests them only from the authorized backend.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    ),
+  );
 }
 
 class _ProfileTab extends StatefulWidget {
@@ -2569,7 +2836,7 @@ class _ProfileTabState extends State<_ProfileTab> {
             ),
             const SizedBox(height: 10),
             Container(
-              decoration: _panelDecoration,
+              decoration: _panelDecoration(context),
               child: Column(
                 children: [
                   _MenuRow(
@@ -2594,6 +2861,19 @@ class _ProfileTabState extends State<_ProfileTab> {
                     subtitle: profile.languageLabel,
                     onTap: () => widget.onActionTap('Learning language'),
                   ),
+                  const Divider(height: 1, color: TradeXColors.border),
+                  _MenuRow(
+                    icon: Icons.brightness_6_rounded,
+                    title: 'Appearance',
+                    subtitle: 'System, Light or Dark theme',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => LearnSettingsScreen(
+                          repository: LearnRepository(widget.apiClient),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -2611,7 +2891,7 @@ class _ProfileTabState extends State<_ProfileTab> {
             ),
             const SizedBox(height: 10),
             Container(
-              decoration: _panelDecoration,
+              decoration: _panelDecoration(context),
               child: Column(
                 children: [
                   _MenuRow(
@@ -2666,7 +2946,7 @@ class _ProfileTabState extends State<_ProfileTab> {
             ),
             const SizedBox(height: 10),
             Container(
-              decoration: _panelDecoration,
+              decoration: _panelDecoration(context),
               child: Column(
                 children: [
                   _MenuRow(
@@ -2954,7 +3234,7 @@ class _FinancialMethodsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: Column(
         children: List.generate(profile.financialMethods.length, (index) {
           final method = profile.financialMethods[index];
@@ -2996,7 +3276,7 @@ class _ProfileStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(20),
-    decoration: _panelDecoration,
+    decoration: _panelDecoration(context),
     child: Column(
       children: [
         Icon(icon, size: 38, color: TradeXColors.goldBright),
@@ -3173,7 +3453,7 @@ class _ModuleList extends StatelessWidget {
       ('4', 'Trade Execution', 'Locked', false),
     ];
     return Container(
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: Column(
         children: modules.map((module) {
           final index = modules.indexOf(module);
@@ -3259,7 +3539,7 @@ class _RecommendedCourseCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: Ink(
         padding: const EdgeInsets.all(14),
-        decoration: _panelDecoration,
+        decoration: _panelDecoration(context),
         child: Row(
           children: [
             _CourseThumbnail(label: 'RISK\nMANAGEMENT'),
@@ -3298,6 +3578,8 @@ class _RecommendedCourseCard extends StatelessWidget {
   }
 }
 
+// Kept as the original partial-screen visual reference.
+// ignore: unused_element
 class _RiskNotice extends StatelessWidget {
   const _RiskNotice();
 
@@ -3331,6 +3613,7 @@ class _RiskNotice extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _MarketFilterBar extends StatelessWidget {
   const _MarketFilterBar({required this.onActionTap});
 
@@ -3383,6 +3666,7 @@ class _MarketFilterBar extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _ExpandedIdeaCard extends StatelessWidget {
   const _ExpandedIdeaCard({
     required this.symbol,
@@ -3416,7 +3700,7 @@ class _ExpandedIdeaCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: Ink(
         padding: const EdgeInsets.all(16),
-        decoration: _panelDecoration,
+        decoration: _panelDecoration(context),
         child: Column(
           children: [
             Row(
@@ -3563,6 +3847,8 @@ class _SmallPill extends StatelessWidget {
   }
 }
 
+// Kept as the original partial-screen visual reference.
+// ignore: unused_element
 class _AffiliateHero extends StatelessWidget {
   const _AffiliateHero({required this.onShare});
 
@@ -3646,6 +3932,7 @@ class _AffiliateHero extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _AffiliateMetrics extends StatelessWidget {
   const _AffiliateMetrics();
 
@@ -3669,7 +3956,7 @@ class _AffiliateMetrics extends StatelessWidget {
         final metric = metrics[index];
         return Container(
           padding: const EdgeInsets.all(11),
-          decoration: _panelDecoration,
+          decoration: _panelDecoration(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -3700,6 +3987,7 @@ class _AffiliateMetrics extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _MilestoneCard extends StatelessWidget {
   const _MilestoneCard({required this.onTap});
 
@@ -3712,7 +4000,7 @@ class _MilestoneCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(19),
       child: Ink(
         padding: const EdgeInsets.all(16),
-        decoration: _panelDecoration,
+        decoration: _panelDecoration(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3764,6 +4052,7 @@ class _MilestoneCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _AffiliateTools extends StatelessWidget {
   const _AffiliateTools({required this.onActionTap});
 
@@ -3772,7 +4061,7 @@ class _AffiliateTools extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: Column(
         children: [
           _MenuRow(
@@ -3884,6 +4173,8 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
     return SafeArea(
       top: false,
       child: LayoutBuilder(
@@ -3911,7 +4202,9 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
                         ),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0A100E),
+                            color: dark
+                                ? const Color(0xFF0A100E)
+                                : theme.colorScheme.surface,
                             border: Border.all(
                               color: TradeXColors.gold.withValues(alpha: .42),
                             ),
@@ -3983,7 +4276,11 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
                                       child: Icon(
                                         item.icon,
                                         size: 21,
-                                        color: TradeXColors.secondaryText,
+                                        color: dark
+                                            ? TradeXColors.secondaryText
+                                            : theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
                                       ),
                                     ),
                                     SizedBox(height: selected ? 19 : 3),
@@ -3994,7 +4291,11 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
                                       style: TextStyle(
                                         color: selected
                                             ? TradeXColors.goldBright
-                                            : TradeXColors.secondaryText,
+                                            : dark
+                                            ? TradeXColors.secondaryText
+                                            : theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
                                         fontSize: 9.5,
                                         fontWeight: selected
                                             ? FontWeight.w900
@@ -4314,10 +4615,10 @@ const _tabItems = [
   _TabItem('Profile', Icons.person_outline_rounded),
 ];
 
-final BoxDecoration _panelDecoration = BoxDecoration(
-  color: TradeXColors.surfaceRaised,
+BoxDecoration _panelDecoration(BuildContext context) => BoxDecoration(
+  color: Theme.of(context).colorScheme.surface,
   borderRadius: BorderRadius.circular(20),
-  border: Border.all(color: TradeXColors.border),
+  border: Border.all(color: Theme.of(context).dividerColor),
   boxShadow: [
     BoxShadow(color: Colors.black.withValues(alpha: .19), blurRadius: 10),
   ],
