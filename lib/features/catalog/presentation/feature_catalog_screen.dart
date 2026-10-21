@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../home/presentation/economic_news_screen.dart';
 import '../models/feature_spec.dart';
 import 'secure_workflow_screens.dart';
 
@@ -52,6 +53,7 @@ Future<void> openTradeXFeature(
   FeatureSpec spec,
 ) {
   final workflow = switch (spec.id) {
+    'economic-news' => EconomicNewsScreen(apiClient: apiClient),
     'kyc-submit' => KycSubmissionScreen(apiClient: apiClient),
     'payment-proof' => PaymentProofScreen(apiClient: apiClient),
     'contact-number' => ContactChangeScreen(apiClient: apiClient),

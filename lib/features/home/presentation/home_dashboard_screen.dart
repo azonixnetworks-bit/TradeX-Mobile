@@ -71,9 +71,19 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     _selectedTab = AppPreferences.instance.dashboardTab;
     _tabPages = List<Widget?>.filled(5, null);
     _tabPages[_selectedTab] = _buildTab(_selectedTab);
+    unawaited(_primeDailyEconomicNews());
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _restorePendingFinancialForm(),
     );
+  }
+
+  Future<void> _primeDailyEconomicNews() async {
+    try {
+      await MarketNewsRepository(widget.apiClient).today();
+    } catch (_) {
+      // The Economic News screen retains its retry state when the first daily
+      // network request cannot be completed.
+    }
   }
 
   Future<void> _restorePendingFinancialForm() async {

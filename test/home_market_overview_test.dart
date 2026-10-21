@@ -80,53 +80,45 @@ class _HomeMarketApiClient extends TradeXApiClient {
 
   @override
   Future<Map<String, dynamic>> getJson(String path) async {
-    if (path.startsWith('/api/v1/economic-news/live')) {
+    if (path.startsWith('/api/v1/economic-news/events')) {
       return <String, dynamic>{
         'data': <String, dynamic>{
-          'live_updates': <Map<String, dynamic>>[
+          'events': <Map<String, dynamic>>[
             <String, dynamic>{
-              'uuid': 'update-1',
-              'event_uuid': 'event-1',
-              'event_title': 'Federal Reserve holds rates steady',
-              'message': 'Policy decision published with updated guidance.',
+              'uuid': 'event-1',
+              'title': 'Federal Reserve holds rates steady',
               'impact': 'HIGH',
               'affected_pairs': <Map<String, dynamic>>[
                 <String, dynamic>{'symbol': 'EURUSD'},
               ],
-              'published_at_utc': '2026-10-20T09:00:00Z',
+              'scheduled_at_utc': '2026-10-21T09:00:00Z',
             },
             <String, dynamic>{
-              'uuid': 'update-2',
-              'event_uuid': 'event-2',
-              'event_title': 'Gold extends gains',
-              'message': 'Bullion moves after the latest macro release.',
+              'uuid': 'event-2',
+              'title': 'Gold extends gains',
               'impact': 'MEDIUM',
               'affected_pairs': <Map<String, dynamic>>[
                 <String, dynamic>{'symbol': 'XAUUSD'},
               ],
-              'published_at_utc': '2026-10-20T08:45:00Z',
+              'scheduled_at_utc': '2026-10-21T08:45:00Z',
             },
             <String, dynamic>{
-              'uuid': 'update-3',
-              'event_uuid': 'event-3',
-              'event_title': 'Bitcoin reacts to market volatility',
-              'message': 'Crypto markets respond to changing risk appetite.',
+              'uuid': 'event-3',
+              'title': 'Bitcoin reacts to market volatility',
               'impact': 'LOW',
               'affected_pairs': <Map<String, dynamic>>[
                 <String, dynamic>{'symbol': 'BTCUSD'},
               ],
-              'published_at_utc': '2026-10-20T08:30:00Z',
+              'scheduled_at_utc': '2026-10-21T08:30:00Z',
             },
             <String, dynamic>{
-              'uuid': 'update-4',
-              'event_uuid': 'event-4',
-              'event_title': 'Oil rises after inventory report',
-              'message': 'Energy markets respond to the latest stock data.',
+              'uuid': 'event-4',
+              'title': 'Oil rises after inventory report',
               'impact': 'MEDIUM',
               'affected_pairs': <Map<String, dynamic>>[
                 <String, dynamic>{'symbol': 'WTIUSD'},
               ],
-              'published_at_utc': '2026-10-20T08:15:00Z',
+              'scheduled_at_utc': '2026-10-21T08:15:00Z',
             },
           ],
         },
