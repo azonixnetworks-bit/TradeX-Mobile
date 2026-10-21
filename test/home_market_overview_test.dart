@@ -48,14 +48,25 @@ void main() {
 
     expect(find.byKey(const ValueKey('world-market-sessions')), findsOneWidget);
     expect(find.byKey(const ValueKey('market-24h-clock')), findsOneWidget);
+    expect(find.byKey(const ValueKey('market-session-scroll')), findsOneWidget);
     expect(find.text('London'), findsOneWidget);
     expect(find.text('New York'), findsOneWidget);
+    expect(find.text('Device Time'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('market-session-art-London')),
+      findsOneWidget,
+    );
+    await tester.drag(
+      find.byKey(const ValueKey('market-session-scroll')),
+      const Offset(-500, 0),
+    );
+    await tester.pumpAndSettle();
     expect(find.text('Tokyo'), findsOneWidget);
     expect(find.text('Sydney'), findsOneWidget);
-    expect(find.text('Device Time'), findsNothing);
-    for (final city in const ['London', 'New York', 'Tokyo', 'Sydney']) {
-      expect(find.byKey(ValueKey('market-session-art-$city')), findsOneWidget);
-    }
+    expect(
+      find.byKey(const ValueKey('market-session-art-Sydney')),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('market-news-section')), findsOneWidget);
     expect(find.byKey(const ValueKey('market-news-card-0')), findsOneWidget);
     expect(find.byKey(const ValueKey('market-news-card-3')), findsOneWidget);

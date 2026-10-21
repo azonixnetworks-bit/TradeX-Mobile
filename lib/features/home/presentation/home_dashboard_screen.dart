@@ -530,7 +530,7 @@ class _SessionClockCardState extends State<_SessionClockCard>
           ),
           const SizedBox(height: 10),
           SizedBox(
-            height: 260,
+            height: 300,
             child: Center(
               child: AspectRatio(
                 aspectRatio: 1,
@@ -606,15 +606,15 @@ class _WorldClockGrid extends StatelessWidget {
       clock('Sydney', 'Australia/Sydney', '08:00–17:00'),
     ];
     return SizedBox(
-      height: 96,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var index = 0; index < clocks.length; index++) ...[
-            if (index > 0) const SizedBox(width: 5),
-            Expanded(child: _WorldClockTile(clock: clocks[index])),
-          ],
-        ],
+      key: const ValueKey('market-session-scroll'),
+      height: 142,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: clocks.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 9),
+        itemBuilder: (context, index) =>
+            SizedBox(width: 148, child: _WorldClockTile(clock: clocks[index])),
       ),
     );
   }
@@ -654,11 +654,11 @@ class _WorldClockTile extends StatelessWidget {
     final isOpen = clock.session?.isOpen ?? false;
     final stateColor = isOpen ? TradeXColors.success : const Color(0xFFFF6666);
     return Container(
-      height: 96,
-      padding: const EdgeInsets.fromLTRB(6, 7, 6, 0),
+      height: 142,
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
       decoration: BoxDecoration(
         color: const Color(0xFF0A0E0D),
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFF2B302D)),
       ),
       clipBehavior: Clip.antiAlias,
@@ -671,27 +671,27 @@ class _WorldClockTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: TradeXColors.primaryText,
-              fontSize: 8.5,
+              fontSize: 11,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 4),
           Text(
             _digitalTime(clock.time),
             maxLines: 1,
             style: const TextStyle(
               color: TradeXColors.primaryText,
-              fontSize: 10.5,
+              fontSize: 14,
               fontWeight: FontWeight.w900,
               fontFeatures: [FontFeature.tabularFigures()],
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Row(
             children: [
               Container(
-                width: 5,
-                height: 5,
+                width: 7,
+                height: 7,
                 decoration: BoxDecoration(
                   color: stateColor,
                   shape: BoxShape.circle,
@@ -704,7 +704,7 @@ class _WorldClockTile extends StatelessWidget {
                   maxLines: 1,
                   style: TextStyle(
                     color: stateColor,
-                    fontSize: 7,
+                    fontSize: 9,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -718,13 +718,13 @@ class _WorldClockTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: TradeXColors.tertiaryText,
-              fontSize: 6.5,
+              fontSize: 8,
               fontWeight: FontWeight.w600,
             ),
           ),
           const Spacer(),
           SizedBox(
-            height: 29,
+            height: 48,
             width: double.infinity,
             child: Image.asset(
               key: ValueKey('market-session-art-${clock.label}'),
