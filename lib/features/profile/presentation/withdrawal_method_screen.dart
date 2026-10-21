@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/profile/pending_financial_form_store.dart';
@@ -417,7 +418,7 @@ class _WithdrawalMethodScreenState extends State<WithdrawalMethodScreen>
     },
     child: Scaffold(
       appBar: AppBar(title: Text(_title)),
-      body: FutureBuilder<_WithdrawalState>(
+      body: BlocFutureBuilder<_WithdrawalState>(
         future: _state,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../../../core/preferences/app_preferences.dart';
 import '../data/learn_repository.dart';
@@ -1066,78 +1068,79 @@ class LearningProgressScreen extends StatelessWidget {
   );
 }
 
-class LearnSettingsScreen extends StatefulWidget {
+class LearnSettingsScreen extends StatelessWidget {
   const LearnSettingsScreen({super.key, required this.repository});
   final LearnRepository repository;
-  @override
-  State<LearnSettingsScreen> createState() => _LearnSettingsScreenState();
-}
 
-class _LearnSettingsScreenState extends State<LearnSettingsScreen> {
   @override
-  Widget build(BuildContext context) => _LearnScaffold(
-    title: 'Learn Settings',
-    child: ListView(
-      children: [
-        const _InfoCard(
-          title: 'Learning Preferences',
-          body: 'Choose the preferred display language for supported TradeX course translations.',
-        ),
-        const SizedBox(height: 12),
-        ListTile(
-          leading: const Icon(Icons.language_rounded, color: _gold),
-          title: const Text('Course language'),
-          subtitle: Text(AppPreferences.instance.courseLanguage.toUpperCase()),
-          trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: () async {
-            await Navigator.of(context).push<void>(
-              MaterialPageRoute<void>(
-                builder: (_) =>
-                    LearnLanguageSelectionScreen(repository: widget.repository),
+  Widget build(BuildContext context) =>
+      BlocBuilder<AppPreferences, AppPreferencesState>(
+        bloc: AppPreferences.instance,
+        buildWhen: (previous, current) =>
+            previous.themeMode != current.themeMode ||
+            previous.courseLanguage != current.courseLanguage,
+        builder: (context, preferences) => _LearnScaffold(
+          title: 'Learn Settings',
+          child: ListView(
+            children: [
+              const _InfoCard(
+                title: 'Learning Preferences',
+                body: 'Choose the preferred display language for supported TradeX course translations.',
               ),
-            );
-            if (mounted) setState(() {});
-          },
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(Icons.language_rounded, color: _gold),
+                title: const Text('Course language'),
+                subtitle: Text(preferences.courseLanguage.toUpperCase()),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () async {
+                  await Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          LearnLanguageSelectionScreen(repository: repository),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              const _SectionHeading(
+                icon: Icons.palette_outlined,
+                title: 'Appearance',
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<ThemeMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    label: Text('System'),
+                    icon: Icon(Icons.settings_suggest_outlined),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    label: Text('Light'),
+                    icon: Icon(Icons.light_mode_outlined),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    label: Text('Dark'),
+                    icon: Icon(Icons.dark_mode_outlined),
+                  ),
+                ],
+                selected: {preferences.themeMode},
+                onSelectionChanged: (selection) async {
+                  await AppPreferences.instance.setThemeMode(selection.first);
+                },
+              ),
+              const SizedBox(height: 12),
+              const ListTile(
+                leading: Icon(Icons.cloud_off_rounded, color: _gold),
+                title: Text('Protected online learning'),
+                subtitle: Text('Downloads and offline exports are disabled.'),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
-        const _SectionHeading(
-          icon: Icons.palette_outlined,
-          title: 'Appearance',
-        ),
-        const SizedBox(height: 8),
-        SegmentedButton<ThemeMode>(
-          segments: const [
-            ButtonSegment(
-              value: ThemeMode.system,
-              label: Text('System'),
-              icon: Icon(Icons.settings_suggest_outlined),
-            ),
-            ButtonSegment(
-              value: ThemeMode.light,
-              label: Text('Light'),
-              icon: Icon(Icons.light_mode_outlined),
-            ),
-            ButtonSegment(
-              value: ThemeMode.dark,
-              label: Text('Dark'),
-              icon: Icon(Icons.dark_mode_outlined),
-            ),
-          ],
-          selected: {AppPreferences.instance.themeMode},
-          onSelectionChanged: (selection) async {
-            await AppPreferences.instance.setThemeMode(selection.first);
-            if (mounted) setState(() {});
-          },
-        ),
-        const SizedBox(height: 12),
-        const ListTile(
-          leading: Icon(Icons.cloud_off_rounded, color: _gold),
-          title: Text('Protected online learning'),
-          subtitle: Text('Downloads and offline exports are disabled.'),
-        ),
-      ],
-    ),
-  );
+      );
 }
 
 class LearnLanguageSelectionScreen extends StatefulWidget {
@@ -1431,7 +1434,7 @@ class _FutureBody extends StatelessWidget {
   final Widget Function(JsonMap) builder;
   final VoidCallback? onRetry;
   @override
-  Widget build(BuildContext context) => FutureBuilder<JsonMap>(
+  Widget build(BuildContext context) => BlocFutureBuilder<JsonMap>(
     future: future,
     builder: (context, snapshot) {
       if (snapshot.connectionState != ConnectionState.done) {

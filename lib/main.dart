@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:bloc/bloc.dart';
 
+import 'app/bloc/tradex_bloc_observer.dart';
 import 'app/tradex_app.dart';
 import 'core/auth/secure_session_store.dart';
 import 'core/device/device_identity.dart';
@@ -13,6 +15,7 @@ import 'core/preferences/app_preferences.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Bloc.observer = const TradeXBlocObserver();
   await AppPreferences.instance.load();
 
   final sessionStore = SecureSessionStore();

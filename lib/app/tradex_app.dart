@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../core/theme/tradex_theme.dart';
 import '../features/auth/data/auth_repository.dart';
@@ -10,7 +11,9 @@ import '../core/network/app_messenger.dart';
 import '../core/network/tradex_api_client.dart';
 import '../features/home/data/trade_ideas_repository.dart';
 import '../features/home/data/learning_repository.dart';
+import '../features/home/data/market_news_repository.dart';
 import '../core/preferences/app_preferences.dart';
+import '../features/learn/data/learn_repository.dart';
 
 class TradeXApp extends StatelessWidget {
   const TradeXApp({
@@ -32,27 +35,43 @@ class TradeXApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: AppPreferences.instance,
-      builder: (context, _) => MaterialApp(
-        title: 'Trade X',
-        restorationScopeId: 'tradex-app',
-        debugShowCheckedModeBanner: false,
-        scaffoldMessengerKey: AppMessenger.key,
-        theme: TradeXTheme.light,
-        darkTheme: TradeXTheme.dark,
-        themeMode: AppPreferences.instance.themeMode,
-        builder: (context, child) => ConnectivityObserver(
-          apiClient: apiClient,
-          child: child ?? const SizedBox.shrink(),
-        ),
-        home: SessionGate(
-          authRepository: authRepository,
-          registrationRepository: registrationRepository,
-          passwordRecoveryRepository: passwordRecoveryRepository,
-          apiClient: apiClient,
-          tradeIdeasRepository: tradeIdeasRepository,
-          learningRepository: learningRepository,
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: apiClient),
+        RepositoryProvider.value(value: authRepository),
+        RepositoryProvider.value(value: registrationRepository),
+        RepositoryProvider.value(value: passwordRecoveryRepository),
+        RepositoryProvider.value(value: tradeIdeasRepository),
+        RepositoryProvider.value(value: learningRepository),
+        RepositoryProvider(create: (_) => LearnRepository(apiClient)),
+        RepositoryProvider(create: (_) => MarketNewsRepository(apiClient)),
+      ],
+      child: BlocProvider.value(
+        value: AppPreferences.instance,
+        child: BlocBuilder<AppPreferences, AppPreferencesState>(
+          buildWhen: (previous, current) =>
+              previous.themeMode != current.themeMode,
+          builder: (context, preferences) => MaterialApp(
+            title: 'Trade X',
+            restorationScopeId: 'tradex-app',
+            debugShowCheckedModeBanner: false,
+            scaffoldMessengerKey: AppMessenger.key,
+            theme: TradeXTheme.light,
+            darkTheme: TradeXTheme.dark,
+            themeMode: preferences.themeMode,
+            builder: (context, child) => ConnectivityObserver(
+              apiClient: apiClient,
+              child: child ?? const SizedBox.shrink(),
+            ),
+            home: SessionGate(
+              authRepository: authRepository,
+              registrationRepository: registrationRepository,
+              passwordRecoveryRepository: passwordRecoveryRepository,
+              apiClient: apiClient,
+              tradeIdeasRepository: tradeIdeasRepository,
+              learningRepository: learningRepository,
+            ),
+          ),
         ),
       ),
     );

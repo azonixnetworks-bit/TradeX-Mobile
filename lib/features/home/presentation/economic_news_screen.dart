@@ -1,10 +1,10 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../data/market_news_repository.dart';
+import 'bloc/economic_news_cubit.dart';
 
 class EconomicNewsScreen extends StatefulWidget {
   const EconomicNewsScreen({super.key, required this.apiClient});
@@ -16,132 +16,100 @@ class EconomicNewsScreen extends StatefulWidget {
 }
 
 class _EconomicNewsScreenState extends State<EconomicNewsScreen> {
-  late final MarketNewsRepository _repository;
-  late Future<List<MarketNewsItem>> _request;
+  late final EconomicNewsCubit _cubit;
   final _horizontalController = ScrollController();
   final _verticalController = ScrollController();
-  _NewsFilter _filter = _NewsFilter.overview;
-  DateTime _now = DateTime.now();
-  Timer? _clock;
 
   @override
   void initState() {
     super.initState();
-    _repository = MarketNewsRepository(widget.apiClient);
-    _request = _repository.today();
-    _clock = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
-    });
+    _cubit = EconomicNewsCubit(MarketNewsRepository(widget.apiClient))..load();
   }
 
   @override
   void dispose() {
-    _clock?.cancel();
+    _cubit.close();
     _horizontalController.dispose();
     _verticalController.dispose();
     super.dispose();
   }
 
-  void _retry() => setState(() => _request = _repository.today());
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        surfaceTintColor: Colors.transparent,
-        titleSpacing: 4,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Economic News', style: TextStyle(fontSize: 18)),
-            Text(
-              'Upcoming Laravel economic calendar',
-              style: TextStyle(
-                color: TradeXColors.secondaryText,
-                fontSize: 11,
-                fontWeight: FontWeight.w400,
-              ),
+    return BlocProvider.value(
+      value: _cubit,
+      child: BlocBuilder<EconomicNewsCubit, EconomicNewsState>(
+        builder: (context, state) => Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: AppBar(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            surfaceTintColor: Colors.transparent,
+            titleSpacing: 4,
+            title: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Economic News', style: TextStyle(fontSize: 18)),
+                Text(
+                  'Upcoming Laravel economic calendar',
+                  style: TextStyle(
+                    color: TradeXColors.secondaryText,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-      body: SafeArea(
-        child: FutureBuilder<List<MarketNewsItem>>(
-          future: _request,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(
+          ),
+          body: SafeArea(
+            child: switch (state.status) {
+              EconomicNewsStatus.initial ||
+              EconomicNewsStatus.loading => const Center(
                 child: CircularProgressIndicator(
                   color: TradeXColors.goldBright,
                   strokeWidth: 2.5,
                 ),
-              );
-            }
-            if (snapshot.hasError) {
-              return _NewsState(
+              ),
+              EconomicNewsStatus.failure => _NewsState(
                 icon: Icons.cloud_off_rounded,
                 message: 'Economic news is temporarily unavailable.',
                 action: 'Retry',
-                onTap: _retry,
-              );
-            }
-
-            final all = snapshot.data ?? const <MarketNewsItem>[];
-            final visible = _filter == _NewsFilter.overview
-                ? all
-                : all
-                      .where(
-                        (item) => item.impact.toUpperCase() == _filter.impact,
-                      )
-                      .toList(growable: false);
-            return Column(
-              children: [
-                _FilterBar(
-                  selected: _filter,
-                  onSelected: (value) => setState(() => _filter = value),
-                ),
-                const SizedBox(height: 10),
-                Expanded(
-                  child: visible.isEmpty
-                      ? const _NewsState(
-                          icon: Icons.event_available_rounded,
-                          message: 'No upcoming events in this category.',
-                        )
-                      : _EconomicNewsTable(
-                          items: visible,
-                          now: _now,
-                          horizontalController: _horizontalController,
-                          verticalController: _verticalController,
-                        ),
-                ),
-              ],
-            );
-          },
+                onTap: _cubit.load,
+              ),
+              EconomicNewsStatus.success => Column(
+                children: [
+                  _FilterBar(
+                    selected: state.filter,
+                    onSelected: _cubit.selectFilter,
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: state.visibleItems.isEmpty
+                        ? const _NewsState(
+                            icon: Icons.event_available_rounded,
+                            message: 'No upcoming events in this category.',
+                          )
+                        : _EconomicNewsTable(
+                            items: state.visibleItems,
+                            now: state.now,
+                            horizontalController: _horizontalController,
+                            verticalController: _verticalController,
+                          ),
+                  ),
+                ],
+              ),
+            },
+          ),
         ),
       ),
     );
   }
 }
 
-enum _NewsFilter {
-  overview('Overview', null),
-  high('High Impact', 'HIGH'),
-  medium('Medium Impact', 'MEDIUM'),
-  low('Low Impact', 'LOW');
-
-  const _NewsFilter(this.label, this.impact);
-
-  final String label;
-  final String? impact;
-}
-
 class _FilterBar extends StatelessWidget {
   const _FilterBar({required this.selected, required this.onSelected});
 
-  final _NewsFilter selected;
-  final ValueChanged<_NewsFilter> onSelected;
+  final EconomicNewsFilter selected;
+  final ValueChanged<EconomicNewsFilter> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -151,10 +119,10 @@ class _FilterBar extends StatelessWidget {
         key: const ValueKey('economic-news-filters'),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         scrollDirection: Axis.horizontal,
-        itemCount: _NewsFilter.values.length,
+        itemCount: EconomicNewsFilter.values.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          final filter = _NewsFilter.values[index];
+          final filter = EconomicNewsFilter.values[index];
           final active = filter == selected;
           return ChoiceChip(
             key: ValueKey('economic-news-filter-${filter.name}'),

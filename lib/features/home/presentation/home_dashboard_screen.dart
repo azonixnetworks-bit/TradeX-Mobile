@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
@@ -11,6 +12,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/tradex_api_client.dart';
+import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/platform/app_background_service.dart';
 import '../../../core/profile/local_profile_photo_store.dart';
 import '../../../core/profile/pending_financial_form_store.dart';
@@ -28,6 +30,8 @@ import '../../auth/presentation/quick_unlock_settings_screen.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../catalog/models/feature_spec.dart';
 import '../../catalog/presentation/feature_catalog_screen.dart';
+import 'bloc/home_navigation_cubit.dart';
+import 'bloc/home_market_news_cubit.dart';
 
 bool _timeZoneDatabaseInitialized = false;
 
@@ -62,19 +66,27 @@ class HomeDashboardScreen extends StatefulWidget {
 }
 
 class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
-  late int _selectedTab;
+  late final HomeNavigationCubit _navigationCubit;
   late final List<Widget?> _tabPages;
 
   @override
   void initState() {
     super.initState();
-    _selectedTab = AppPreferences.instance.dashboardTab;
+    _navigationCubit = HomeNavigationCubit(
+      preferences: AppPreferences.instance,
+    );
     _tabPages = List<Widget?>.filled(5, null);
-    _tabPages[_selectedTab] = _buildTab(_selectedTab);
+    _tabPages[_navigationCubit.state] = _buildTab(_navigationCubit.state);
     unawaited(_primeDailyEconomicNews());
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _restorePendingFinancialForm(),
     );
+  }
+
+  @override
+  void dispose() {
+    _navigationCubit.close();
+    super.dispose();
   }
 
   Future<void> _primeDailyEconomicNews() async {
@@ -122,12 +134,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   void _selectTab(int index) {
-    if (index == _selectedTab) return;
+    if (index == _navigationCubit.state) return;
     setState(() {
-      _selectedTab = index;
       _tabPages[index] ??= _buildTab(index);
     });
-    unawaited(AppPreferences.instance.setDashboardTab(index));
+    _navigationCubit.select(index);
   }
 
   Widget _buildTab(int index) => switch (index) {
@@ -223,28 +234,33 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) unawaited(AppBackgroundService.moveToBackground());
-      },
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: SafeArea(
-          child: IndexedStack(
-            index: _selectedTab,
-            children: List<Widget>.generate(
-              5,
-              (index) => TickerMode(
-                enabled: index == _selectedTab,
-                child: _tabPages[index] ?? const SizedBox.shrink(),
+    return BlocProvider.value(
+      value: _navigationCubit,
+      child: BlocBuilder<HomeNavigationCubit, int>(
+        builder: (context, selectedTab) => PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) unawaited(AppBackgroundService.moveToBackground());
+          },
+          child: Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            body: SafeArea(
+              child: IndexedStack(
+                index: selectedTab,
+                children: List<Widget>.generate(
+                  5,
+                  (index) => TickerMode(
+                    enabled: index == selectedTab,
+                    child: _tabPages[index] ?? const SizedBox.shrink(),
+                  ),
+                ),
               ),
             ),
+            bottomNavigationBar: _DashboardNavBar(
+              selectedIndex: selectedTab,
+              onChanged: _selectTab,
+            ),
           ),
-        ),
-        bottomNavigationBar: _DashboardNavBar(
-          selectedIndex: _selectedTab,
-          onChanged: _selectTab,
         ),
       ),
     );
@@ -1137,84 +1153,91 @@ class _MarketNewsSection extends StatefulWidget {
 }
 
 class _MarketNewsSectionState extends State<_MarketNewsSection> {
-  late Future<List<MarketNewsItem>> _news;
+  late final HomeMarketNewsCubit _cubit;
 
   @override
   void initState() {
     super.initState();
-    _news = widget.repository.latest();
+    _cubit = HomeMarketNewsCubit(widget.repository)..load();
   }
 
-  void _retry() => setState(() => _news = widget.repository.latest());
+  @override
+  void dispose() {
+    _cubit.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<MarketNewsItem>>(
-      future: _news,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
+    return BlocProvider.value(
+      value: _cubit,
+      child: BlocBuilder<HomeMarketNewsCubit, HomeMarketNewsState>(
+        builder: (context, state) {
+          if (state.status == HomeMarketNewsStatus.initial ||
+              state.status == HomeMarketNewsStatus.loading) {
+            return Container(
+              key: const ValueKey('market-news-section'),
+              height: 178,
+              decoration: _panelDecoration(context),
+              alignment: Alignment.center,
+              child: const CircularProgressIndicator(
+                color: TradeXColors.goldBright,
+                strokeWidth: 2.4,
+              ),
+            );
+          }
+
+          if (state.status == HomeMarketNewsStatus.failure) {
+            return _MarketNewsMessage(
+              key: const ValueKey('market-news-section'),
+              icon: Icons.cloud_off_rounded,
+              message: 'Market news is temporarily unavailable.',
+              action: 'Retry',
+              onTap: _cubit.load,
+            );
+          }
+
+          final items = state.items;
+          if (items.isEmpty) {
+            return _MarketNewsMessage(
+              key: const ValueKey('market-news-section'),
+              icon: Icons.event_available_rounded,
+              message: 'No upcoming published economic news right now.',
+              action: 'View all',
+              onTap: widget.onOpenAll,
+            );
+          }
+
+          final visible = items.take(4).toList(growable: false);
           return Container(
             key: const ValueKey('market-news-section'),
-            height: 178,
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
             decoration: _panelDecoration(context),
-            alignment: Alignment.center,
-            child: const CircularProgressIndicator(
-              color: TradeXColors.goldBright,
-              strokeWidth: 2.4,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: visible.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 7,
+                    mainAxisSpacing: 7,
+                    childAspectRatio: 1.52,
+                  ),
+                  itemBuilder: (context, index) => _MarketNewsCard(
+                    key: ValueKey('market-news-card-$index'),
+                    item: visible[index],
+                    artworkIndex: index,
+                    onTap: widget.onOpenAll,
+                  ),
+                ),
+              ],
             ),
           );
-        }
-
-        if (snapshot.hasError) {
-          return _MarketNewsMessage(
-            key: const ValueKey('market-news-section'),
-            icon: Icons.cloud_off_rounded,
-            message: 'Market news is temporarily unavailable.',
-            action: 'Retry',
-            onTap: _retry,
-          );
-        }
-
-        final items = snapshot.data ?? const <MarketNewsItem>[];
-        if (items.isEmpty) {
-          return _MarketNewsMessage(
-            key: const ValueKey('market-news-section'),
-            icon: Icons.event_available_rounded,
-            message: 'No upcoming published economic news right now.',
-            action: 'View all',
-            onTap: widget.onOpenAll,
-          );
-        }
-
-        final visible = items.take(4).toList(growable: false);
-        return Container(
-          key: const ValueKey('market-news-section'),
-          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-          decoration: _panelDecoration(context),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: visible.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 7,
-                  mainAxisSpacing: 7,
-                  childAspectRatio: 1.52,
-                ),
-                itemBuilder: (context, index) => _MarketNewsCard(
-                  key: ValueKey('market-news-card-$index'),
-                  item: visible[index],
-                  artworkIndex: index,
-                  onTap: widget.onOpenAll,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+        },
+      ),
     );
   }
 }
@@ -1482,7 +1505,7 @@ class _ContinueLearningSectionState extends State<_ContinueLearningSection> {
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<HomeLearningData>(
+  Widget build(BuildContext context) => BlocFutureBuilder<HomeLearningData>(
     future: _learning,
     builder: (context, snapshot) {
       if (snapshot.connectionState != ConnectionState.done) {
@@ -1806,7 +1829,7 @@ class _LiveTradeIdeasCarouselState extends State<_LiveTradeIdeasCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<DashboardTradeIdea>>(
+    return BlocFutureBuilder<List<DashboardTradeIdea>>(
       future: _ideas,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
@@ -2093,7 +2116,7 @@ class _TradeChartPreview extends StatelessWidget {
     width: 126,
     child: ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: FutureBuilder<Uint8List?>(
+      child: BlocFutureBuilder<Uint8List?>(
         future: chart,
         builder: (context, snapshot) {
           final bytes = snapshot.data;
@@ -2381,7 +2404,7 @@ class _LatestContentCardState extends State<_LatestContentCard> {
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<List<_ChannelVideo>>(
+  Widget build(BuildContext context) => BlocFutureBuilder<List<_ChannelVideo>>(
     future: _videos,
     builder: (context, snapshot) {
       final videos = snapshot.data ?? const <_ChannelVideo>[];
@@ -2822,7 +2845,7 @@ class _EntitlementAwareTabState extends State<_EntitlementAwareTab> {
   });
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<bool>(
+  Widget build(BuildContext context) => BlocFutureBuilder<bool>(
     future: _status,
     builder: (context, snapshot) {
       if (snapshot.connectionState != ConnectionState.done) {
@@ -2928,7 +2951,7 @@ class _ProtectedFeaturePreview extends StatelessWidget {
         const SizedBox(height: 8),
         Text(introduction, style: Theme.of(context).textTheme.bodyLarge),
         const SizedBox(height: 16),
-        FutureBuilder<JsonMap>(
+        BlocFutureBuilder<JsonMap>(
           future: products,
           builder: (context, snapshot) {
             final items = LearnRepository.list(snapshot.data?['items']);
@@ -3392,7 +3415,7 @@ class _ProfileTabState extends State<_ProfileTab> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<_CustomerProfile>(
+    return BlocFutureBuilder<_CustomerProfile>(
       future: _profile,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
@@ -113,7 +114,7 @@ class _TrustedDevicesScreenState extends State<TrustedDevicesScreen> {
         title: const Text('Trusted devices'),
       ),
       body: SafeArea(
-        child: FutureBuilder<_TrustedDeviceState>(
+        child: BlocFutureBuilder<_TrustedDeviceState>(
           future: _devices,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
