@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -386,6 +387,7 @@ class _SessionClockCardState extends State<_SessionClockCard>
   static const _featuredNames = {'Sydney', 'Tokyo', 'London', 'New York'};
 
   List<_MarketSession> _dialSessions = const [];
+  String _timezone = 'UTC';
   Timer? _refreshTimer;
   Timer? _clockTimer;
   DateTime _now = DateTime.now();
@@ -461,8 +463,11 @@ class _SessionClockCardState extends State<_SessionClockCard>
           .map((raw) => _MarketSession.fromJson(Map<String, dynamic>.from(raw)))
           .toList(growable: false);
 
-      if (mounted && sessions.isNotEmpty) {
-        setState(() => _dialSessions = sessions);
+      if (mounted) {
+        setState(() {
+          _timezone = timezone;
+          if (sessions.isNotEmpty) _dialSessions = sessions;
+        });
       }
     } catch (_) {
       // Local timezone clocks remain available offline; the next refresh
@@ -481,9 +486,72 @@ class _SessionClockCardState extends State<_SessionClockCard>
         .toList(growable: false);
     return Container(
       key: const ValueKey('world-market-sessions'),
-      padding: const EdgeInsets.all(5),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
       decoration: _panelDecoration(context),
-      child: _WorldClockGrid(now: now, sessions: sessions),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.public_rounded,
+                color: TradeXColors.goldBright,
+                size: 19,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'World Market Sessions',
+                      style: TextStyle(
+                        color: TradeXColors.primaryText,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${_twoDigits(now.hour)}:${_twoDigits(now.minute)}:${_twoDigits(now.second)}  $_timezone',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: TradeXColors.secondaryText,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const _LivePill(),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 260,
+            child: Center(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    key: const ValueKey('market-24h-clock'),
+                    painter: _MarketClockDialPainter(
+                      sessions: dialSessions,
+                      now: now,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 7),
+          const _ClockLegend(),
+          const SizedBox(height: 12),
+          _WorldClockGrid(now: now, sessions: sessions),
+        ],
+      ),
     );
   }
 
@@ -493,6 +561,8 @@ class _SessionClockCardState extends State<_SessionClockCard>
     _MarketSession.fromFallback('London', 8, 17, utcNow.hour),
     _MarketSession.fromFallback('New York', 13, 22, utcNow.hour),
   ];
+
+  String _twoDigits(int value) => value.toString().padLeft(2, '0');
 }
 
 class _WorldClockGrid extends StatelessWidget {
@@ -656,7 +726,14 @@ class _WorldClockTile extends StatelessWidget {
           SizedBox(
             height: 29,
             width: double.infinity,
-            child: CustomPaint(painter: _CitySkylinePainter(clock.label)),
+            child: Image.asset(
+              key: ValueKey('market-session-art-${clock.label}'),
+              _cityAsset(clock.label),
+              alignment: Alignment.bottomCenter,
+              fit: BoxFit.contain,
+              cacheWidth: 420,
+              filterQuality: FilterQuality.high,
+            ),
           ),
         ],
       ),
@@ -669,113 +746,365 @@ class _WorldClockTile extends StatelessWidget {
     final second = time.second.toString().padLeft(2, '0');
     return '$hour:$minute:$second';
   }
+
+  String _cityAsset(String city) => switch (city) {
+    'London' => 'assets/market_sessions/london.png',
+    'New York' => 'assets/market_sessions/new_york.png',
+    'Tokyo' => 'assets/market_sessions/tokyo.png',
+    'Sydney' => 'assets/market_sessions/sydney.png',
+    _ => 'assets/market_sessions/london.png',
+  };
 }
 
-class _CitySkylinePainter extends CustomPainter {
-  const _CitySkylinePainter(this.city);
+class _LivePill extends StatelessWidget {
+  const _LivePill();
 
-  final String city;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: TradeXColors.success.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: TradeXColors.success.withValues(alpha: .55)),
+      ),
+      child: const Text(
+        '24H LIVE',
+        style: TextStyle(
+          color: TradeXColors.success,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .7,
+        ),
+      ),
+    );
+  }
+}
+
+class _ClockLegend extends StatelessWidget {
+  const _ClockLegend();
+
+  @override
+  Widget build(BuildContext context) => const Wrap(
+    alignment: WrapAlignment.center,
+    spacing: 14,
+    runSpacing: 5,
+    children: [
+      _LegendItem(color: Color(0xFFFF7A00), label: 'Session window'),
+      _LegendItem(color: TradeXColors.success, label: 'Open now'),
+      _LegendItem(color: Color(0xFFDCE8F2), label: 'Device time'),
+    ],
+  );
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+      const SizedBox(width: 5),
+      Text(
+        label,
+        style: const TextStyle(
+          color: TradeXColors.secondaryText,
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ],
+  );
+}
+
+class _MarketClockDialPainter extends CustomPainter {
+  const _MarketClockDialPainter({required this.sessions, required this.now});
+
+  final List<_MarketSession> sessions;
+  final DateTime now;
+
+  static const _orange = Color(0xFFFF7A00);
+  static const _teal = Color(0xFF20C7A1);
+  static const _dialBackground = Color(0xFF06182A);
+  static const _ring = Color(0xFF1D3042);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final glow = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0x00FFC83D), Color(0x66D4AF37)],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, glow);
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.shortestSide / 2;
+    final outer = radius * .94;
 
-    final paint = Paint()..color = const Color(0xFFB78522);
-    final dark = Paint()..color = const Color(0xFF6F5010);
-    final w = size.width;
-    final h = size.height;
-    canvas.drawRect(Rect.fromLTWH(0, h - 3, w, 3), dark);
+    canvas.drawCircle(center, outer, Paint()..color = _dialBackground);
+    canvas.drawCircle(
+      center,
+      outer,
+      Paint()
+        ..color = const Color(0xFF2A4054)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
+    canvas.drawCircle(
+      center,
+      radius * .83,
+      Paint()
+        ..color = const Color(0xFF1B2D3E)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4,
+    );
 
-    switch (city) {
-      case 'London':
-        canvas.drawRect(
-          Rect.fromLTWH(w * .08, h * .48, w * .16, h * .45),
-          paint,
-        );
-        canvas.drawRect(
-          Rect.fromLTWH(w * .27, h * .27, w * .16, h * .66),
-          paint,
-        );
-        canvas.drawRect(
-          Rect.fromLTWH(w * .32, h * .10, w * .06, h * .2),
-          paint,
-        );
-        canvas.drawCircle(Offset(w * .35, h * .47), w * .035, dark);
-        canvas.drawRect(
-          Rect.fromLTWH(w * .47, h * .58, w * .18, h * .35),
-          paint,
-        );
-        canvas.drawRect(Rect.fromLTWH(w * .69, h * .4, w * .2, h * .53), paint);
-      case 'New York':
-        final widths = [.12, .14, .11, .17, .12, .15];
-        final tops = [.5, .28, .43, .12, .38, .22];
-        var x = w * .03;
-        for (var index = 0; index < widths.length; index++) {
-          final buildingWidth = w * widths[index];
-          canvas.drawRect(
-            Rect.fromLTWH(
-              x,
-              h * tops[index],
-              buildingWidth,
-              h * (1 - tops[index]),
-            ),
-            index.isEven ? paint : dark,
-          );
-          x += buildingWidth + w * .025;
-        }
-        canvas.drawRect(
-          Rect.fromLTWH(w * .57, h * .03, w * .025, h * .14),
-          paint,
-        );
-      case 'Tokyo':
-        final mountain = Path()
-          ..moveTo(0, h * .87)
-          ..lineTo(w * .28, h * .48)
-          ..lineTo(w * .52, h * .87)
-          ..close();
-        canvas.drawPath(mountain, dark);
-        final tower = Path()
-          ..moveTo(w * .58, h * .93)
-          ..lineTo(w * .7, h * .15)
-          ..lineTo(w * .82, h * .93)
-          ..close();
-        canvas.drawPath(tower, paint);
-        canvas.drawRect(
-          Rect.fromLTWH(w * .62, h * .49, w * .16, h * .04),
-          dark,
-        );
-        canvas.drawRect(
-          Rect.fromLTWH(w * .59, h * .69, w * .22, h * .04),
-          dark,
-        );
-      default:
-        final roof = Path()
-          ..moveTo(w * .04, h * .86)
-          ..quadraticBezierTo(w * .22, h * .28, w * .48, h * .78)
-          ..quadraticBezierTo(w * .62, h * .22, w * .92, h * .82)
-          ..lineTo(w * .92, h * .92)
-          ..lineTo(w * .04, h * .92)
-          ..close();
-        canvas.drawPath(roof, paint);
-        canvas.drawLine(
-          Offset(w * .5, h * .15),
-          Offset(w * .5, h * .92),
-          Paint()
-            ..color = const Color(0xFFFFD65A)
-            ..strokeWidth = 1,
-        );
+    _drawTicks(canvas, center, radius);
+    _drawSessionTracks(canvas, center, radius);
+    _drawClockHands(canvas, center, radius);
+  }
+
+  void _drawTicks(Canvas canvas, Offset center, double radius) {
+    for (var hour = 0; hour < 24; hour++) {
+      final minute = hour * 60.0;
+      final major = hour % 6 == 0;
+      final inner = _polar(center, major ? radius * .84 : radius * .87, minute);
+      final outer = _polar(center, radius * .92, minute);
+      canvas.drawLine(
+        inner,
+        outer,
+        Paint()
+          ..color = major ? _orange : const Color(0xFF587083)
+          ..strokeWidth = major ? 1.8 : .75,
+      );
+
+      final labelPoint = _polar(center, radius * .8, minute);
+      _text(
+        canvas,
+        hour == 0 ? '24' : hour.toString().padLeft(2, '0'),
+        labelPoint,
+        color: major ? _orange : const Color(0xFFD9E4EF),
+        fontSize: major ? 10 : 8,
+        weight: major ? FontWeight.w900 : FontWeight.w600,
+      );
+    }
+
+    for (var minute = 15; minute < 1440; minute += 15) {
+      if (minute % 60 == 0) continue;
+      final inner = _polar(center, radius * .9, minute.toDouble());
+      final outer = _polar(center, radius * .92, minute.toDouble());
+      canvas.drawLine(
+        inner,
+        outer,
+        Paint()
+          ..color = const Color(0xFF395064)
+          ..strokeWidth = .55,
+      );
     }
   }
 
+  void _drawSessionTracks(Canvas canvas, Offset center, double radius) {
+    if (sessions.isEmpty) return;
+    final outerTrack = radius * .75;
+    const innerTrackFactor = .36;
+    final available = outerTrack - radius * innerTrackFactor;
+    final step = math.min(radius * .06, available / sessions.length);
+
+    for (var index = 0; index < sessions.length; index++) {
+      final session = sessions[index];
+      final trackRadius = outerTrack - (index * step);
+      if (trackRadius < radius * .34) break;
+      final track = Rect.fromCircle(center: center, radius: trackRadius);
+      canvas.drawArc(
+        track,
+        0,
+        math.pi * 2,
+        false,
+        Paint()
+          ..color = _ring
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(4, radius * .022),
+      );
+
+      for (final segment in session.dialSegments) {
+        final sweep = _sweep(segment);
+        if (sweep <= 0) continue;
+        final start = _radians(segment.startMinute);
+        if (session.isOpen) {
+          canvas.drawArc(
+            track,
+            start,
+            sweep,
+            false,
+            Paint()
+              ..color = _teal.withValues(alpha: .38)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = math.max(8, radius * .052)
+              ..strokeCap = StrokeCap.round,
+          );
+        }
+        canvas.drawArc(
+          track,
+          start,
+          sweep,
+          false,
+          Paint()
+            ..color = _orange
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = math.max(4.5, radius * .029)
+            ..strokeCap = StrokeCap.round,
+        );
+
+        final marker = _polar(center, trackRadius, segment.endMinute % 1440);
+        canvas.drawCircle(
+          marker,
+          session.isOpen ? math.max(2.8, radius * .015) : 2,
+          Paint()..color = session.isOpen ? _teal : const Color(0xFF8BA1B6),
+        );
+      }
+
+      if (session.dialSegments.isNotEmpty && radius > 120) {
+        final segment = session.dialSegments.first;
+        final span = segment.endMinute - segment.startMinute;
+        if (span >= 150) {
+          final midpoint = segment.startMinute + span / 2;
+          final labelPoint = _polar(center, trackRadius, midpoint);
+          _text(
+            canvas,
+            session.name.toUpperCase(),
+            labelPoint,
+            color: const Color(0xFF071421),
+            fontSize: 6.5,
+            weight: FontWeight.w900,
+            rotation: _labelRotation(midpoint),
+          );
+        }
+      }
+    }
+  }
+
+  void _drawClockHands(Canvas canvas, Offset center, double radius) {
+    final minuteOfDay = now.hour * 60 + now.minute + now.second / 60;
+    final pointer = _polar(center, radius * .78, minuteOfDay);
+    canvas.drawLine(
+      center,
+      pointer,
+      Paint()
+        ..color = _teal
+        ..strokeWidth = 1.7
+        ..strokeCap = StrokeCap.round,
+    );
+
+    final hourAngle = ((now.hour % 12) + now.minute / 60) * 30 - 90;
+    final minuteAngle = (now.minute + now.second / 60) * 6 - 90;
+    final secondAngle = (now.second * 6 - 90).toDouble();
+    _hand(
+      canvas,
+      center,
+      radius * .31,
+      hourAngle,
+      const Color(0xFFDCE8F2),
+      5.0,
+    );
+    _hand(
+      canvas,
+      center,
+      radius * .43,
+      minuteAngle,
+      const Color(0xFF8FA5BA),
+      3.2,
+    );
+    _hand(canvas, center, radius * .51, secondAngle, _orange, 1.4);
+    canvas.drawCircle(
+      center,
+      radius * .04,
+      Paint()..color = const Color(0xFF0B2236),
+    );
+    canvas.drawCircle(
+      center,
+      radius * .04,
+      Paint()
+        ..color = _orange
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.8,
+    );
+    canvas.drawCircle(
+      center,
+      radius * .012,
+      Paint()..color = const Color(0xFFDCE8F2),
+    );
+  }
+
+  void _hand(
+    Canvas canvas,
+    Offset center,
+    double length,
+    double degrees,
+    Color color,
+    double width,
+  ) {
+    final radians = degrees * math.pi / 180;
+    final target = Offset(
+      center.dx + length * math.cos(radians),
+      center.dy + length * math.sin(radians),
+    );
+    canvas.drawLine(
+      center,
+      target,
+      Paint()
+        ..color = color
+        ..strokeWidth = width
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  Offset _polar(Offset center, double radius, double minute) {
+    final radians = _radians(minute);
+    return Offset(
+      center.dx + radius * math.cos(radians),
+      center.dy + radius * math.sin(radians),
+    );
+  }
+
+  double _radians(double minute) => (minute / 1440 * math.pi * 2) - math.pi / 2;
+
+  double _sweep(_MarketDialSegment segment) => math.max(
+    .001,
+    (segment.endMinute - segment.startMinute) / 1440 * math.pi * 2,
+  );
+
+  double _labelRotation(double minute) {
+    var rotation = minute / 1440 * math.pi * 2;
+    if (rotation > math.pi / 2 && rotation < math.pi * 1.5) rotation += math.pi;
+    return rotation;
+  }
+
+  void _text(
+    Canvas canvas,
+    String text,
+    Offset center, {
+    required Color color,
+    required double fontSize,
+    required FontWeight weight,
+    double? rotation,
+  }) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(color: color, fontSize: fontSize, fontWeight: weight),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    if (rotation != null) canvas.rotate(rotation);
+    painter.paint(canvas, Offset(-painter.width / 2, -painter.height / 2));
+    canvas.restore();
+  }
+
   @override
-  bool shouldRepaint(covariant _CitySkylinePainter oldDelegate) =>
-      oldDelegate.city != city;
+  bool shouldRepaint(covariant _MarketClockDialPainter oldDelegate) => true;
 }
 
 class _MarketNewsSection extends StatefulWidget {
@@ -4780,6 +5109,7 @@ class _MarketSession {
     required this.timezone,
     required this.openLocal,
     required this.closeLocal,
+    required this.dialSegments,
   });
 
   factory _MarketSession.fromJson(Map<String, dynamic> json) {
@@ -4790,6 +5120,13 @@ class _MarketSession {
       timezone: json['timezone']?.toString() ?? 'UTC',
       openLocal: json['configured_open_local']?.toString() ?? '--:--',
       closeLocal: json['configured_close_local']?.toString() ?? '--:--',
+      dialSegments: (json['dial_segments'] as List? ?? const [])
+          .whereType<Map>()
+          .map(
+            (segment) =>
+                _MarketDialSegment.fromJson(Map<String, dynamic>.from(segment)),
+          )
+          .toList(growable: false),
     );
   }
 
@@ -4813,12 +5150,21 @@ class _MarketSession {
       'Tokyo' => ('09:00', '18:00'),
       _ => ('08:00', '17:00'),
     };
+    final startMinute = startHour * 60;
+    final endMinute = endHour * 60;
+    final segments = endMinute > startMinute
+        ? [_MarketDialSegment(startMinute.toDouble(), endMinute.toDouble())]
+        : [
+            _MarketDialSegment(startMinute.toDouble(), 1440),
+            _MarketDialSegment(0, endMinute.toDouble()),
+          ];
     return _MarketSession(
       name: name,
       isOpen: isOpen,
       timezone: timezone,
       openLocal: configuredHours.$1,
       closeLocal: configuredHours.$2,
+      dialSegments: segments,
     );
   }
 
@@ -4827,6 +5173,20 @@ class _MarketSession {
   final String timezone;
   final String openLocal;
   final String closeLocal;
+  final List<_MarketDialSegment> dialSegments;
+}
+
+class _MarketDialSegment {
+  const _MarketDialSegment(this.startMinute, this.endMinute);
+
+  factory _MarketDialSegment.fromJson(Map<String, dynamic> json) =>
+      _MarketDialSegment(
+        (json['start_minute'] as num?)?.toDouble() ?? 0,
+        (json['end_minute'] as num?)?.toDouble() ?? 0,
+      );
+
+  final double startMinute;
+  final double endMinute;
 }
 
 class _TabItem {

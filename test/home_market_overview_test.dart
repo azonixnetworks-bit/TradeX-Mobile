@@ -47,11 +47,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.byKey(const ValueKey('world-market-sessions')), findsOneWidget);
+    expect(find.byKey(const ValueKey('market-24h-clock')), findsOneWidget);
     expect(find.text('London'), findsOneWidget);
     expect(find.text('New York'), findsOneWidget);
     expect(find.text('Tokyo'), findsOneWidget);
     expect(find.text('Sydney'), findsOneWidget);
     expect(find.text('Device Time'), findsNothing);
+    for (final city in const ['London', 'New York', 'Tokyo', 'Sydney']) {
+      expect(find.byKey(ValueKey('market-session-art-$city')), findsOneWidget);
+    }
     expect(find.byKey(const ValueKey('market-news-section')), findsOneWidget);
     expect(find.byKey(const ValueKey('market-news-card-0')), findsOneWidget);
     expect(find.byKey(const ValueKey('market-news-card-3')), findsOneWidget);
