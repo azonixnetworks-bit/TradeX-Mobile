@@ -38,6 +38,50 @@ void main() {
       expect(first.single.affectedPairs, ['EURUSD', 'XAUUSD']);
     },
   );
+
+  test('force refresh loads news published later on the same day', () async {
+    final store = SecureSessionStore();
+    final api = _PublishLaterApiClient(store, DeviceIdentity(store));
+    final repository = MarketNewsRepository(api);
+    final now = DateTime(2026, 10, 21, 8);
+
+    expect(await repository.today(now: now), isEmpty);
+    expect(await repository.today(now: now), isEmpty);
+    expect(api.calls, 1);
+
+    api.published = true;
+    final refreshed = await repository.today(now: now, forceRefresh: true);
+
+    expect(api.calls, 2);
+    expect(refreshed.single.title, 'Published later');
+  });
+}
+
+class _PublishLaterApiClient extends TradeXApiClient {
+  _PublishLaterApiClient(super.sessionStore, super.deviceIdentity);
+
+  bool published = false;
+  int calls = 0;
+
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async {
+    calls++;
+    return <String, dynamic>{
+      'data': <String, dynamic>{
+        'events': published
+            ? <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'uuid': 'published-later',
+                  'title': 'Published later',
+                  'impact': 'HIGH',
+                  'status': 'SCHEDULED',
+                  'scheduled_at_utc': '2026-10-22T12:30:00Z',
+                },
+              ]
+            : <Map<String, dynamic>>[],
+      },
+    };
+  }
 }
 
 class _EconomicNewsApiClient extends TradeXApiClient {

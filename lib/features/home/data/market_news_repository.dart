@@ -7,7 +7,7 @@ import '../../../core/network/tradex_api_client.dart';
 class MarketNewsRepository {
   const MarketNewsRepository(this._apiClient);
 
-  static const _dailyCacheKey = 'tradex.economic_news.upcoming.v2';
+  static const _dailyCacheKey = 'tradex.economic_news.upcoming.v3';
   static final Map<String, Future<List<MarketNewsItem>>> _inFlightByDay = {};
 
   final TradeXApiClient _apiClient;
@@ -17,16 +17,20 @@ class MarketNewsRepository {
     return events.take(limit).toList(growable: false);
   }
 
-  Future<List<MarketNewsItem>> today({DateTime? now}) async {
+  Future<List<MarketNewsItem>> today({
+    DateTime? now,
+    bool forceRefresh = false,
+  }) async {
     final localNow = now ?? DateTime.now();
     final day = _dayKey(localNow);
     final preferences = await SharedPreferences.getInstance();
     final cached = _readCache(preferences.getString(_dailyCacheKey));
-    if (cached?.day == day) {
+    if (!forceRefresh && cached?.day == day) {
       return _parseUpcomingEvents(cached!.events, localNow);
     }
 
-    final existing = _inFlightByDay[day];
+    final requestKey = forceRefresh ? '$day:refresh' : day;
+    final existing = _inFlightByDay[requestKey];
     if (existing != null) return existing;
 
     final request = _fetchAndCache(
@@ -35,12 +39,12 @@ class MarketNewsRepository {
       localNow: localNow,
       stale: cached,
     );
-    _inFlightByDay[day] = request;
+    _inFlightByDay[requestKey] = request;
     try {
       return await request;
     } finally {
-      if (identical(_inFlightByDay[day], request)) {
-        _inFlightByDay.remove(day);
+      if (identical(_inFlightByDay[requestKey], request)) {
+        _inFlightByDay.remove(requestKey);
       }
     }
   }

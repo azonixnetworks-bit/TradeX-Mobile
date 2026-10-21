@@ -73,7 +73,7 @@ class _EconomicNewsScreenState extends State<EconomicNewsScreen> {
                 icon: Icons.cloud_off_rounded,
                 message: 'Economic news is temporarily unavailable.',
                 action: 'Retry',
-                onTap: _cubit.load,
+                onTap: _cubit.refresh,
               ),
               EconomicNewsStatus.success => Column(
                 children: [
@@ -84,9 +84,11 @@ class _EconomicNewsScreenState extends State<EconomicNewsScreen> {
                   const SizedBox(height: 10),
                   Expanded(
                     child: state.visibleItems.isEmpty
-                        ? const _NewsState(
+                        ? _NewsState(
                             icon: Icons.event_available_rounded,
                             message: 'No upcoming events in this category.',
+                            action: 'Refresh',
+                            onTap: _cubit.refresh,
                           )
                         : _EconomicNewsTable(
                             items: state.visibleItems,

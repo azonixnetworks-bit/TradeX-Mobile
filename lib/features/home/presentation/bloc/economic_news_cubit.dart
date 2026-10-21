@@ -66,10 +66,13 @@ class EconomicNewsCubit extends Cubit<EconomicNewsState> {
   final DateTime Function() _now;
   late final Timer _clock;
 
-  Future<void> load() async {
+  Future<void> load({bool forceRefresh = false}) async {
     emit(state.copyWith(status: EconomicNewsStatus.loading, now: _now()));
     try {
-      final items = await _repository.today(now: _now());
+      final items = await _repository.today(
+        now: _now(),
+        forceRefresh: forceRefresh,
+      );
       if (isClosed) return;
       emit(
         state.copyWith(
@@ -84,6 +87,8 @@ class EconomicNewsCubit extends Cubit<EconomicNewsState> {
       }
     }
   }
+
+  Future<void> refresh() => load(forceRefresh: true);
 
   void selectFilter(EconomicNewsFilter filter) {
     if (filter != state.filter) emit(state.copyWith(filter: filter));
