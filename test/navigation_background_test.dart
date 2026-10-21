@@ -55,8 +55,11 @@ void main() {
           findsOneWidget,
         );
         final nav = find.byKey(const ValueKey('dashboard-nav-root'));
+        expect(
+          find.descendant(of: nav, matching: find.text('Home')),
+          findsOneWidget,
+        );
         for (final label in const [
-          'Home',
           'Learn',
           'Trade Ideas',
           'Affiliate',
@@ -64,7 +67,7 @@ void main() {
         ]) {
           expect(
             find.descendant(of: nav, matching: find.text(label)),
-            findsOneWidget,
+            findsNothing,
           );
         }
       },
@@ -98,25 +101,67 @@ void main() {
     expect(find.byKey(const PageStorageKey('home-tab')), findsOneWidget);
     expect(find.byKey(const PageStorageKey('profile-tab')), findsNothing);
 
-    await tester.tap(find.text('Profile'));
+    await tester.tap(find.byKey(const ValueKey('dashboard-nav-item-4')));
     await tester.pump(const Duration(milliseconds: 10));
     expect(find.byKey(const PageStorageKey('profile-tab')), findsOneWidget);
     expect(find.byKey(const PageStorageKey('home-tab')), findsNothing);
 
-    await tester.tap(find.text('Affiliate'));
+    await tester.tap(find.byKey(const ValueKey('dashboard-nav-item-3')));
     await tester.pump(const Duration(milliseconds: 10));
     expect(find.byKey(const PageStorageKey('affiliate-tab')), findsOneWidget);
     expect(find.byKey(const PageStorageKey('profile-tab')), findsNothing);
 
-    await tester.tap(find.text('Trade Ideas').last);
+    await tester.tap(find.byKey(const ValueKey('dashboard-nav-item-2')));
     await tester.pump(const Duration(milliseconds: 10));
     expect(find.byKey(const PageStorageKey('ideas-tab')), findsOneWidget);
     expect(find.byKey(const PageStorageKey('affiliate-tab')), findsNothing);
 
-    await tester.tap(find.text('Home'));
+    await tester.tap(find.byKey(const ValueKey('dashboard-nav-item-0')));
     await tester.pump(const Duration(milliseconds: 10));
     expect(find.byKey(const PageStorageKey('home-tab')), findsOneWidget);
     expect(find.byKey(const PageStorageKey('ideas-tab')), findsNothing);
+  });
+
+  testWidgets('horizontal swipes move to next and previous dashboard tabs', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await AppPreferences.instance.load();
+    final store = SecureSessionStore();
+    final device = DeviceIdentity(store);
+    final api = TradeXApiClient(store, device);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: HomeDashboardScreen(
+          onLogout: () async {},
+          onForgetDevice: () async {},
+          onLogoutAll: () async {},
+          apiClient: api,
+          tradeIdeasRepository: TradeIdeasRepository(api),
+          learningRepository: LearningRepository(api),
+          authRepository: AuthRepository(api, store, device),
+        ),
+      ),
+    );
+
+    await tester.drag(
+      find.byKey(const PageStorageKey('home-tab')),
+      const Offset(-220, 0),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byKey(const PageStorageKey('learn-tab')), findsOneWidget);
+    expect(find.byKey(const ValueKey('dashboard-nav-label-1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('dashboard-nav-label-0')), findsNothing);
+
+    await tester.drag(
+      find.byKey(const PageStorageKey('learn-tab')),
+      const Offset(220, 0),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byKey(const PageStorageKey('home-tab')), findsOneWidget);
+    expect(find.byKey(const ValueKey('dashboard-nav-label-0')), findsOneWidget);
   });
 
   testWidgets('nested back pops route and root back backgrounds Android task', (

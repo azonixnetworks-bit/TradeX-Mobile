@@ -191,7 +191,7 @@ void main() {
         find.byKey(const ValueKey('authenticated-dashboard')),
       );
 
-      await tester.tap(find.text('Affiliate'));
+      await tester.tap(find.byKey(const ValueKey('dashboard-nav-item-3')));
       await tester.pump();
       expect(find.byKey(const PageStorageKey('affiliate-tab')), findsOneWidget);
       final originalDashboardState = tester.state(

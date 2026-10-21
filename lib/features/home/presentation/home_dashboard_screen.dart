@@ -68,6 +68,7 @@ class HomeDashboardScreen extends StatefulWidget {
 class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   late final HomeNavigationCubit _navigationCubit;
   late final List<Widget?> _tabPages;
+  double _horizontalDragDistance = 0;
 
   @override
   void initState() {
@@ -139,6 +140,29 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       _tabPages[index] ??= _buildTab(index);
     });
     _navigationCubit.select(index);
+  }
+
+  void _beginHorizontalSwipe(DragStartDetails _) {
+    _horizontalDragDistance = 0;
+  }
+
+  void _updateHorizontalSwipe(DragUpdateDetails details) {
+    _horizontalDragDistance += details.primaryDelta ?? 0;
+  }
+
+  void _finishHorizontalSwipe(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    final distance = _horizontalDragDistance;
+    _horizontalDragDistance = 0;
+    if (distance.abs() < 56 && velocity.abs() < 450) return;
+
+    final direction = distance.abs() >= 56 ? distance : velocity;
+    final current = _navigationCubit.state;
+    if (direction < 0 && current < 4) {
+      _selectTab(current + 1);
+    } else if (direction > 0 && current > 0) {
+      _selectTab(current - 1);
+    }
   }
 
   Widget _buildTab(int index) => switch (index) {
@@ -245,13 +269,20 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           child: Scaffold(
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             body: SafeArea(
-              child: IndexedStack(
-                index: selectedTab,
-                children: List<Widget>.generate(
-                  5,
-                  (index) => TickerMode(
-                    enabled: index == selectedTab,
-                    child: _tabPages[index] ?? const SizedBox.shrink(),
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onHorizontalDragStart: _beginHorizontalSwipe,
+                onHorizontalDragUpdate: _updateHorizontalSwipe,
+                onHorizontalDragEnd: _finishHorizontalSwipe,
+                onHorizontalDragCancel: () => _horizontalDragDistance = 0,
+                child: IndexedStack(
+                  index: selectedTab,
+                  children: List<Widget>.generate(
+                    5,
+                    (index) => TickerMode(
+                      enabled: index == selectedTab,
+                      child: _tabPages[index] ?? const SizedBox.shrink(),
+                    ),
                   ),
                 ),
               ),
@@ -4854,55 +4885,63 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
                           final item = _tabItems[index];
                           final selected = index == widget.selectedIndex;
                           return Expanded(
-                            child: InkWell(
-                              onTap: () => widget.onChanged(index),
-                              borderRadius: BorderRadius.circular(24),
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    AnimatedOpacity(
-                                      duration: const Duration(
-                                        milliseconds: 180,
+                            child: Semantics(
+                              label: item.label,
+                              selected: selected,
+                              button: true,
+                              child: InkWell(
+                                key: ValueKey('dashboard-nav-item-$index'),
+                                onTap: () => widget.onChanged(index),
+                                borderRadius: BorderRadius.circular(24),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      AnimatedOpacity(
+                                        duration: const Duration(
+                                          milliseconds: 180,
+                                        ),
+                                        opacity: selected ? 0 : 1,
+                                        child: Icon(
+                                          item.icon,
+                                          size: 21,
+                                          color: dark
+                                              ? TradeXColors.secondaryText
+                                              : theme
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                        ),
                                       ),
-                                      opacity: selected ? 0 : 1,
-                                      child: Icon(
-                                        item.icon,
-                                        size: 21,
-                                        color: dark
-                                            ? TradeXColors.secondaryText
-                                            : theme
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
+                                      SizedBox(height: selected ? 19 : 3),
+                                      ClipRect(
+                                        child: AnimatedSize(
+                                          duration: const Duration(
+                                            milliseconds: 220,
+                                          ),
+                                          curve: Curves.easeOut,
+                                          child: selected
+                                              ? Text(
+                                                  item.label,
+                                                  key: ValueKey(
+                                                    'dashboard-nav-label-$index',
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    color:
+                                                        TradeXColors.goldBright,
+                                                    fontSize: 9.5,
+                                                    fontWeight: FontWeight.w900,
+                                                  ),
+                                                )
+                                              : const SizedBox.shrink(),
+                                        ),
                                       ),
-                                    ),
-                                    SizedBox(height: selected ? 19 : 3),
-                                    AnimatedDefaultTextStyle(
-                                      duration: const Duration(
-                                        milliseconds: 220,
-                                      ),
-                                      style: TextStyle(
-                                        color: selected
-                                            ? TradeXColors.goldBright
-                                            : dark
-                                            ? TradeXColors.secondaryText
-                                            : theme
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                        fontSize: 9.5,
-                                        fontWeight: selected
-                                            ? FontWeight.w900
-                                            : FontWeight.w600,
-                                      ),
-                                      child: Text(
-                                        item.label,
-                                        textAlign: TextAlign.center,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
