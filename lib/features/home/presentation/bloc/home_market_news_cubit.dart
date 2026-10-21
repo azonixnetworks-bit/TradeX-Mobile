@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc/bloc.dart';
 
 import '../../data/market_news_repository.dart';
@@ -15,19 +17,27 @@ class HomeMarketNewsState {
 }
 
 class HomeMarketNewsCubit extends Cubit<HomeMarketNewsState> {
-  HomeMarketNewsCubit(this._repository) : super(const HomeMarketNewsState());
+  HomeMarketNewsCubit(this._repository) : super(const HomeMarketNewsState()) {
+    _refreshTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => unawaited(load(forceRefresh: true)),
+    );
+  }
 
   final MarketNewsRepository _repository;
+  late final Timer _refreshTimer;
 
-  Future<void> load() async {
-    emit(
-      HomeMarketNewsState(
-        status: HomeMarketNewsStatus.loading,
-        items: state.items,
-      ),
-    );
+  Future<void> load({bool forceRefresh = false}) async {
+    if (state.items.isEmpty) {
+      emit(
+        HomeMarketNewsState(
+          status: HomeMarketNewsStatus.loading,
+          items: state.items,
+        ),
+      );
+    }
     try {
-      final items = await _repository.latest();
+      final items = await _repository.latest(forceRefresh: forceRefresh);
       if (!isClosed) {
         emit(
           HomeMarketNewsState(
@@ -46,5 +56,11 @@ class HomeMarketNewsCubit extends Cubit<HomeMarketNewsState> {
         );
       }
     }
+  }
+
+  @override
+  Future<void> close() {
+    _refreshTimer.cancel();
+    return super.close();
   }
 }

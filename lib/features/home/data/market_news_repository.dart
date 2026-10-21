@@ -12,8 +12,11 @@ class MarketNewsRepository {
 
   final TradeXApiClient _apiClient;
 
-  Future<List<MarketNewsItem>> latest({int limit = 4}) async {
-    final events = await today();
+  Future<List<MarketNewsItem>> latest({
+    int limit = 4,
+    bool forceRefresh = false,
+  }) async {
+    final events = await today(forceRefresh: forceRefresh);
     return events.take(limit).toList(growable: false);
   }
 

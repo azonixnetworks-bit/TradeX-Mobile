@@ -1183,17 +1183,27 @@ class _MarketNewsSection extends StatefulWidget {
   State<_MarketNewsSection> createState() => _MarketNewsSectionState();
 }
 
-class _MarketNewsSectionState extends State<_MarketNewsSection> {
+class _MarketNewsSectionState extends State<_MarketNewsSection>
+    with WidgetsBindingObserver {
   late final HomeMarketNewsCubit _cubit;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _cubit = HomeMarketNewsCubit(widget.repository)..load();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _cubit.load(forceRefresh: true);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _cubit.close();
     super.dispose();
   }

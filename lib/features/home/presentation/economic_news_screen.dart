@@ -15,7 +15,8 @@ class EconomicNewsScreen extends StatefulWidget {
   State<EconomicNewsScreen> createState() => _EconomicNewsScreenState();
 }
 
-class _EconomicNewsScreenState extends State<EconomicNewsScreen> {
+class _EconomicNewsScreenState extends State<EconomicNewsScreen>
+    with WidgetsBindingObserver {
   late final EconomicNewsCubit _cubit;
   final _horizontalController = ScrollController();
   final _verticalController = ScrollController();
@@ -23,11 +24,20 @@ class _EconomicNewsScreenState extends State<EconomicNewsScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _cubit = EconomicNewsCubit(MarketNewsRepository(widget.apiClient))..load();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _cubit.refresh();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _cubit.close();
     _horizontalController.dispose();
     _verticalController.dispose();

@@ -60,14 +60,21 @@ class EconomicNewsCubit extends Cubit<EconomicNewsState> {
       const Duration(minutes: 1),
       (_) => emit(state.copyWith(now: _now())),
     );
+    _refreshTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => unawaited(load(forceRefresh: true)),
+    );
   }
 
   final MarketNewsRepository _repository;
   final DateTime Function() _now;
   late final Timer _clock;
+  late final Timer _refreshTimer;
 
   Future<void> load({bool forceRefresh = false}) async {
-    emit(state.copyWith(status: EconomicNewsStatus.loading, now: _now()));
+    if (state.items.isEmpty) {
+      emit(state.copyWith(status: EconomicNewsStatus.loading, now: _now()));
+    }
     try {
       final items = await _repository.today(
         now: _now(),
@@ -97,6 +104,7 @@ class EconomicNewsCubit extends Cubit<EconomicNewsState> {
   @override
   Future<void> close() {
     _clock.cancel();
+    _refreshTimer.cancel();
     return super.close();
   }
 }
