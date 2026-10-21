@@ -106,7 +106,10 @@ class _NewsApiClient extends TradeXApiClient {
     'bias': bias,
     'confidence_score': confidence,
     'status': 'SCHEDULED',
-    'scheduled_at_utc': '2026-10-21T18:00:00Z',
+    'scheduled_at_utc': DateTime.now()
+        .toUtc()
+        .add(const Duration(hours: 6))
+        .toIso8601String(),
     'source': <String, dynamic>{'name': 'Trading Economics'},
     'affected_pairs': <Map<String, dynamic>>[
       <String, dynamic>{'symbol': pair},

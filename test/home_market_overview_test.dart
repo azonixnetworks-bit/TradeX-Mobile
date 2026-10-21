@@ -73,7 +73,13 @@ void main() {
       find.byKey(const ValueKey('market-session-art-Sydney')),
       findsOneWidget,
     );
+    await tester.drag(
+      find.byType(CustomScrollView).first,
+      const Offset(0, -420),
+    );
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('market-news-section')), findsOneWidget);
+    expect(find.text('Economic News'), findsOneWidget);
     expect(find.byKey(const ValueKey('market-news-card-0')), findsOneWidget);
     expect(find.byKey(const ValueKey('market-news-card-3')), findsOneWidget);
     expect(find.text('Federal Reserve holds rates steady'), findsOneWidget);
@@ -86,7 +92,7 @@ class _HomeMarketApiClient extends TradeXApiClient {
 
   @override
   Future<Map<String, dynamic>> getJson(String path) async {
-    if (path.startsWith('/api/v1/economic-news/events')) {
+    if (path.startsWith('/api/v1/economic-news/calendar')) {
       return <String, dynamic>{
         'data': <String, dynamic>{
           'events': <Map<String, dynamic>>[
@@ -97,7 +103,10 @@ class _HomeMarketApiClient extends TradeXApiClient {
               'affected_pairs': <Map<String, dynamic>>[
                 <String, dynamic>{'symbol': 'EURUSD'},
               ],
-              'scheduled_at_utc': '2026-10-21T09:00:00Z',
+              'scheduled_at_utc': DateTime.now()
+                  .toUtc()
+                  .add(const Duration(hours: 4))
+                  .toIso8601String(),
             },
             <String, dynamic>{
               'uuid': 'event-2',
@@ -106,7 +115,10 @@ class _HomeMarketApiClient extends TradeXApiClient {
               'affected_pairs': <Map<String, dynamic>>[
                 <String, dynamic>{'symbol': 'XAUUSD'},
               ],
-              'scheduled_at_utc': '2026-10-21T08:45:00Z',
+              'scheduled_at_utc': DateTime.now()
+                  .toUtc()
+                  .add(const Duration(hours: 3))
+                  .toIso8601String(),
             },
             <String, dynamic>{
               'uuid': 'event-3',
@@ -115,7 +127,10 @@ class _HomeMarketApiClient extends TradeXApiClient {
               'affected_pairs': <Map<String, dynamic>>[
                 <String, dynamic>{'symbol': 'BTCUSD'},
               ],
-              'scheduled_at_utc': '2026-10-21T08:30:00Z',
+              'scheduled_at_utc': DateTime.now()
+                  .toUtc()
+                  .add(const Duration(hours: 2))
+                  .toIso8601String(),
             },
             <String, dynamic>{
               'uuid': 'event-4',
@@ -124,7 +139,10 @@ class _HomeMarketApiClient extends TradeXApiClient {
               'affected_pairs': <Map<String, dynamic>>[
                 <String, dynamic>{'symbol': 'WTIUSD'},
               ],
-              'scheduled_at_utc': '2026-10-21T08:15:00Z',
+              'scheduled_at_utc': DateTime.now()
+                  .toUtc()
+                  .add(const Duration(hours: 1))
+                  .toIso8601String(),
             },
           ],
         },

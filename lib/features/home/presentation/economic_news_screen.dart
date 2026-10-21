@@ -57,7 +57,7 @@ class _EconomicNewsScreenState extends State<EconomicNewsScreen> {
           children: [
             Text('Economic News', style: TextStyle(fontSize: 18)),
             Text(
-              'Today’s Laravel economic calendar',
+              'Upcoming Laravel economic calendar',
               style: TextStyle(
                 color: TradeXColors.secondaryText,
                 fontSize: 11,
@@ -107,8 +107,7 @@ class _EconomicNewsScreenState extends State<EconomicNewsScreen> {
                   child: visible.isEmpty
                       ? const _NewsState(
                           icon: Icons.event_available_rounded,
-                          message:
-                              'No published events in this category today.',
+                          message: 'No upcoming events in this category.',
                         )
                       : _EconomicNewsTable(
                           items: visible,

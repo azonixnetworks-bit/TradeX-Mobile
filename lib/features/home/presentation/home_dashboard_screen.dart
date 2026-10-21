@@ -280,6 +280,13 @@ class _HomeContent extends StatelessWidget {
               const SizedBox(height: 14),
               _SessionClockCard(apiClient: apiClient),
               const SizedBox(height: 18),
+              _SectionTitle(
+                icon: Icons.newspaper_rounded,
+                title: 'Economic News',
+                action: 'View all',
+                onAction: () => onActionTap('Economic News'),
+              ),
+              const SizedBox(height: 10),
               _MarketNewsSection(
                 repository: MarketNewsRepository(apiClient),
                 onOpenAll: () => onActionTap('Economic News'),
@@ -1173,8 +1180,8 @@ class _MarketNewsSectionState extends State<_MarketNewsSection> {
           return _MarketNewsMessage(
             key: const ValueKey('market-news-section'),
             icon: Icons.event_available_rounded,
-            message: 'No published market updates right now.',
-            action: 'Open calendar',
+            message: 'No upcoming published economic news right now.',
+            action: 'View all',
             onTap: widget.onOpenAll,
           );
         }
@@ -1187,50 +1194,6 @@ class _MarketNewsSectionState extends State<_MarketNewsSection> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.newspaper_rounded,
-                    color: TradeXColors.goldBright,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 6),
-                  const Expanded(
-                    child: Text(
-                      'Market News',
-                      style: TextStyle(
-                        color: TradeXColors.primaryText,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: widget.onOpenAll,
-                    style: TextButton.styleFrom(
-                      foregroundColor: TradeXColors.goldBright,
-                      minimumSize: const Size(0, 28),
-                      padding: const EdgeInsets.symmetric(horizontal: 3),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'View all',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        SizedBox(width: 2),
-                        Icon(Icons.chevron_right_rounded, size: 14),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 7),
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),

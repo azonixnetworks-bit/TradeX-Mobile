@@ -7,7 +7,7 @@ import '../../../core/network/tradex_api_client.dart';
 class MarketNewsRepository {
   const MarketNewsRepository(this._apiClient);
 
-  static const _dailyCacheKey = 'tradex.economic_news.daily.v1';
+  static const _dailyCacheKey = 'tradex.economic_news.upcoming.v2';
   static final Map<String, Future<List<MarketNewsItem>>> _inFlightByDay = {};
 
   final TradeXApiClient _apiClient;
@@ -22,7 +22,9 @@ class MarketNewsRepository {
     final day = _dayKey(localNow);
     final preferences = await SharedPreferences.getInstance();
     final cached = _readCache(preferences.getString(_dailyCacheKey));
-    if (cached?.day == day) return _parseEvents(cached!.events);
+    if (cached?.day == day) {
+      return _parseUpcomingEvents(cached!.events, localNow);
+    }
 
     final existing = _inFlightByDay[day];
     if (existing != null) return existing;
@@ -49,16 +51,14 @@ class MarketNewsRepository {
     required DateTime localNow,
     required _MarketNewsCache? stale,
   }) async {
-    final localStart = DateTime(localNow.year, localNow.month, localNow.day);
-    final localEnd = localStart
-        .add(const Duration(days: 1))
-        .subtract(const Duration(milliseconds: 1));
-    final from = Uri.encodeQueryComponent(localStart.toUtc().toIso8601String());
-    final to = Uri.encodeQueryComponent(localEnd.toUtc().toIso8601String());
+    final from = Uri.encodeQueryComponent(localNow.toUtc().toIso8601String());
+    final to = Uri.encodeQueryComponent(
+      localNow.add(const Duration(days: 14)).toUtc().toIso8601String(),
+    );
 
     try {
       final response = await _apiClient.getJson(
-        '/api/v1/economic-news/events?from=$from&to=$to&per_page=100',
+        '/api/v1/economic-news/calendar?from=$from&to=$to&per_page=100',
       );
       final data = response['data'];
       final rawEvents = data is Map ? data['events'] : null;
@@ -76,17 +76,27 @@ class MarketNewsRepository {
           'events': events,
         }),
       );
-      return _parseEvents(events);
+      return _parseUpcomingEvents(events, localNow);
     } catch (_) {
-      if (stale != null) return _parseEvents(stale.events);
+      if (stale != null) return _parseUpcomingEvents(stale.events, localNow);
       rethrow;
     }
   }
 
-  static List<MarketNewsItem> _parseEvents(List<Map<String, dynamic>> events) {
+  static List<MarketNewsItem> _parseUpcomingEvents(
+    List<Map<String, dynamic>> events,
+    DateTime reference,
+  ) {
     final parsed = events
         .map(MarketNewsItem.fromEvent)
         .where((item) => item.title.isNotEmpty)
+        .where((item) {
+          final status = item.status.toUpperCase();
+          if (status == 'CANCELLED') return false;
+          if (status == 'LIVE') return true;
+          final scheduled = item.occurredAt;
+          return scheduled == null || !scheduled.isBefore(reference);
+        })
         .toList(growable: false);
     parsed.sort((a, b) {
       final left = a.occurredAt;

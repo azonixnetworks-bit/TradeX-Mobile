@@ -24,7 +24,7 @@ void main() {
       expect(api.paths, hasLength(1));
       expect(
         api.paths.single,
-        startsWith('/api/v1/economic-news/events?from='),
+        startsWith('/api/v1/economic-news/calendar?from='),
       );
       expect(api.paths.single, contains('&to='));
       expect(api.paths.single, endsWith('&per_page=100'));
@@ -61,7 +61,7 @@ class _EconomicNewsApiClient extends TradeXApiClient {
             'status': 'SCHEDULED',
             'forecast': '2.8%',
             'previous': '2.7%',
-            'scheduled_at_utc': '2026-10-21T12:30:00Z',
+            'scheduled_at_utc': '2026-10-22T12:30:00Z',
             'source': <String, dynamic>{
               'code': 'TE',
               'name': 'Trading Economics',
@@ -70,6 +70,13 @@ class _EconomicNewsApiClient extends TradeXApiClient {
               <String, dynamic>{'symbol': 'EURUSD'},
               <String, dynamic>{'symbol': 'XAUUSD'},
             ],
+          },
+          <String, dynamic>{
+            'uuid': 'expired-event',
+            'title': 'Expired release',
+            'impact': 'LOW',
+            'status': 'SCHEDULED',
+            'scheduled_at_utc': '2026-10-20T12:30:00Z',
           },
         ],
       },
