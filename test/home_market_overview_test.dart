@@ -48,6 +48,12 @@ void main() {
 
     expect(find.byKey(const ValueKey('world-market-sessions')), findsOneWidget);
     expect(find.byKey(const ValueKey('market-24h-clock')), findsOneWidget);
+    final marketClockSize = tester.getSize(
+      find.byKey(const ValueKey('market-24h-clock')),
+    );
+    expect(marketClockSize.width, greaterThan(300));
+    expect(marketClockSize.width, lessThanOrEqualTo(450));
+    expect(marketClockSize.height, marketClockSize.width);
     expect(find.byKey(const ValueKey('market-session-scroll')), findsOneWidget);
     expect(find.text('London'), findsOneWidget);
     expect(find.text('New York'), findsOneWidget);

@@ -539,22 +539,24 @@ class _SessionClockCardState extends State<_SessionClockCard>
             ],
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            height: 300,
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    key: const ValueKey('market-24h-clock'),
-                    painter: _MarketClockDialPainter(
-                      sessions: dialSessions,
-                      now: now,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final dialSize = math.min(450.0, constraints.maxWidth);
+              return Center(
+                child: SizedBox.square(
+                  dimension: dialSize,
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      key: const ValueKey('market-24h-clock'),
+                      painter: _MarketClockDialPainter(
+                        sessions: dialSessions,
+                        now: now,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
           const SizedBox(height: 7),
           const _ClockLegend(),
