@@ -14,7 +14,7 @@ import 'package:tradex_mobile/features/home/presentation/home_dashboard_screen.d
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('profile main menus open their requested grouped options', (
+  testWidgets('profile main menus expand and collapse their grouped options', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -54,6 +54,10 @@ void main() {
     );
     expect(find.byKey(const ValueKey('profile-main-security')), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-main-help')), findsOneWidget);
+    expect(find.text('Mobile Number'), findsNothing);
+    expect(find.text('PayPal'), findsNothing);
+    expect(find.text('Authenticator protected'), findsNothing);
+    expect(find.text('Support centre'), findsNothing);
 
     await _openAndVerify(tester, const ValueKey('profile-main-account'), const [
       'profile@example.test',
@@ -92,15 +96,32 @@ Future<void> _openAndVerify(
   Key menuKey,
   List<String> expectedOptions,
 ) async {
-  await tester.tap(find.byKey(menuKey));
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
+  final menu = find.byKey(menuKey);
+  await tester.ensureVisible(menu);
+  await tester.tap(menu);
+  await tester.pumpAndSettle();
+  expect(
+    find.descendant(
+      of: menu,
+      matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
+    ),
+    findsOneWidget,
+  );
   for (final option in expectedOptions) {
     expect(find.text(option), findsAtLeastNWidgets(1));
   }
-  await tester.binding.handlePopRoute();
-  await tester.pump();
-  await _pumpUntilFound(tester, find.byKey(menuKey));
+  await tester.tap(menu);
+  await tester.pumpAndSettle();
+  expect(
+    find.descendant(
+      of: menu,
+      matching: find.byIcon(Icons.chevron_right_rounded),
+    ),
+    findsOneWidget,
+  );
+  for (final option in expectedOptions.skip(1)) {
+    expect(find.text(option), findsNothing);
+  }
 }
 
 Future<void> _pumpUntilFound(WidgetTester tester, Finder finder) async {

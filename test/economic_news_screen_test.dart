@@ -10,7 +10,7 @@ import 'package:tradex_mobile/features/home/presentation/economic_news_screen.da
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('economic news shows requested columns and impact filters', (
+  testWidgets('economic news shows event cards and impact filters', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -32,16 +32,17 @@ void main() {
     for (final filter in const ['Overview', 'High Impact', 'Medium Impact']) {
       expect(find.text(filter), findsOneWidget);
     }
-    for (final heading in const [
-      'Event / Source',
-      'Remaining Time',
-      'Impact',
-      'Bias',
-      'Confidence',
-      'Affected Pairs',
-    ]) {
-      expect(find.text(heading), findsOneWidget);
-    }
+    expect(find.byType(DataTable), findsNothing);
+    expect(
+      find.byKey(const ValueKey('economic-news-card-list')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('economic-news-card-high')),
+      findsOneWidget,
+    );
+    expect(find.text('HIGH IMPACT'), findsOneWidget);
+    expect(find.text('Affected Pairs'), findsWidgets);
     expect(find.text('US CPI'), findsOneWidget);
     expect(find.text('ECB Rate Decision'), findsOneWidget);
     expect(find.text('Japan Consumer Confidence'), findsOneWidget);

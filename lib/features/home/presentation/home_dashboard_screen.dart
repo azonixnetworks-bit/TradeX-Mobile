@@ -3099,6 +3099,8 @@ class _ProfileTab extends StatefulWidget {
   State<_ProfileTab> createState() => _ProfileTabState();
 }
 
+enum _ProfileSection { account, withdrawal, security, help }
+
 class _ProfileTabState extends State<_ProfileTab> {
   static const _photoStore = LocalProfilePhotoStore();
   final _imagePicker = ImagePicker();
@@ -3107,6 +3109,7 @@ class _ProfileTabState extends State<_ProfileTab> {
   String? _profileEmail;
   bool _fingerprintAdded = false;
   bool _passcodeAdded = false;
+  _ProfileSection? _expandedSection;
 
   @override
   void initState() {
@@ -3188,196 +3191,147 @@ class _ProfileTabState extends State<_ProfileTab> {
     if (mounted) _refresh();
   }
 
-  Future<void> _openAccountSection(_CustomerProfile profile) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (sectionContext) => _ProfileSectionScreen(
-          title: 'Account',
-          subtitle: 'Manage your account details and app preferences.',
-          child: _ProfileMenuPanel(
-            children: [
-              _MenuRow(
-                icon: Icons.mail_outline_rounded,
-                title: profile.email,
-                subtitle: profile.emailVerified
-                    ? 'Verified email · Locked for your security'
-                    : 'Unverified email',
-                status: Icon(
-                  profile.emailVerified
-                      ? Icons.verified_rounded
-                      : Icons.warning_amber_rounded,
-                  size: 18,
-                  color: profile.emailVerified
-                      ? TradeXColors.success
-                      : TradeXColors.goldBright,
-                ),
-                onTap: null,
-              ),
-              _MenuRow(
-                icon: Icons.phone_outlined,
-                title: 'Mobile Number',
-                subtitle: profile.whatsAppVerified
-                    ? 'Registered number verified'
-                    : 'Verification required',
-                onTap: () => _openMobileDetails(profile),
-              ),
-              _MenuRow(
-                icon: Icons.language_rounded,
-                title: 'Learning language',
-                subtitle: profile.languageLabel,
-                onTap: () => widget.onActionTap('Learning language'),
-              ),
-              _MenuRow(
-                icon: Icons.brightness_6_rounded,
-                title: 'Appearance',
-                subtitle: 'System, Light or Dark theme',
-                onTap: () => Navigator.of(sectionContext).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => LearnSettingsScreen(
-                      repository: LearnRepository(widget.apiClient),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+  void _toggleSection(_ProfileSection section) {
+    setState(() {
+      _expandedSection = _expandedSection == section ? null : section;
+    });
+  }
+
+  List<Widget> _accountItems(_CustomerProfile profile) => [
+    _MenuRow(
+      icon: Icons.mail_outline_rounded,
+      title: profile.email,
+      subtitle: profile.emailVerified
+          ? 'Verified email · Locked for your security'
+          : 'Unverified email',
+      status: Icon(
+        profile.emailVerified
+            ? Icons.verified_rounded
+            : Icons.warning_amber_rounded,
+        size: 18,
+        color: profile.emailVerified
+            ? TradeXColors.success
+            : TradeXColors.goldBright,
+      ),
+      onTap: null,
+    ),
+    _MenuRow(
+      icon: Icons.phone_outlined,
+      title: 'Mobile Number',
+      subtitle: profile.whatsAppVerified
+          ? 'Registered number verified'
+          : 'Verification required',
+      onTap: () => _openMobileDetails(profile),
+    ),
+    _MenuRow(
+      icon: Icons.language_rounded,
+      title: 'Learning language',
+      subtitle: profile.languageLabel,
+      onTap: () => widget.onActionTap('Learning language'),
+    ),
+    _MenuRow(
+      icon: Icons.brightness_6_rounded,
+      title: 'Appearance',
+      subtitle: 'System, Light or Dark theme',
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => LearnSettingsScreen(
+            repository: LearnRepository(widget.apiClient),
           ),
         ),
       ),
-    );
-    if (mounted) _refresh();
-  }
+    ),
+  ];
 
-  Future<void> _openWithdrawalSection(_CustomerProfile profile) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (sectionContext) => _ProfileSectionScreen(
-          title: 'Withdrawal methods',
-          subtitle: 'Add or update your verified payout destinations.',
-          child: _FinancialMethodsCard(
-            profile: profile,
-            onTap: (method) async {
-              final saved = await _openWithdrawal(method);
-              if (saved && sectionContext.mounted) {
-                Navigator.of(sectionContext).pop();
-              }
-            },
+  List<Widget> _withdrawalItems(_CustomerProfile profile) => profile
+      .financialMethods
+      .map(
+        (method) => _MenuRow(
+          icon: method.icon,
+          title: method.label,
+          subtitle: method.configured
+              ? method.detail ?? 'Configured securely'
+              : 'Not configured',
+          onTap: () => unawaited(
+            _openWithdrawal(switch (method.label) {
+              'PayPal' => WithdrawalMethod.paypal,
+              'Binance' => WithdrawalMethod.binance,
+              'USDT TRC20' => WithdrawalMethod.usdtTrc20,
+              _ => WithdrawalMethod.localBank,
+            }),
           ),
         ),
-      ),
-    );
-    if (mounted) _refresh();
-  }
+      )
+      .toList(growable: false);
 
-  Future<void> _openSecuritySection(_CustomerProfile profile) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (sectionContext) => _ProfileSectionScreen(
-          title: 'Security centre',
-          subtitle: 'Protect quick access and review trusted devices.',
-          child: _ProfileMenuPanel(
-            children: [
-              _MenuRow(
-                icon: Icons.security_rounded,
-                title: profile.totpConfirmed
-                    ? 'Authenticator protected'
-                    : 'Set up authenticator',
-                subtitle: profile.totpConfirmed
-                    ? 'TOTP protects sensitive account changes'
-                    : 'Required before sensitive changes',
-                onTap: () => widget.onActionTap('Authenticator security'),
-              ),
-              _MenuRow(
-                icon: Icons.devices_other_rounded,
-                title: 'Trusted devices',
-                subtitle: 'Review or revoke devices with TOTP',
-                onTap: () => Navigator.of(sectionContext).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) =>
-                        TrustedDevicesScreen(apiClient: widget.apiClient),
-                  ),
-                ),
-              ),
-              _MenuRow(
-                icon: Icons.fingerprint_rounded,
-                title:
-                    'Fingerprint: ${_fingerprintAdded ? 'Added' : 'Not added'}',
-                subtitle: _fingerprintAdded
-                    ? 'Tap to manage or remove fingerprint login'
-                    : 'Add fingerprint login on this mobile',
-                onTap: _openQuickUnlockSettings,
-              ),
-              _MenuRow(
-                icon: Icons.pin_rounded,
-                title: 'Passcode: ${_passcodeAdded ? 'Added' : 'Not added'}',
-                subtitle: _passcodeAdded
-                    ? 'Tap to change or remove your passcode'
-                    : 'Add a secure 4-digit passcode',
-                onTap: _openQuickUnlockSettings,
-              ),
-            ],
-          ),
+  List<Widget> _securityItems(_CustomerProfile profile) => [
+    _MenuRow(
+      icon: Icons.security_rounded,
+      title: profile.totpConfirmed
+          ? 'Authenticator protected'
+          : 'Set up authenticator',
+      subtitle: profile.totpConfirmed
+          ? 'TOTP protects sensitive account changes'
+          : 'Required before sensitive changes',
+      onTap: () => widget.onActionTap('Authenticator security'),
+    ),
+    _MenuRow(
+      icon: Icons.devices_other_rounded,
+      title: 'Trusted devices',
+      subtitle: 'Review or revoke devices with TOTP',
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => TrustedDevicesScreen(apiClient: widget.apiClient),
         ),
       ),
-    );
-    if (mounted) _refresh();
-  }
+    ),
+    _MenuRow(
+      icon: Icons.fingerprint_rounded,
+      title: 'Fingerprint: ${_fingerprintAdded ? 'Added' : 'Not added'}',
+      subtitle: _fingerprintAdded
+          ? 'Tap to manage or remove fingerprint login'
+          : 'Add fingerprint login on this mobile',
+      onTap: _openQuickUnlockSettings,
+    ),
+    _MenuRow(
+      icon: Icons.pin_rounded,
+      title: 'Passcode: ${_passcodeAdded ? 'Added' : 'Not added'}',
+      subtitle: _passcodeAdded
+          ? 'Tap to change or remove your passcode'
+          : 'Add a secure 4-digit passcode',
+      onTap: _openQuickUnlockSettings,
+    ),
+  ];
 
-  Future<void> _closeSectionAndRun(
-    BuildContext sectionContext,
-    Future<void> Function() action,
-  ) async {
-    Navigator.of(sectionContext).pop();
-    await Future<void>.delayed(const Duration(milliseconds: 320));
-    if (mounted) await action();
-  }
-
-  Future<void> _openHelpSection() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (sectionContext) => _ProfileSectionScreen(
-          title: 'Help & account',
-          subtitle: 'Get support or securely end active sessions.',
-          child: _ProfileMenuPanel(
-            children: [
-              _MenuRow(
-                icon: Icons.forum_outlined,
-                title: 'Support centre',
-                subtitle: 'Get help with your TradeX account',
-                onTap: () => widget.onActionTap('Support centre'),
-              ),
-              _MenuRow(
-                icon: Icons.logout_rounded,
-                title: 'Sign out',
-                subtitle: 'Keep quick login on this trusted device',
-                danger: true,
-                onTap: () => unawaited(
-                  _closeSectionAndRun(sectionContext, widget.onLogout),
-                ),
-              ),
-              _MenuRow(
-                icon: Icons.phonelink_erase_rounded,
-                title: 'Sign out and forget this device',
-                subtitle: 'Remove fingerprint or passcode quick login',
-                danger: true,
-                onTap: () => unawaited(
-                  _closeSectionAndRun(sectionContext, widget.onForgetDevice),
-                ),
-              ),
-              _MenuRow(
-                icon: Icons.logout_rounded,
-                title: 'Sign out from all devices',
-                subtitle: 'Revoke every active TradeX session',
-                danger: true,
-                onTap: () => unawaited(
-                  _closeSectionAndRun(sectionContext, widget.onLogoutAll),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  List<Widget> _helpItems() => [
+    _MenuRow(
+      icon: Icons.forum_outlined,
+      title: 'Support centre',
+      subtitle: 'Get help with your TradeX account',
+      onTap: () => widget.onActionTap('Support centre'),
+    ),
+    _MenuRow(
+      icon: Icons.logout_rounded,
+      title: 'Sign out',
+      subtitle: 'Keep quick login on this trusted device',
+      danger: true,
+      onTap: () => unawaited(widget.onLogout()),
+    ),
+    _MenuRow(
+      icon: Icons.phonelink_erase_rounded,
+      title: 'Sign out and forget this device',
+      subtitle: 'Remove fingerprint or passcode quick login',
+      danger: true,
+      onTap: () => unawaited(widget.onForgetDevice()),
+    ),
+    _MenuRow(
+      icon: Icons.logout_rounded,
+      title: 'Sign out from all devices',
+      subtitle: 'Revoke every active TradeX session',
+      danger: true,
+      onTap: () => unawaited(widget.onLogoutAll()),
+    ),
+  ];
 
   Future<void> _chooseProfilePhoto() async {
     final email = _profileEmail;
@@ -3491,37 +3445,43 @@ class _ProfileTabState extends State<_ProfileTab> {
               onPhotoTap: _showProfilePhotoActions,
             ),
             const SizedBox(height: 20),
-            _ProfileMenuPanel(
-              children: [
-                _MenuRow(
+            _ProfileAccordionPanel(
+              sections: [
+                _ProfileAccordionSection(
+                  section: _ProfileSection.account,
                   key: const ValueKey('profile-main-account'),
                   icon: Icons.person_outline_rounded,
                   title: 'Account',
                   subtitle: 'Email, mobile number, language and appearance',
-                  onTap: () => _openAccountSection(profile),
+                  children: _accountItems(profile),
                 ),
-                _MenuRow(
+                _ProfileAccordionSection(
+                  section: _ProfileSection.withdrawal,
                   key: const ValueKey('profile-main-withdrawal'),
                   icon: Icons.account_balance_wallet_outlined,
                   title: 'Withdrawal methods',
                   subtitle: 'PayPal, Binance, USDT TRC20 and bank account',
-                  onTap: () => _openWithdrawalSection(profile),
+                  children: _withdrawalItems(profile),
                 ),
-                _MenuRow(
+                _ProfileAccordionSection(
+                  section: _ProfileSection.security,
                   key: const ValueKey('profile-main-security'),
                   icon: Icons.verified_user_rounded,
                   title: 'Security centre',
                   subtitle: 'Authenticator, trusted devices, fingerprint and passcode',
-                  onTap: () => _openSecuritySection(profile),
+                  children: _securityItems(profile),
                 ),
-                _MenuRow(
+                _ProfileAccordionSection(
+                  section: _ProfileSection.help,
                   key: const ValueKey('profile-main-help'),
                   icon: Icons.support_agent_rounded,
                   title: 'Help & account',
                   subtitle: 'Support and secure sign-out options',
-                  onTap: _openHelpSection,
+                  children: _helpItems(),
                 ),
               ],
+              expandedSection: _expandedSection,
+              onToggle: _toggleSection,
             ),
           ],
         );
@@ -3530,54 +3490,112 @@ class _ProfileTabState extends State<_ProfileTab> {
   }
 }
 
-class _ProfileSectionScreen extends StatelessWidget {
-  const _ProfileSectionScreen({
+class _ProfileAccordionSection {
+  const _ProfileAccordionSection({
+    required this.section,
+    required this.key,
+    required this.icon,
     required this.title,
     required this.subtitle,
-    required this.child,
+    required this.children,
   });
 
+  final _ProfileSection section;
+  final Key key;
+  final IconData icon;
   final String title;
   final String subtitle;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(title)),
-    body: SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
-        children: [
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodyMedium
-                ?.copyWith(color: TradeXColors.secondaryText),
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    ),
-  );
+  final List<Widget> children;
 }
 
-class _ProfileMenuPanel extends StatelessWidget {
-  const _ProfileMenuPanel({required this.children});
+class _ProfileAccordionPanel extends StatelessWidget {
+  const _ProfileAccordionPanel({
+    required this.sections,
+    required this.expandedSection,
+    required this.onToggle,
+  });
 
-  final List<Widget> children;
+  final List<_ProfileAccordionSection> sections;
+  final _ProfileSection? expandedSection;
+  final ValueChanged<_ProfileSection> onToggle;
 
   @override
   Widget build(BuildContext context) => Container(
     decoration: _panelDecoration(context),
     clipBehavior: Clip.antiAlias,
     child: Column(
-      children: List<Widget>.generate(children.length * 2 - 1, (index) {
+      children: List<Widget>.generate(sections.length * 2 - 1, (index) {
         if (index.isOdd) {
           return const Divider(height: 1, color: TradeXColors.border);
         }
-        return children[index ~/ 2];
+        final section = sections[index ~/ 2];
+        return _ProfileAccordionTile(
+          section: section,
+          expanded: expandedSection == section.section,
+          onTap: () => onToggle(section.section),
+        );
       }),
     ),
+  );
+}
+
+class _ProfileAccordionTile extends StatelessWidget {
+  const _ProfileAccordionTile({
+    required this.section,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  final _ProfileAccordionSection section;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      _MenuRow(
+        key: section.key,
+        icon: section.icon,
+        title: section.title,
+        subtitle: section.subtitle,
+        expanded: expanded,
+        onTap: onTap,
+      ),
+      AnimatedSize(
+        duration: const Duration(milliseconds: 240),
+        reverseDuration: const Duration(milliseconds: 190),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.topCenter,
+        child: expanded
+            ? Container(
+                key: ValueKey(
+                  'profile-section-${section.section.name}-options',
+                ),
+                decoration: BoxDecoration(
+                  color: TradeXColors.background.withValues(alpha: .34),
+                  border: const Border(
+                    top: BorderSide(color: TradeXColors.border),
+                  ),
+                ),
+                child: Column(
+                  children: List<Widget>.generate(
+                    section.children.length * 2 - 1,
+                    (index) {
+                      if (index.isOdd) {
+                        return const Divider(
+                          height: 1,
+                          indent: 48,
+                          color: TradeXColors.border,
+                        );
+                      }
+                      return section.children[index ~/ 2];
+                    },
+                  ),
+                ),
+              )
+            : const SizedBox.shrink(),
+      ),
+    ],
   );
 }
 
@@ -3831,46 +3849,6 @@ class _CustomerProfileHero extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _FinancialMethodsCard extends StatelessWidget {
-  const _FinancialMethodsCard({required this.profile, required this.onTap});
-
-  final _CustomerProfile profile;
-  final Future<void> Function(WithdrawalMethod) onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: _panelDecoration(context),
-      child: Column(
-        children: List.generate(profile.financialMethods.length, (index) {
-          final method = profile.financialMethods[index];
-          return Column(
-            children: [
-              _MenuRow(
-                icon: method.icon,
-                title: method.label,
-                subtitle: method.configured
-                    ? method.detail ?? 'Configured securely'
-                    : 'Not configured',
-                onTap: () => unawaited(
-                  onTap(switch (method.label) {
-                    'PayPal' => WithdrawalMethod.paypal,
-                    'Binance' => WithdrawalMethod.binance,
-                    'USDT TRC20' => WithdrawalMethod.usdtTrc20,
-                    _ => WithdrawalMethod.localBank,
-                  }),
-                ),
-              ),
-              if (index != profile.financialMethods.length - 1)
-                const Divider(height: 1, color: TradeXColors.border),
-            ],
-          );
-        }),
       ),
     );
   }
@@ -4710,6 +4688,7 @@ class _MenuRow extends StatelessWidget {
     required this.onTap,
     this.danger = false,
     this.status,
+    this.expanded,
   });
 
   final IconData icon;
@@ -4718,6 +4697,7 @@ class _MenuRow extends StatelessWidget {
   final VoidCallback? onTap;
   final bool danger;
   final Widget? status;
+  final bool? expanded;
 
   @override
   Widget build(BuildContext context) {
@@ -4766,7 +4746,21 @@ class _MenuRow extends StatelessWidget {
                 ],
               ),
             ),
-            if (onTap != null) Icon(Icons.chevron_right_rounded, color: color),
+            if (onTap != null)
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                transitionBuilder: (child, animation) => RotationTransition(
+                  turns: Tween<double>(begin: .88, end: 1).animate(animation),
+                  child: FadeTransition(opacity: animation, child: child),
+                ),
+                child: Icon(
+                  expanded == true
+                      ? Icons.keyboard_arrow_down_rounded
+                      : Icons.chevron_right_rounded,
+                  key: ValueKey(expanded == true ? 'expanded' : 'collapsed'),
+                  color: color,
+                ),
+              ),
           ],
         ),
       ),
