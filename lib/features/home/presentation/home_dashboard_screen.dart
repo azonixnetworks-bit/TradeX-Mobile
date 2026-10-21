@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -11,15 +10,23 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/tradex_api_client.dart';
+import '../../../core/platform/app_background_service.dart';
 import '../../../core/profile/local_profile_photo_store.dart';
+import '../../../core/profile/pending_financial_form_store.dart';
+import '../../../core/preferences/app_preferences.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../data/trade_ideas_repository.dart';
 import '../data/learning_repository.dart';
+import '../data/market_news_repository.dart';
 import '../../profile/presentation/trusted_devices_screen.dart';
+import '../../profile/presentation/mobile_number_details_screen.dart';
+import '../../profile/presentation/withdrawal_method_screen.dart';
 import '../../learn/data/learn_repository.dart';
 import '../../learn/presentation/learn_module.dart';
 import '../../auth/presentation/quick_unlock_settings_screen.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../catalog/models/feature_spec.dart';
+import '../../catalog/presentation/feature_catalog_screen.dart';
 
 bool _timeZoneDatabaseInitialized = false;
 
@@ -54,62 +61,180 @@ class HomeDashboardScreen extends StatefulWidget {
 }
 
 class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
-  int _selectedTab = 0;
+  late int _selectedTab;
+  late final List<Widget?> _tabPages;
 
-  void _showComingSoon(String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text('$label is coming soon.'),
-      ),
+  @override
+  void initState() {
+    super.initState();
+    _selectedTab = AppPreferences.instance.dashboardTab;
+    _tabPages = List<Widget?>.filled(5, null);
+    _tabPages[_selectedTab] = _buildTab(_selectedTab);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _restorePendingFinancialForm(),
     );
+  }
+
+  Future<void> _restorePendingFinancialForm() async {
+    try {
+      final draft = await PendingFinancialFormStore().readWithdrawal();
+      if (!mounted || draft == null) return;
+      WithdrawalMethod? method;
+      for (final candidate in WithdrawalMethod.values) {
+        if (candidate.name == draft.method) method = candidate;
+      }
+      final restoredMethod = method;
+      if (restoredMethod == null) {
+        await PendingFinancialFormStore().clearWithdrawal();
+        return;
+      }
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) return;
+      _selectTab(4);
+      final saved = await navigator.push<bool>(
+        MaterialPageRoute<bool>(
+          settings: RouteSettings(
+            name: '/profile/withdrawal/${restoredMethod.name}',
+          ),
+          builder: (_) => WithdrawalMethodScreen(
+            apiClient: widget.apiClient,
+            method: restoredMethod,
+          ),
+        ),
+      );
+      if (saved == true && mounted) {
+        setState(() => _tabPages[4] = _buildTab(4));
+      }
+    } catch (_) {
+      // Secure draft restoration is best-effort and must not block startup.
+    }
+  }
+
+  void _selectTab(int index) {
+    if (index == _selectedTab) return;
+    setState(() {
+      _selectedTab = index;
+      _tabPages[index] ??= _buildTab(index);
+    });
+    unawaited(AppPreferences.instance.setDashboardTab(index));
+  }
+
+  Widget _buildTab(int index) => switch (index) {
+    0 => _HomeContent(
+      key: const PageStorageKey('home-tab'),
+      onActionTap: _openAction,
+      onLogout: widget.onLogout,
+      apiClient: widget.apiClient,
+      tradeIdeasRepository: widget.tradeIdeasRepository,
+      learningRepository: widget.learningRepository,
+    ),
+    1 => _LearnTab(
+      key: const PageStorageKey('learn-tab'),
+      apiClient: widget.apiClient,
+    ),
+    2 => _TradeIdeasTab(
+      key: const PageStorageKey('ideas-tab'),
+      onActionTap: _openAction,
+      apiClient: widget.apiClient,
+    ),
+    3 => _AffiliateTab(
+      key: const PageStorageKey('affiliate-tab'),
+      onActionTap: _openAction,
+      apiClient: widget.apiClient,
+    ),
+    _ => _ProfileTab(
+      key: const PageStorageKey('profile-tab'),
+      onActionTap: _openAction,
+      onLogout: widget.onLogout,
+      onForgetDevice: widget.onForgetDevice,
+      onLogoutAll: widget.onLogoutAll,
+      apiClient: widget.apiClient,
+      authRepository: widget.authRepository,
+    ),
+  };
+
+  void _openAction(String label) {
+    final normalized = label.toLowerCase();
+    if (normalized == 'learning library' ||
+        normalized.startsWith('free lesson:')) {
+      _selectTab(1);
+      return;
+    }
+    if (normalized == 'trade ideas') {
+      _selectTab(2);
+      return;
+    }
+    if (normalized == 'services') {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => FeatureCatalogScreen(apiClient: widget.apiClient),
+        ),
+      );
+      return;
+    }
+    if (normalized == 'tradex content') {
+      openTradeXFeature(
+        context,
+        widget.apiClient,
+        const FeatureSpec(
+          id: 'our-channel',
+          group: 'Notifications & Support',
+          title: 'Our Channel / Videos',
+          subtitle: 'Published TradeX videos and details',
+          icon: Icons.ondemand_video_rounded,
+          endpoint: '/api/v1/our-channel/videos',
+        ),
+      );
+      return;
+    }
+
+    final id = switch (normalized) {
+      'notifications' => 'notifications',
+      'market categories' => 'market-screener',
+      'economic news' => 'economic-news',
+      'premium access' => 'products',
+      'share referral link' => 'direct-referrals',
+      'affiliate milestones' => 'qualified-sales',
+      'my referrals' => 'direct-referrals',
+      'rewards history' => 'commissions',
+      'whatsapp contact' => 'contact-number',
+      'learning language' => 'preferences',
+      'authenticator security' => 'recovery-codes',
+      'support centre' => 'help-faq',
+      _
+          when normalized.endsWith('trade ideas') ||
+              normalized.endsWith('trade idea') =>
+        'trade-idea-details',
+      _ => 'help-faq',
+    };
+    openTradeXFeature(context, widget.apiClient, featureById(id));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: TradeXColors.background,
-      body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 260),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          child: switch (_selectedTab) {
-            0 => _HomeContent(
-              key: const ValueKey('home'),
-              onActionTap: _showComingSoon,
-              onLogout: widget.onLogout,
-              apiClient: widget.apiClient,
-              tradeIdeasRepository: widget.tradeIdeasRepository,
-              learningRepository: widget.learningRepository,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(AppBackgroundService.moveToBackground());
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: SafeArea(
+          child: IndexedStack(
+            index: _selectedTab,
+            children: List<Widget>.generate(
+              5,
+              (index) => TickerMode(
+                enabled: index == _selectedTab,
+                child: _tabPages[index] ?? const SizedBox.shrink(),
+              ),
             ),
-            1 => _LearnTab(
-              key: const ValueKey('learn'),
-              apiClient: widget.apiClient,
-            ),
-            2 => _TradeIdeasTab(
-              key: const ValueKey('ideas'),
-              onActionTap: _showComingSoon,
-            ),
-            3 => _AffiliateTab(
-              key: const ValueKey('affiliate'),
-              onActionTap: _showComingSoon,
-            ),
-            _ => _ProfileTab(
-              key: const ValueKey('profile'),
-              onActionTap: _showComingSoon,
-              onLogout: widget.onLogout,
-              onForgetDevice: widget.onForgetDevice,
-              onLogoutAll: widget.onLogoutAll,
-              apiClient: widget.apiClient,
-              authRepository: widget.authRepository,
-            ),
-          },
+          ),
         ),
-      ),
-      bottomNavigationBar: _DashboardNavBar(
-        selectedIndex: _selectedTab,
-        onChanged: (index) => setState(() => _selectedTab = index),
+        bottomNavigationBar: _DashboardNavBar(
+          selectedIndex: _selectedTab,
+          onChanged: _selectTab,
+        ),
       ),
     );
   }
@@ -143,6 +268,18 @@ class _HomeContent extends StatelessWidget {
               _Header(onLogout: onLogout, onNotificationTap: onActionTap),
               const SizedBox(height: 14),
               _SessionClockCard(apiClient: apiClient),
+              const SizedBox(height: 20),
+              _SectionTitle(
+                icon: Icons.newspaper_rounded,
+                title: 'Market News',
+                action: 'View all',
+                onAction: () => onActionTap('Economic News'),
+              ),
+              const SizedBox(height: 10),
+              _MarketNewsSection(
+                repository: MarketNewsRepository(apiClient),
+                onOpenAll: () => onActionTap('Economic News'),
+              ),
               const SizedBox(height: 20),
               _SectionTitle(
                 icon: Icons.bar_chart_rounded,
@@ -219,9 +356,9 @@ class _Header extends StatelessWidget {
           icon: Badge(
             smallSize: 9,
             backgroundColor: TradeXColors.goldBright,
-            child: const Icon(
+            child: Icon(
               Icons.notifications_none_rounded,
-              color: TradeXColors.primaryText,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -230,8 +367,10 @@ class _Header extends StatelessWidget {
           icon: const Icon(Icons.more_horiz_rounded, color: TradeXColors.gold),
           onSelected: (value) async {
             if (value == 'logout') await onLogout();
+            if (value == 'services') onNotificationTap('Services');
           },
           itemBuilder: (context) => const [
+            PopupMenuItem(value: 'services', child: Text('TradeX services')),
             PopupMenuItem(value: 'logout', child: Text('Sign out')),
           ],
         ),
@@ -254,7 +393,6 @@ class _SessionClockCardState extends State<_SessionClockCard>
   static const _featuredNames = {'Sydney', 'Tokyo', 'London', 'New York'};
 
   List<_MarketSession> _dialSessions = const [];
-  String _timezone = 'Local time';
   Timer? _refreshTimer;
   Timer? _clockTimer;
   DateTime _now = DateTime.now();
@@ -331,14 +469,11 @@ class _SessionClockCardState extends State<_SessionClockCard>
           .toList(growable: false);
 
       if (mounted && sessions.isNotEmpty) {
-        setState(() {
-          _timezone = timezone;
-          _dialSessions = sessions;
-        });
+        setState(() => _dialSessions = sessions);
       }
     } catch (_) {
-      // The device clock remains useful offline; the next refresh reconnects
-      // to Laravel and refreshes the authoritative session states.
+      // Local timezone clocks remain available offline; the next refresh
+      // reconnects to Laravel for authoritative open/closed session states.
     }
   }
 
@@ -352,187 +487,98 @@ class _SessionClockCardState extends State<_SessionClockCard>
         .where((session) => _featuredNames.contains(session.name))
         .toList(growable: false);
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: _panelDecoration,
+      key: const ValueKey('world-market-sessions'),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+      decoration: _panelDecoration(context),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               const Icon(
-                Icons.phone_android_rounded,
+                Icons.public_rounded,
                 color: TradeXColors.goldBright,
                 size: 19,
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${_twoDigits(now.hour)}:${_twoDigits(now.minute)}:${_twoDigits(now.second)}',
-                      style: const TextStyle(
-                        color: TradeXColors.primaryText,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: .4,
-                      ),
-                    ),
-                    Text(
-                      _timezone == 'UTC' ? 'Your device time' : _timezone,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: TradeXColors.secondaryText,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+              const Expanded(
+                child: Text(
+                  'World Market Sessions',
+                  style: TextStyle(
+                    color: TradeXColors.primaryText,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               const _LivePill(),
             ],
           ),
-          const SizedBox(height: 15),
-          AspectRatio(
-            aspectRatio: 1,
-            child: RepaintBoundary(
-              child: CustomPaint(
-                painter: _MarketClockDialPainter(
-                  sessions: dialSessions,
-                  now: now,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          const _ClockLegend(),
-          const SizedBox(height: 8),
-          ...sessions.map((session) => _SessionRow(session: session)),
-          const SizedBox(height: 16),
-          _WorldClockGrid(now: now, deviceTimezone: _timezone),
+          const SizedBox(height: 11),
+          _WorldClockGrid(now: now, sessions: sessions),
         ],
       ),
     );
   }
 
   List<_MarketSession> _fallbackSessions(DateTime utcNow) => [
-    _MarketSession.fromFallback(
-      'Sydney',
-      '22:00 - 07:00 UTC',
-      22,
-      7,
-      utcNow.hour,
-    ),
-    _MarketSession.fromFallback(
-      'Tokyo',
-      '00:00 - 09:00 UTC',
-      0,
-      9,
-      utcNow.hour,
-    ),
-    _MarketSession.fromFallback(
-      'London',
-      '08:00 - 17:00 UTC',
-      8,
-      17,
-      utcNow.hour,
-    ),
-    _MarketSession.fromFallback(
-      'New York',
-      '13:00 - 22:00 UTC',
-      13,
-      22,
-      utcNow.hour,
-    ),
+    _MarketSession.fromFallback('Sydney', 22, 7, utcNow.hour),
+    _MarketSession.fromFallback('Tokyo', 0, 9, utcNow.hour),
+    _MarketSession.fromFallback('London', 8, 17, utcNow.hour),
+    _MarketSession.fromFallback('New York', 13, 22, utcNow.hour),
   ];
-
-  String _twoDigits(int value) => value.toString().padLeft(2, '0');
-}
-
-class _SessionRow extends StatelessWidget {
-  const _SessionRow({required this.session});
-
-  final _MarketSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    final stateColor = session.isOpen
-        ? TradeXColors.success
-        : TradeXColors.tertiaryText;
-    return Padding(
-      padding: const EdgeInsets.only(top: 9),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: stateColor,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Text(
-              session.name,
-              style: const TextStyle(
-                color: TradeXColors.primaryText,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Text(
-            session.timeText,
-            style: const TextStyle(
-              color: TradeXColors.secondaryText,
-              fontSize: 11,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            session.isOpen ? 'OPEN' : 'CLOSED',
-            style: TextStyle(
-              color: stateColor,
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
-              letterSpacing: .5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _WorldClockGrid extends StatelessWidget {
-  const _WorldClockGrid({required this.now, required this.deviceTimezone});
+  const _WorldClockGrid({required this.now, required this.sessions});
 
   final DateTime now;
-  final String deviceTimezone;
+  final List<_MarketSession> sessions;
 
   @override
   Widget build(BuildContext context) {
+    _MarketSession? sessionFor(String name) {
+      for (final session in sessions) {
+        if (session.name.toLowerCase() == name.toLowerCase()) return session;
+      }
+      return null;
+    }
+
+    _WorldClock clock(
+      String label,
+      String fallbackTimezone,
+      String fallbackHours,
+    ) {
+      final session = sessionFor(label);
+      final timezone = session?.timezone ?? fallbackTimezone;
+      final hours = session == null
+          ? fallbackHours
+          : '${session.openLocal}–${session.closeLocal}';
+      return _WorldClock(
+        label: label,
+        timezone: timezone,
+        time: _inZone(timezone),
+        hours: hours,
+        session: session,
+      );
+    }
+
     final clocks = [
-      _WorldClock(
-        'New Zealand',
-        'Pacific/Auckland',
-        _inZone('Pacific/Auckland'),
-      ),
-      _WorldClock('Device Time', deviceTimezone, now),
-      _WorldClock('London', 'Europe/London', _inZone('Europe/London')),
-      _WorldClock('New York', 'America/New_York', _inZone('America/New_York')),
+      clock('London', 'Europe/London', '08:00–17:00'),
+      clock('New York', 'America/New_York', '08:00–17:00'),
+      clock('Tokyo', 'Asia/Tokyo', '09:00–18:00'),
+      clock('Sydney', 'Australia/Sydney', '08:00–17:00'),
     ];
     return SizedBox(
-      height: 172,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(right: 8),
-        itemCount: clocks.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) =>
-            SizedBox(width: 142, child: _WorldClockTile(clock: clocks[index])),
+      height: 128,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var index = 0; index < clocks.length; index++) ...[
+            if (index > 0) const SizedBox(width: 5),
+            Expanded(child: _WorldClockTile(clock: clocks[index])),
+          ],
+        ],
       ),
     );
   }
@@ -547,11 +593,19 @@ class _WorldClockGrid extends StatelessWidget {
 }
 
 class _WorldClock {
-  const _WorldClock(this.label, this.timezone, this.time);
+  const _WorldClock({
+    required this.label,
+    required this.timezone,
+    required this.time,
+    required this.hours,
+    required this.session,
+  });
 
   final String label;
   final String timezone;
   final DateTime time;
+  final String hours;
+  final _MarketSession? session;
 }
 
 class _WorldClockTile extends StatelessWidget {
@@ -560,486 +614,570 @@ class _WorldClockTile extends StatelessWidget {
   final _WorldClock clock;
 
   @override
+  Widget build(BuildContext context) {
+    final isOpen = clock.session?.isOpen ?? false;
+    final stateColor = isOpen ? TradeXColors.success : const Color(0xFFFF6666);
+    return Container(
+      height: 128,
+      padding: const EdgeInsets.fromLTRB(6, 8, 6, 0),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A0E0D),
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: const Color(0xFF2B302D)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            clock.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: TradeXColors.primaryText,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            _digitalTime(clock.time),
+            maxLines: 1,
+            style: const TextStyle(
+              color: TradeXColors.primaryText,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Container(
+                width: 5,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: stateColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 3),
+              Expanded(
+                child: Text(
+                  isOpen ? 'Open' : 'Closed',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: stateColor,
+                    fontSize: 7,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${clock.hours} ${clock.time.timeZoneName}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: TradeXColors.tertiaryText,
+              fontSize: 6.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          SizedBox(
+            height: 42,
+            width: double.infinity,
+            child: CustomPaint(painter: _CitySkylinePainter(clock.label)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _digitalTime(DateTime time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    final second = time.second.toString().padLeft(2, '0');
+    return '$hour:$minute:$second';
+  }
+}
+
+class _CitySkylinePainter extends CustomPainter {
+  const _CitySkylinePainter(this.city);
+
+  final String city;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final glow = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0x00FFC83D), Color(0x66D4AF37)],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, glow);
+
+    final paint = Paint()..color = const Color(0xFFB78522);
+    final dark = Paint()..color = const Color(0xFF6F5010);
+    final w = size.width;
+    final h = size.height;
+    canvas.drawRect(Rect.fromLTWH(0, h - 3, w, 3), dark);
+
+    switch (city) {
+      case 'London':
+        canvas.drawRect(
+          Rect.fromLTWH(w * .08, h * .48, w * .16, h * .45),
+          paint,
+        );
+        canvas.drawRect(
+          Rect.fromLTWH(w * .27, h * .27, w * .16, h * .66),
+          paint,
+        );
+        canvas.drawRect(
+          Rect.fromLTWH(w * .32, h * .10, w * .06, h * .2),
+          paint,
+        );
+        canvas.drawCircle(Offset(w * .35, h * .47), w * .035, dark);
+        canvas.drawRect(
+          Rect.fromLTWH(w * .47, h * .58, w * .18, h * .35),
+          paint,
+        );
+        canvas.drawRect(Rect.fromLTWH(w * .69, h * .4, w * .2, h * .53), paint);
+      case 'New York':
+        final widths = [.12, .14, .11, .17, .12, .15];
+        final tops = [.5, .28, .43, .12, .38, .22];
+        var x = w * .03;
+        for (var index = 0; index < widths.length; index++) {
+          final buildingWidth = w * widths[index];
+          canvas.drawRect(
+            Rect.fromLTWH(
+              x,
+              h * tops[index],
+              buildingWidth,
+              h * (1 - tops[index]),
+            ),
+            index.isEven ? paint : dark,
+          );
+          x += buildingWidth + w * .025;
+        }
+        canvas.drawRect(
+          Rect.fromLTWH(w * .57, h * .03, w * .025, h * .14),
+          paint,
+        );
+      case 'Tokyo':
+        final mountain = Path()
+          ..moveTo(0, h * .87)
+          ..lineTo(w * .28, h * .48)
+          ..lineTo(w * .52, h * .87)
+          ..close();
+        canvas.drawPath(mountain, dark);
+        final tower = Path()
+          ..moveTo(w * .58, h * .93)
+          ..lineTo(w * .7, h * .15)
+          ..lineTo(w * .82, h * .93)
+          ..close();
+        canvas.drawPath(tower, paint);
+        canvas.drawRect(
+          Rect.fromLTWH(w * .62, h * .49, w * .16, h * .04),
+          dark,
+        );
+        canvas.drawRect(
+          Rect.fromLTWH(w * .59, h * .69, w * .22, h * .04),
+          dark,
+        );
+      default:
+        final roof = Path()
+          ..moveTo(w * .04, h * .86)
+          ..quadraticBezierTo(w * .22, h * .28, w * .48, h * .78)
+          ..quadraticBezierTo(w * .62, h * .22, w * .92, h * .82)
+          ..lineTo(w * .92, h * .92)
+          ..lineTo(w * .04, h * .92)
+          ..close();
+        canvas.drawPath(roof, paint);
+        canvas.drawLine(
+          Offset(w * .5, h * .15),
+          Offset(w * .5, h * .92),
+          Paint()
+            ..color = const Color(0xFFFFD65A)
+            ..strokeWidth = 1,
+        );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CitySkylinePainter oldDelegate) =>
+      oldDelegate.city != city;
+}
+
+class _MarketNewsSection extends StatefulWidget {
+  const _MarketNewsSection({required this.repository, required this.onOpenAll});
+
+  final MarketNewsRepository repository;
+  final VoidCallback onOpenAll;
+
+  @override
+  State<_MarketNewsSection> createState() => _MarketNewsSectionState();
+}
+
+class _MarketNewsSectionState extends State<_MarketNewsSection> {
+  late Future<List<MarketNewsItem>> _news;
+
+  @override
+  void initState() {
+    super.initState();
+    _news = widget.repository.latest();
+  }
+
+  void _retry() => setState(() => _news = widget.repository.latest());
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<MarketNewsItem>>(
+      future: _news,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Container(
+            key: const ValueKey('market-news-section'),
+            height: 178,
+            decoration: _panelDecoration(context),
+            alignment: Alignment.center,
+            child: const CircularProgressIndicator(
+              color: TradeXColors.goldBright,
+              strokeWidth: 2.4,
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return _MarketNewsMessage(
+            key: const ValueKey('market-news-section'),
+            icon: Icons.cloud_off_rounded,
+            message: 'Market news is temporarily unavailable.',
+            action: 'Retry',
+            onTap: _retry,
+          );
+        }
+
+        final items = snapshot.data ?? const <MarketNewsItem>[];
+        if (items.isEmpty) {
+          return _MarketNewsMessage(
+            key: const ValueKey('market-news-section'),
+            icon: Icons.event_available_rounded,
+            message: 'No published market updates right now.',
+            action: 'Open calendar',
+            onTap: widget.onOpenAll,
+          );
+        }
+
+        final visible = items.take(3).toList(growable: false);
+        if (visible.length == 1) {
+          return SizedBox(
+            key: const ValueKey('market-news-section'),
+            height: 172,
+            child: _MarketNewsCard(
+              item: visible.first,
+              featured: true,
+              artworkIndex: 0,
+              onTap: widget.onOpenAll,
+            ),
+          );
+        }
+
+        return SizedBox(
+          key: const ValueKey('market-news-section'),
+          height: 190,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: 6,
+                child: _MarketNewsCard(
+                  item: visible.first,
+                  featured: true,
+                  artworkIndex: 0,
+                  onTap: widget.onOpenAll,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 5,
+                child: Column(
+                  children: [
+                    for (var index = 1; index < visible.length; index++) ...[
+                      if (index > 1) const SizedBox(height: 8),
+                      Expanded(
+                        child: _MarketNewsCard(
+                          item: visible[index],
+                          featured: false,
+                          artworkIndex: index,
+                          onTap: widget.onOpenAll,
+                        ),
+                      ),
+                    ],
+                    if (visible.length == 2) const Spacer(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MarketNewsMessage extends StatelessWidget {
+  const _MarketNewsMessage({
+    super.key,
+    required this.icon,
+    required this.message,
+    required this.action,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String message;
+  final String action;
+  final VoidCallback onTap;
+
+  @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
-    decoration: BoxDecoration(
-      color: const Color(0xFF081B2B),
-      borderRadius: BorderRadius.circular(13),
-      border: Border.all(color: const Color(0xFF1A3850)),
-    ),
-    child: Column(
+    height: 142,
+    padding: const EdgeInsets.all(16),
+    decoration: _panelDecoration(context),
+    child: Row(
       children: [
+        Icon(icon, color: TradeXColors.goldBright, size: 28),
+        const SizedBox(width: 12),
         Expanded(
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: CustomPaint(painter: _AnalogClockPainter(time: clock.time)),
+          child: Text(
+            message,
+            style: const TextStyle(
+              color: TradeXColors.secondaryText,
+              height: 1.35,
+            ),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          clock.label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: TradeXColors.primaryText,
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          _digitalTime(clock.time),
-          style: const TextStyle(
-            color: TradeXColors.success,
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-            fontFeatures: [FontFeature.tabularFigures()],
-          ),
-        ),
-        Text(
-          clock.timezone,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: TradeXColors.tertiaryText, fontSize: 7),
-        ),
+        TextButton(onPressed: onTap, child: Text(action)),
       ],
     ),
   );
-
-  String _digitalTime(DateTime time) {
-    final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
-    final minute = time.minute.toString().padLeft(2, '0');
-    final second = time.second.toString().padLeft(2, '0');
-    return '$hour:$minute:$second ${time.hour >= 12 ? 'PM' : 'AM'}';
-  }
 }
 
-class _AnalogClockPainter extends CustomPainter {
-  const _AnalogClockPainter({required this.time});
+class _MarketNewsCard extends StatelessWidget {
+  const _MarketNewsCard({
+    required this.item,
+    required this.featured,
+    required this.artworkIndex,
+    required this.onTap,
+  });
 
-  final DateTime time;
+  final MarketNewsItem item;
+  final bool featured;
+  final int artworkIndex;
+  final VoidCallback onTap;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.shortestSide / 2;
-    canvas.drawCircle(
-      center,
-      radius * .93,
-      Paint()..color = const Color(0xFFF9FAFB),
-    );
-    canvas.drawCircle(
-      center,
-      radius * .93,
-      Paint()
-        ..color = const Color(0xFF122237)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = math.max(1.2, radius * .035),
-    );
-    for (var hour = 1; hour <= 12; hour++) {
-      final radians = hour * math.pi / 6 - math.pi / 2;
-      final position = Offset(
-        center.dx + radius * .7 * math.cos(radians),
-        center.dy + radius * .7 * math.sin(radians),
-      );
-      final painter = TextPainter(
-        text: TextSpan(
-          text: '$hour',
-          style: TextStyle(
-            color: const Color(0xFF101827),
-            fontSize: math.max(6, radius * .16),
-            fontWeight: FontWeight.w800,
+  Widget build(BuildContext context) {
+    final impactColor = switch (item.impact.toUpperCase()) {
+      'HIGH' => const Color(0xFFFF5D5D),
+      'MEDIUM' => TradeXColors.goldBright,
+      _ => TradeXColors.success,
+    };
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0A0E0D),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFF2B302D)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(13),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CustomPaint(painter: _MarketNewsArtworkPainter(artworkIndex)),
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0x22000000), Color(0xF2050706)],
+                      stops: [.22, .82],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(featured ? 11 : 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: impactColor.withValues(alpha: .16),
+                              borderRadius: BorderRadius.circular(99),
+                              border: Border.all(
+                                color: impactColor.withValues(alpha: .55),
+                              ),
+                            ),
+                            child: Text(
+                              item.isLiveUpdate ? 'LIVE' : item.impact,
+                              style: TextStyle(
+                                color: impactColor,
+                                fontSize: 7,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          if (item.currency.isNotEmpty)
+                            Text(
+                              item.currency,
+                              maxLines: 1,
+                              style: const TextStyle(
+                                color: TradeXColors.goldBright,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Text(
+                        item.title,
+                        maxLines: featured ? 3 : 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: TradeXColors.primaryText,
+                          fontSize: featured ? 13 : 9.5,
+                          height: 1.12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      SizedBox(height: featured ? 5 : 3),
+                      if (featured)
+                        Text(
+                          item.summary,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: TradeXColors.secondaryText,
+                            fontSize: 9,
+                            height: 1.25,
+                          ),
+                        ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _marketNewsTime(item),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: TradeXColors.tertiaryText,
+                          fontSize: 7.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      painter.paint(
-        canvas,
-        position - Offset(painter.width / 2, painter.height / 2),
-      );
+      ),
+    );
+  }
+
+  String _marketNewsTime(MarketNewsItem item) {
+    final timestamp = item.occurredAt;
+    if (timestamp == null) {
+      return item.isLiveUpdate ? 'Live update' : 'Scheduled';
     }
-    _drawHand(
-      canvas,
-      center,
-      radius * .44,
-      ((time.hour % 12) + time.minute / 60) * 30 - 90,
-      const Color(0xFF172238),
-      math.max(2.2, radius * .09),
-    );
-    _drawHand(
-      canvas,
-      center,
-      radius * .62,
-      (time.minute + time.second / 60) * 6 - 90,
-      const Color(0xFF172238),
-      math.max(1.6, radius * .055),
-    );
-    _drawHand(
-      canvas,
-      center,
-      radius * .7,
-      (time.second * 6 - 90).toDouble(),
-      const Color(0xFFFF4247),
-      math.max(.8, radius * .02),
-    );
-    canvas.drawCircle(
-      center,
-      math.max(2.3, radius * .075),
-      Paint()..color = const Color(0xFFFF4247),
-    );
+    final local = timestamp.toLocal();
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    final now = DateTime.now();
+    final sameDay =
+        local.year == now.year &&
+        local.month == now.month &&
+        local.day == now.day;
+    if (sameDay) return 'Today • $hour:$minute';
+    return '${local.day.toString().padLeft(2, '0')}/'
+        '${local.month.toString().padLeft(2, '0')} • $hour:$minute';
   }
-
-  void _drawHand(
-    Canvas canvas,
-    Offset center,
-    double length,
-    double degrees,
-    Color color,
-    double width,
-  ) {
-    final radians = degrees * math.pi / 180;
-    final endpoint = Offset(
-      center.dx + length * math.cos(radians),
-      center.dy + length * math.sin(radians),
-    );
-    canvas.drawLine(
-      center,
-      endpoint,
-      Paint()
-        ..color = color
-        ..strokeWidth = width
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _AnalogClockPainter oldDelegate) => true;
 }
 
-class _ClockLegend extends StatelessWidget {
-  const _ClockLegend();
+class _MarketNewsArtworkPainter extends CustomPainter {
+  const _MarketNewsArtworkPainter(this.variant);
 
-  @override
-  Widget build(BuildContext context) => const Wrap(
-    alignment: WrapAlignment.center,
-    spacing: 14,
-    runSpacing: 5,
-    children: [
-      _LegendItem(color: Color(0xFFFF7A00), label: 'Session window'),
-      _LegendItem(color: TradeXColors.success, label: 'Open now'),
-      _LegendItem(color: Color(0xFFDCE8F2), label: 'Device time'),
-    ],
-  );
-}
-
-class _LegendItem extends StatelessWidget {
-  const _LegendItem({required this.color, required this.label});
-
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      ),
-      const SizedBox(width: 5),
-      Text(
-        label,
-        style: const TextStyle(
-          color: TradeXColors.secondaryText,
-          fontSize: 9,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    ],
-  );
-}
-
-class _MarketClockDialPainter extends CustomPainter {
-  const _MarketClockDialPainter({required this.sessions, required this.now});
-
-  final List<_MarketSession> sessions;
-  final DateTime now;
-
-  static const _orange = Color(0xFFFF7A00);
-  static const _teal = Color(0xFF20C7A1);
-  static const _dialBackground = Color(0xFF06182A);
-  static const _ring = Color(0xFF1D3042);
+  final int variant;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.shortestSide / 2;
-    final outer = radius * .94;
+    final background = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: variant.isEven
+            ? const [Color(0xFF152018), Color(0xFF070A08)]
+            : const [Color(0xFF261A08), Color(0xFF090806)],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, background);
 
-    canvas.drawCircle(center, outer, Paint()..color = _dialBackground);
-    canvas.drawCircle(
-      center,
-      outer,
-      Paint()
-        ..color = const Color(0xFF2A4054)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2,
-    );
-    canvas.drawCircle(
-      center,
-      radius * .83,
-      Paint()
-        ..color = const Color(0xFF1B2D3E)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 4,
-    );
-
-    _drawTicks(canvas, center, radius);
-    _drawSessionTracks(canvas, center, radius);
-    _drawClockHands(canvas, center, radius);
-  }
-
-  void _drawTicks(Canvas canvas, Offset center, double radius) {
-    for (var hour = 0; hour < 24; hour++) {
-      final minute = hour * 60.0;
-      final major = hour % 6 == 0;
-      final inner = _polar(center, major ? radius * .84 : radius * .87, minute);
-      final outer = _polar(center, radius * .92, minute);
-      canvas.drawLine(
-        inner,
-        outer,
-        Paint()
-          ..color = major ? _orange : const Color(0xFF587083)
-          ..strokeWidth = major ? 1.8 : .75,
-      );
-
-      final labelPoint = _polar(center, radius * .8, minute);
-      _text(
-        canvas,
-        hour == 0 ? '24' : hour.toString().padLeft(2, '0'),
-        labelPoint,
-        color: major ? _orange : const Color(0xFFD9E4EF),
-        fontSize: major ? 10 : 8,
-        weight: major ? FontWeight.w900 : FontWeight.w600,
-      );
+    final grid = Paint()
+      ..color = TradeXColors.gold.withValues(alpha: .12)
+      ..strokeWidth = .6;
+    for (var x = 0.0; x < size.width; x += 18) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
+    }
+    for (var y = 0.0; y < size.height; y += 18) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
     }
 
-    for (var minute = 15; minute < 1440; minute += 15) {
-      if (minute % 60 == 0) continue;
-      final inner = _polar(center, radius * .9, minute.toDouble());
-      final outer = _polar(center, radius * .92, minute.toDouble());
-      canvas.drawLine(
-        inner,
-        outer,
-        Paint()
-          ..color = const Color(0xFF395064)
-          ..strokeWidth = .55,
+    final chart = Path()..moveTo(0, size.height * .58);
+    final points = variant % 3 == 0
+        ? const [.56, .47, .52, .33, .38, .19, .27]
+        : variant % 3 == 1
+        ? const [.31, .42, .35, .48, .29, .21, .25]
+        : const [.48, .38, .43, .26, .31, .18, .12];
+    for (var index = 0; index < points.length; index++) {
+      chart.lineTo(
+        size.width * index / (points.length - 1),
+        size.height * points[index],
       );
     }
-  }
-
-  void _drawSessionTracks(Canvas canvas, Offset center, double radius) {
-    if (sessions.isEmpty) return;
-    final outerTrack = radius * .75;
-    const innerTrackFactor = .36;
-    final available = outerTrack - radius * innerTrackFactor;
-    final step = math.min(radius * .06, available / sessions.length);
-
-    for (var index = 0; index < sessions.length; index++) {
-      final session = sessions[index];
-      final trackRadius = outerTrack - (index * step);
-      if (trackRadius < radius * .34) break;
-      final track = Rect.fromCircle(center: center, radius: trackRadius);
-      canvas.drawArc(
-        track,
-        0,
-        math.pi * 2,
-        false,
-        Paint()
-          ..color = _ring
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = math.max(4, radius * .022),
-      );
-
-      for (final segment in session.dialSegments) {
-        final sweep = _sweep(segment);
-        if (sweep <= 0) continue;
-        final start = _radians(segment.startMinute);
-        if (session.isOpen) {
-          canvas.drawArc(
-            track,
-            start,
-            sweep,
-            false,
-            Paint()
-              ..color = _teal.withValues(alpha: .38)
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = math.max(8, radius * .052)
-              ..strokeCap = StrokeCap.round,
-          );
-        }
-        canvas.drawArc(
-          track,
-          start,
-          sweep,
-          false,
-          Paint()
-            ..color = _orange
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = math.max(4.5, radius * .029)
-            ..strokeCap = StrokeCap.round,
-        );
-
-        final marker = _polar(center, trackRadius, segment.endMinute % 1440);
-        canvas.drawCircle(
-          marker,
-          session.isOpen ? math.max(2.8, radius * .015) : 2,
-          Paint()..color = session.isOpen ? _teal : const Color(0xFF8BA1B6),
-        );
-      }
-
-      if (session.dialSegments.isNotEmpty && radius > 120) {
-        final segment = session.dialSegments.first;
-        final span = segment.endMinute - segment.startMinute;
-        if (span >= 150) {
-          final midpoint = segment.startMinute + span / 2;
-          final labelPoint = _polar(center, trackRadius, midpoint);
-          _text(
-            canvas,
-            session.name.toUpperCase(),
-            labelPoint,
-            color: const Color(0xFF071421),
-            fontSize: 6.5,
-            weight: FontWeight.w900,
-            rotation: _labelRotation(midpoint),
-          );
-        }
-      }
-    }
-  }
-
-  void _drawClockHands(Canvas canvas, Offset center, double radius) {
-    final minuteOfDay = now.hour * 60 + now.minute + now.second / 60;
-    final pointer = _polar(center, radius * .78, minuteOfDay);
-    canvas.drawLine(
-      center,
-      pointer,
+    canvas.drawPath(
+      chart,
       Paint()
-        ..color = _teal
-        ..strokeWidth = 1.7
-        ..strokeCap = StrokeCap.round,
-    );
-
-    final hourAngle = ((now.hour % 12) + now.minute / 60) * 30 - 90;
-    final minuteAngle = (now.minute + now.second / 60) * 6 - 90;
-    final secondAngle = (now.second * 6 - 90).toDouble();
-    _hand(
-      canvas,
-      center,
-      radius * .31,
-      hourAngle,
-      const Color(0xFFDCE8F2),
-      5.0,
-    );
-    _hand(
-      canvas,
-      center,
-      radius * .43,
-      minuteAngle,
-      const Color(0xFF8FA5BA),
-      3.2,
-    );
-    _hand(canvas, center, radius * .51, secondAngle, _orange, 1.4);
-    canvas.drawCircle(
-      center,
-      radius * .04,
-      Paint()..color = const Color(0xFF0B2236),
-    );
-    canvas.drawCircle(
-      center,
-      radius * .04,
-      Paint()
-        ..color = _orange
+        ..color = TradeXColors.goldBright.withValues(alpha: .82)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.8,
+        ..strokeWidth = 1.8
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
     );
     canvas.drawCircle(
-      center,
-      radius * .012,
-      Paint()..color = const Color(0xFFDCE8F2),
+      Offset(size.width * .78, size.height * .26),
+      size.shortestSide * .12,
+      Paint()..color = TradeXColors.gold.withValues(alpha: .18),
     );
-  }
-
-  void _hand(
-    Canvas canvas,
-    Offset center,
-    double length,
-    double degrees,
-    Color color,
-    double width,
-  ) {
-    final radians = degrees * math.pi / 180;
-    final target = Offset(
-      center.dx + length * math.cos(radians),
-      center.dy + length * math.sin(radians),
-    );
-    canvas.drawLine(
-      center,
-      target,
-      Paint()
-        ..color = color
-        ..strokeWidth = width
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  Offset _polar(Offset center, double radius, double minute) {
-    final radians = _radians(minute);
-    return Offset(
-      center.dx + radius * math.cos(radians),
-      center.dy + radius * math.sin(radians),
-    );
-  }
-
-  double _radians(double minute) => (minute / 1440 * math.pi * 2) - math.pi / 2;
-
-  double _sweep(_MarketDialSegment segment) => math.max(
-    .001,
-    (segment.endMinute - segment.startMinute) / 1440 * math.pi * 2,
-  );
-
-  double _labelRotation(double minute) {
-    var rotation = minute / 1440 * math.pi * 2;
-    if (rotation > math.pi / 2 && rotation < math.pi * 1.5) rotation += math.pi;
-    return rotation;
-  }
-
-  void _text(
-    Canvas canvas,
-    String text,
-    Offset center, {
-    required Color color,
-    required double fontSize,
-    required FontWeight weight,
-    double? rotation,
-  }) {
-    final painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(color: color, fontSize: fontSize, fontWeight: weight),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    if (rotation != null) canvas.rotate(rotation);
-    painter.paint(canvas, Offset(-painter.width / 2, -painter.height / 2));
-    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant _MarketClockDialPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _MarketNewsArtworkPainter oldDelegate) =>
+      oldDelegate.variant != variant;
 }
 
 class _ContinueLearningSection extends StatefulWidget {
@@ -1132,7 +1270,7 @@ class _PremiumLockedLearningCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    decoration: _panelDecoration,
+    decoration: _panelDecoration(context),
     child: Stack(
       alignment: Alignment.center,
       children: [
@@ -1212,7 +1350,7 @@ class _PremiumContinueLearningCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: Ink(
         padding: const EdgeInsets.all(12),
-        decoration: _panelDecoration,
+        decoration: _panelDecoration(context),
         child: Row(
           children: [
             _CourseThumbnail(
@@ -1441,7 +1579,7 @@ class _NoTradeIdeasCard extends StatelessWidget {
     child: Ink(
       height: 146,
       padding: const EdgeInsets.all(18),
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: const Row(
         children: [
           Icon(
@@ -1503,7 +1641,7 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
     return Container(
       width: 306,
       padding: const EdgeInsets.all(12),
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1972,7 +2110,7 @@ class _LatestContentCardState extends State<_LatestContentCard> {
       if (videos.isEmpty) {
         return Container(
           padding: const EdgeInsets.all(18),
-          decoration: _panelDecoration,
+          decoration: _panelDecoration(context),
           child: const Row(
             children: [
               Icon(
@@ -2033,7 +2171,7 @@ class _LatestVideoCard extends StatelessWidget {
     borderRadius: BorderRadius.circular(20),
     child: Ink(
       padding: const EdgeInsets.all(12),
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: Row(
         children: [
           _YoutubeThumbnail(video: video),
@@ -2297,91 +2435,304 @@ class _LearnTab extends StatelessWidget {
 }
 
 class _TradeIdeasTab extends StatelessWidget {
-  const _TradeIdeasTab({super.key, required this.onActionTap});
+  const _TradeIdeasTab({
+    super.key,
+    required this.onActionTap,
+    required this.apiClient,
+  });
 
   final ValueChanged<String> onActionTap;
+  final TradeXApiClient apiClient;
 
   @override
   Widget build(BuildContext context) {
-    return _TabScrollView(
+    return _EntitlementAwareTab(
+      apiClient: apiClient,
       title: 'Trade Ideas',
-      subtitle: 'Educational market ideas. Always manage your own risk.',
-      children: [
-        const _RiskNotice(),
-        const SizedBox(height: 16),
-        _MarketFilterBar(onActionTap: onActionTap),
-        const SizedBox(height: 15),
-        _ExpandedIdeaCard(
-          symbol: 'XAUUSD',
-          market: 'GOLD',
-          direction: 'BUY',
-          entry: '2340 - 2345',
-          target: '2360 / 2375',
-          stop: '2320',
-          status: 'ACTIVE',
-          isPositive: true,
-          onTap: () => onActionTap('XAUUSD trade idea'),
+      introduction: 'Explore TradeX market-analysis tools. Protected prices, levels, charts and full analysis are requested only after the server confirms your membership.',
+      protectedFeatures: [featureById('trade-idea-details')],
+    );
+  }
+}
+
+class _AffiliateTab extends StatelessWidget {
+  const _AffiliateTab({
+    super.key,
+    required this.onActionTap,
+    required this.apiClient,
+  });
+
+  final ValueChanged<String> onActionTap;
+  final TradeXApiClient apiClient;
+
+  @override
+  Widget build(BuildContext context) {
+    return _EntitlementAwareTab(
+      apiClient: apiClient,
+      title: 'Affiliate Centre',
+      introduction: 'Share your TradeX referral after activation, then follow direct referrals, qualified sales, progressive stages and verified commission records.',
+      protectedFeatures: const [
+        FeatureSpec(
+          id: 'affiliate-overview',
+          group: 'Affiliate & Referrals',
+          title: 'Affiliate Overview',
+          subtitle: 'Verified referral progress and current stage',
+          icon: Icons.hub_rounded,
+          endpoint: '/api/v1/affiliate/overview',
         ),
-        const SizedBox(height: 12),
-        _ExpandedIdeaCard(
-          symbol: 'BTCUSD',
-          market: 'CRYPTO',
-          direction: 'SELL',
-          entry: '67,950 - 68,300',
-          target: '66,800 / 66,200',
-          stop: '68,800',
-          status: 'WATCHING',
-          isPositive: false,
-          onTap: () => onActionTap('BTCUSD trade idea'),
+        FeatureSpec(
+          id: 'direct-referrals',
+          group: 'Affiliate & Referrals',
+          title: 'Direct Referrals',
+          subtitle: 'Your authorized direct referral records',
+          icon: Icons.people_alt_rounded,
+          endpoint: '/api/v1/affiliate/referrals',
         ),
-        const SizedBox(height: 12),
-        _ExpandedIdeaCard(
-          symbol: 'EURUSD',
-          market: 'FOREX',
-          direction: 'BUY',
-          entry: '1.0820 - 1.0830',
-          target: '1.0880 / 1.0910',
-          stop: '1.0790',
-          status: 'ACTIVE',
-          isPositive: true,
-          onTap: () => onActionTap('EURUSD trade idea'),
+        FeatureSpec(
+          id: 'qualified-sales',
+          group: 'Affiliate & Referrals',
+          title: 'Qualified Sales',
+          subtitle: 'Server-verified sale qualification history',
+          icon: Icons.point_of_sale_rounded,
+          endpoint: '/api/v1/affiliate/sales',
+        ),
+        FeatureSpec(
+          id: 'commissions',
+          group: 'Affiliate & Referrals',
+          title: 'Commission Earnings',
+          subtitle: 'Protected commission ledger and adjustments',
+          icon: Icons.savings_rounded,
+          endpoint: '/api/v1/affiliate/commissions',
         ),
       ],
     );
   }
 }
 
-class _AffiliateTab extends StatelessWidget {
-  const _AffiliateTab({super.key, required this.onActionTap});
+class _EntitlementAwareTab extends StatefulWidget {
+  const _EntitlementAwareTab({
+    required this.apiClient,
+    required this.title,
+    required this.introduction,
+    required this.protectedFeatures,
+  });
 
-  final ValueChanged<String> onActionTap;
+  final TradeXApiClient apiClient;
+  final String title;
+  final String introduction;
+  final List<FeatureSpec> protectedFeatures;
 
   @override
-  Widget build(BuildContext context) {
-    return _TabScrollView(
-      title: 'Affiliate Centre',
-      subtitle: 'Share TradeX. Build your community.',
-      children: [
-        _AffiliateHero(onShare: () => onActionTap('Share referral link')),
-        const SizedBox(height: 20),
-        const _SectionTitle(
-          icon: Icons.account_tree_rounded,
-          title: 'Your Performance',
-        ),
-        const SizedBox(height: 10),
-        const _AffiliateMetrics(),
-        const SizedBox(height: 20),
-        const _SectionTitle(
-          icon: Icons.emoji_events_rounded,
-          title: 'Next Milestone',
-        ),
-        const SizedBox(height: 10),
-        _MilestoneCard(onTap: () => onActionTap('Affiliate milestones')),
-        const SizedBox(height: 20),
-        _AffiliateTools(onActionTap: onActionTap),
-      ],
+  State<_EntitlementAwareTab> createState() => _EntitlementAwareTabState();
+}
+
+class _EntitlementAwareTabState extends State<_EntitlementAwareTab> {
+  late Future<bool> _status = _loadStatus();
+  late Future<JsonMap> _products = LearnRepository(widget.apiClient).products();
+
+  Future<bool> _loadStatus() async {
+    final response = await widget.apiClient.getJson(
+      '/api/v1/payments/activation-status',
     );
+    final data = response['data'];
+    return data is Map && data['premium_active'] == true;
   }
+
+  void _reload() => setState(() {
+    _status = _loadStatus();
+    _products = LearnRepository(widget.apiClient).products();
+  });
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<bool>(
+    future: _status,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const Center(
+          child: CircularProgressIndicator(color: TradeXColors.goldBright),
+        );
+      }
+      if (snapshot.data == true && widget.protectedFeatures.length == 1) {
+        return TradeXFeatureScreen(
+          apiClient: widget.apiClient,
+          spec: widget.protectedFeatures.first,
+        );
+      }
+      return _ProtectedFeaturePreview(
+        title: widget.title,
+        introduction: widget.introduction,
+        statusUnavailable: snapshot.hasError,
+        premiumActive: snapshot.data == true,
+        products: _products,
+        features: widget.protectedFeatures,
+        onOpen: _openProtected,
+        onRetry: _reload,
+      );
+    },
+  );
+
+  Future<void> _openProtected(FeatureSpec feature) async {
+    var active = false;
+    try {
+      active = await _loadStatus();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'An internet connection is required to verify premium access.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    if (!active) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => PremiumAccessScreen(
+            repository: LearnRepository(widget.apiClient),
+          ),
+        ),
+      );
+      if (!mounted) return;
+      try {
+        active = await _loadStatus();
+      } catch (_) {
+        active = false;
+      }
+    }
+    if (!mounted) return;
+    if (active) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              TradeXFeatureScreen(apiClient: widget.apiClient, spec: feature),
+        ),
+      );
+    }
+    if (mounted) _reload();
+  }
+}
+
+class _ProtectedFeaturePreview extends StatelessWidget {
+  const _ProtectedFeaturePreview({
+    required this.title,
+    required this.introduction,
+    required this.statusUnavailable,
+    required this.premiumActive,
+    required this.products,
+    required this.features,
+    required this.onOpen,
+    required this.onRetry,
+  });
+
+  final String title;
+  final String introduction;
+  final bool statusUnavailable;
+  final bool premiumActive;
+  final Future<JsonMap> products;
+  final List<FeatureSpec> features;
+  final ValueChanged<FeatureSpec> onOpen;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: ListView(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 120),
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.headlineMedium
+              ?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 8),
+        Text(introduction, style: Theme.of(context).textTheme.bodyLarge),
+        const SizedBox(height: 16),
+        FutureBuilder<JsonMap>(
+          future: products,
+          builder: (context, snapshot) {
+            final items = LearnRepository.list(snapshot.data?['items']);
+            if (items.isEmpty) return const SizedBox.shrink();
+            final product = LearnRepository.map(items.first);
+            final price = LearnRepository.map(product['price']);
+            final amount = [
+              LearnRepository.text(price['currency']),
+              LearnRepository.text(price['amount']),
+            ].where((part) => part.isNotEmpty).join(' ');
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Card(
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.workspace_premium_rounded,
+                    color: TradeXColors.goldBright,
+                  ),
+                  title: Text(
+                    LearnRepository.text(product['name'], 'TradeX membership'),
+                  ),
+                  subtitle: Text(
+                    [
+                      amount,
+                      LearnRepository.text(product['description']),
+                    ].where((part) => part.isNotEmpty).join(' • '),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        if (statusUnavailable)
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.cloud_off_rounded),
+              title: const Text('Membership status unavailable'),
+              subtitle: const Text(
+                'Program information remains available. Reconnect to verify protected access.',
+              ),
+              trailing: IconButton(
+                tooltip: 'Retry',
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ),
+          ),
+        const _RiskNotice(),
+        const SizedBox(height: 16),
+        Text(
+          premiumActive
+              ? 'Your available membership features'
+              : 'Protected membership features',
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+        for (final feature in features)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Card(
+              child: ListTile(
+                leading: CircleAvatar(child: Icon(feature.icon)),
+                title: Text(feature.title),
+                subtitle: Text(feature.subtitle),
+                trailing: Icon(
+                  premiumActive
+                      ? Icons.chevron_right_rounded
+                      : Icons.lock_outline_rounded,
+                ),
+                onTap: () => onOpen(feature),
+              ),
+            ),
+          ),
+        const SizedBox(height: 4),
+        Text(
+          'No referral totals, earnings, trade levels or charts are stored in this preview. TradeX requests them only from the authorized backend.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    ),
+  );
 }
 
 class _ProfileTab extends StatefulWidget {
@@ -2425,12 +2776,27 @@ class _ProfileTabState extends State<_ProfileTab> {
     final response = await widget.apiClient.getJson('/api/v1/profile/settings');
     final raw = response['data'];
     if (raw is! Map) throw StateError('TradeX profile data is unavailable.');
-    final profile = _CustomerProfile.fromJson(Map<String, dynamic>.from(raw));
+    var premiumAccess = false;
+    try {
+      final dashboard = await widget.apiClient.getJson('/api/v1/dashboard');
+      premiumAccess =
+          _asMap(_asMap(dashboard['data'])['account'])['premium_access'] ==
+          true;
+    } catch (_) {
+      // Referral information stays hidden unless entitlement is confirmed.
+    }
+    final profile = _CustomerProfile.fromJson(
+      Map<String, dynamic>.from(raw),
+      premiumAccess: premiumAccess,
+    );
     _profileEmail = profile.email;
     try {
-      _profilePhoto = await _photoStore.read(profile.email);
+      _profilePhoto = await _photoStore
+          .read(profile.email)
+          .timeout(const Duration(seconds: 1));
       final quickUnlock = await widget.authRepository
-          .readLocalQuickUnlockConfig();
+          .readLocalQuickUnlockConfig()
+          .timeout(const Duration(seconds: 1));
       _fingerprintAdded = quickUnlock?.hasBiometric == true;
       _passcodeAdded = quickUnlock?.hasPasscode == true;
     } catch (_) {
@@ -2439,7 +2805,36 @@ class _ProfileTabState extends State<_ProfileTab> {
     return profile;
   }
 
-  void _refresh() => setState(() => _profile = _loadProfile());
+  void _refresh() {
+    setState(() {
+      _profile = _loadProfile();
+    });
+  }
+
+  Future<void> _openMobileDetails(_CustomerProfile profile) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => MobileNumberDetailsScreen(
+          apiClient: widget.apiClient,
+          number: profile.whatsApp,
+          verified: profile.whatsAppVerified,
+          telegramUsername: profile.telegramUsername,
+        ),
+      ),
+    );
+    if (changed == true && mounted) _refresh();
+  }
+
+  Future<bool> _openWithdrawal(WithdrawalMethod method) async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) =>
+            WithdrawalMethodScreen(apiClient: widget.apiClient, method: method),
+      ),
+    );
+    if (saved == true && mounted) _refresh();
+    return saved == true;
+  }
 
   Future<void> _openQuickUnlockSettings() async {
     await Navigator.of(context).push(
@@ -2449,6 +2844,197 @@ class _ProfileTabState extends State<_ProfileTab> {
       ),
     );
     if (mounted) _refresh();
+  }
+
+  Future<void> _openAccountSection(_CustomerProfile profile) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (sectionContext) => _ProfileSectionScreen(
+          title: 'Account',
+          subtitle: 'Manage your account details and app preferences.',
+          child: _ProfileMenuPanel(
+            children: [
+              _MenuRow(
+                icon: Icons.mail_outline_rounded,
+                title: profile.email,
+                subtitle: profile.emailVerified
+                    ? 'Verified email · Locked for your security'
+                    : 'Unverified email',
+                status: Icon(
+                  profile.emailVerified
+                      ? Icons.verified_rounded
+                      : Icons.warning_amber_rounded,
+                  size: 18,
+                  color: profile.emailVerified
+                      ? TradeXColors.success
+                      : TradeXColors.goldBright,
+                ),
+                onTap: null,
+              ),
+              _MenuRow(
+                icon: Icons.phone_outlined,
+                title: 'Mobile Number',
+                subtitle: profile.whatsAppVerified
+                    ? 'Registered number verified'
+                    : 'Verification required',
+                onTap: () => _openMobileDetails(profile),
+              ),
+              _MenuRow(
+                icon: Icons.language_rounded,
+                title: 'Learning language',
+                subtitle: profile.languageLabel,
+                onTap: () => widget.onActionTap('Learning language'),
+              ),
+              _MenuRow(
+                icon: Icons.brightness_6_rounded,
+                title: 'Appearance',
+                subtitle: 'System, Light or Dark theme',
+                onTap: () => Navigator.of(sectionContext).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => LearnSettingsScreen(
+                      repository: LearnRepository(widget.apiClient),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (mounted) _refresh();
+  }
+
+  Future<void> _openWithdrawalSection(_CustomerProfile profile) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (sectionContext) => _ProfileSectionScreen(
+          title: 'Withdrawal methods',
+          subtitle: 'Add or update your verified payout destinations.',
+          child: _FinancialMethodsCard(
+            profile: profile,
+            onTap: (method) async {
+              final saved = await _openWithdrawal(method);
+              if (saved && sectionContext.mounted) {
+                Navigator.of(sectionContext).pop();
+              }
+            },
+          ),
+        ),
+      ),
+    );
+    if (mounted) _refresh();
+  }
+
+  Future<void> _openSecuritySection(_CustomerProfile profile) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (sectionContext) => _ProfileSectionScreen(
+          title: 'Security centre',
+          subtitle: 'Protect quick access and review trusted devices.',
+          child: _ProfileMenuPanel(
+            children: [
+              _MenuRow(
+                icon: Icons.security_rounded,
+                title: profile.totpConfirmed
+                    ? 'Authenticator protected'
+                    : 'Set up authenticator',
+                subtitle: profile.totpConfirmed
+                    ? 'TOTP protects sensitive account changes'
+                    : 'Required before sensitive changes',
+                onTap: () => widget.onActionTap('Authenticator security'),
+              ),
+              _MenuRow(
+                icon: Icons.devices_other_rounded,
+                title: 'Trusted devices',
+                subtitle: 'Review or revoke devices with TOTP',
+                onTap: () => Navigator.of(sectionContext).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        TrustedDevicesScreen(apiClient: widget.apiClient),
+                  ),
+                ),
+              ),
+              _MenuRow(
+                icon: Icons.fingerprint_rounded,
+                title:
+                    'Fingerprint: ${_fingerprintAdded ? 'Added' : 'Not added'}',
+                subtitle: _fingerprintAdded
+                    ? 'Tap to manage or remove fingerprint login'
+                    : 'Add fingerprint login on this mobile',
+                onTap: _openQuickUnlockSettings,
+              ),
+              _MenuRow(
+                icon: Icons.pin_rounded,
+                title: 'Passcode: ${_passcodeAdded ? 'Added' : 'Not added'}',
+                subtitle: _passcodeAdded
+                    ? 'Tap to change or remove your passcode'
+                    : 'Add a secure 4-digit passcode',
+                onTap: _openQuickUnlockSettings,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (mounted) _refresh();
+  }
+
+  Future<void> _closeSectionAndRun(
+    BuildContext sectionContext,
+    Future<void> Function() action,
+  ) async {
+    Navigator.of(sectionContext).pop();
+    await Future<void>.delayed(const Duration(milliseconds: 320));
+    if (mounted) await action();
+  }
+
+  Future<void> _openHelpSection() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (sectionContext) => _ProfileSectionScreen(
+          title: 'Help & account',
+          subtitle: 'Get support or securely end active sessions.',
+          child: _ProfileMenuPanel(
+            children: [
+              _MenuRow(
+                icon: Icons.forum_outlined,
+                title: 'Support centre',
+                subtitle: 'Get help with your TradeX account',
+                onTap: () => widget.onActionTap('Support centre'),
+              ),
+              _MenuRow(
+                icon: Icons.logout_rounded,
+                title: 'Sign out',
+                subtitle: 'Keep quick login on this trusted device',
+                danger: true,
+                onTap: () => unawaited(
+                  _closeSectionAndRun(sectionContext, widget.onLogout),
+                ),
+              ),
+              _MenuRow(
+                icon: Icons.phonelink_erase_rounded,
+                title: 'Sign out and forget this device',
+                subtitle: 'Remove fingerprint or passcode quick login',
+                danger: true,
+                onTap: () => unawaited(
+                  _closeSectionAndRun(sectionContext, widget.onForgetDevice),
+                ),
+              ),
+              _MenuRow(
+                icon: Icons.logout_rounded,
+                title: 'Sign out from all devices',
+                subtitle: 'Revoke every active TradeX session',
+                danger: true,
+                onTap: () => unawaited(
+                  _closeSectionAndRun(sectionContext, widget.onLogoutAll),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _chooseProfilePhoto() async {
@@ -2563,144 +3149,37 @@ class _ProfileTabState extends State<_ProfileTab> {
               onPhotoTap: _showProfilePhotoActions,
             ),
             const SizedBox(height: 20),
-            const _SectionTitle(
-              icon: Icons.person_outline_rounded,
-              title: 'Account',
-            ),
-            const SizedBox(height: 10),
-            Container(
-              decoration: _panelDecoration,
-              child: Column(
-                children: [
-                  _MenuRow(
-                    icon: Icons.mail_outline_rounded,
-                    title: profile.email,
-                    subtitle: 'Verified email · Locked for your security',
-                    onTap: () => widget.onActionTap('Email details'),
-                  ),
-                  const Divider(height: 1, color: TradeXColors.border),
-                  _MenuRow(
-                    icon: Icons.phone_outlined,
-                    title: profile.whatsApp,
-                    subtitle: profile.whatsAppVerified
-                        ? 'WhatsApp verified'
-                        : 'WhatsApp verification required',
-                    onTap: () => widget.onActionTap('WhatsApp contact'),
-                  ),
-                  const Divider(height: 1, color: TradeXColors.border),
-                  _MenuRow(
-                    icon: Icons.language_rounded,
-                    title: 'Learning language',
-                    subtitle: profile.languageLabel,
-                    onTap: () => widget.onActionTap('Learning language'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            const _SectionTitle(
-              icon: Icons.account_balance_wallet_outlined,
-              title: 'Withdrawal methods',
-            ),
-            const SizedBox(height: 10),
-            _FinancialMethodsCard(profile: profile, onTap: widget.onActionTap),
-            const SizedBox(height: 20),
-            const _SectionTitle(
-              icon: Icons.verified_user_rounded,
-              title: 'Security centre',
-            ),
-            const SizedBox(height: 10),
-            Container(
-              decoration: _panelDecoration,
-              child: Column(
-                children: [
-                  _MenuRow(
-                    icon: Icons.security_rounded,
-                    title: profile.totpConfirmed
-                        ? 'Authenticator protected'
-                        : 'Set up authenticator',
-                    subtitle: profile.totpConfirmed
-                        ? 'TOTP protects sensitive account changes'
-                        : 'Required before sensitive changes',
-                    onTap: () => widget.onActionTap('Authenticator security'),
-                  ),
-                  const Divider(height: 1, color: TradeXColors.border),
-                  _MenuRow(
-                    icon: Icons.devices_other_rounded,
-                    title: 'Trusted devices',
-                    subtitle: 'Review or revoke devices with TOTP',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            TrustedDevicesScreen(apiClient: widget.apiClient),
-                      ),
-                    ),
-                  ),
-                  const Divider(height: 1, color: TradeXColors.border),
-                  _MenuRow(
-                    icon: Icons.fingerprint_rounded,
-                    title:
-                        'Fingerprint: ${_fingerprintAdded ? 'Added' : 'Not added'}',
-                    subtitle: _fingerprintAdded
-                        ? 'Tap to manage or remove fingerprint login'
-                        : 'Add fingerprint login on this mobile',
-                    onTap: _openQuickUnlockSettings,
-                  ),
-                  const Divider(height: 1, color: TradeXColors.border),
-                  _MenuRow(
-                    icon: Icons.pin_rounded,
-                    title:
-                        'Passcode: ${_passcodeAdded ? 'Added' : 'Not added'}',
-                    subtitle: _passcodeAdded
-                        ? 'Tap to change or remove your passcode'
-                        : 'Add a secure 4-digit passcode',
-                    onTap: _openQuickUnlockSettings,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            const _SectionTitle(
-              icon: Icons.support_agent_rounded,
-              title: 'Help & account',
-            ),
-            const SizedBox(height: 10),
-            Container(
-              decoration: _panelDecoration,
-              child: Column(
-                children: [
-                  _MenuRow(
-                    icon: Icons.forum_outlined,
-                    title: 'Support centre',
-                    subtitle: 'Get help with your TradeX account',
-                    onTap: () => widget.onActionTap('Support centre'),
-                  ),
-                  const Divider(height: 1, color: TradeXColors.border),
-                  _MenuRow(
-                    icon: Icons.logout_rounded,
-                    title: 'Sign out',
-                    subtitle: 'Keep quick login on this trusted device',
-                    danger: true,
-                    onTap: () => widget.onLogout(),
-                  ),
-                  const Divider(height: 1, color: TradeXColors.border),
-                  _MenuRow(
-                    icon: Icons.phonelink_erase_rounded,
-                    title: 'Sign out and forget this device',
-                    subtitle: 'Remove fingerprint or passcode quick login',
-                    danger: true,
-                    onTap: () => widget.onForgetDevice(),
-                  ),
-                  const Divider(height: 1, color: TradeXColors.border),
-                  _MenuRow(
-                    icon: Icons.logout_rounded,
-                    title: 'Sign out from all devices',
-                    subtitle: 'Revoke every active TradeX session',
-                    danger: true,
-                    onTap: () => widget.onLogoutAll(),
-                  ),
-                ],
-              ),
+            _ProfileMenuPanel(
+              children: [
+                _MenuRow(
+                  key: const ValueKey('profile-main-account'),
+                  icon: Icons.person_outline_rounded,
+                  title: 'Account',
+                  subtitle: 'Email, mobile number, language and appearance',
+                  onTap: () => _openAccountSection(profile),
+                ),
+                _MenuRow(
+                  key: const ValueKey('profile-main-withdrawal'),
+                  icon: Icons.account_balance_wallet_outlined,
+                  title: 'Withdrawal methods',
+                  subtitle: 'PayPal, Binance, USDT TRC20 and bank account',
+                  onTap: () => _openWithdrawalSection(profile),
+                ),
+                _MenuRow(
+                  key: const ValueKey('profile-main-security'),
+                  icon: Icons.verified_user_rounded,
+                  title: 'Security centre',
+                  subtitle: 'Authenticator, trusted devices, fingerprint and passcode',
+                  onTap: () => _openSecuritySection(profile),
+                ),
+                _MenuRow(
+                  key: const ValueKey('profile-main-help'),
+                  icon: Icons.support_agent_rounded,
+                  title: 'Help & account',
+                  subtitle: 'Support and secure sign-out options',
+                  onTap: _openHelpSection,
+                ),
+              ],
             ),
           ],
         );
@@ -2709,34 +3188,98 @@ class _ProfileTabState extends State<_ProfileTab> {
   }
 }
 
+class _ProfileSectionScreen extends StatelessWidget {
+  const _ProfileSectionScreen({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
+
+  final String title;
+  final String subtitle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(title)),
+    body: SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+        children: [
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: TradeXColors.secondaryText),
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    ),
+  );
+}
+
+class _ProfileMenuPanel extends StatelessWidget {
+  const _ProfileMenuPanel({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: _panelDecoration(context),
+    clipBehavior: Clip.antiAlias,
+    child: Column(
+      children: List<Widget>.generate(children.length * 2 - 1, (index) {
+        if (index.isOdd) {
+          return const Divider(height: 1, color: TradeXColors.border);
+        }
+        return children[index ~/ 2];
+      }),
+    ),
+  );
+}
+
 class _CustomerProfile {
   const _CustomerProfile({
     required this.name,
     required this.email,
+    required this.emailVerified,
     required this.accountType,
     required this.referralCode,
+    required this.premiumAccess,
     required this.whatsApp,
     required this.whatsAppVerified,
+    required this.telegramUsername,
     required this.languageLabel,
     required this.totpConfirmed,
     required this.financialMethods,
   });
 
-  factory _CustomerProfile.fromJson(Map<String, dynamic> json) {
+  factory _CustomerProfile.fromJson(
+    Map<String, dynamic> json, {
+    required bool premiumAccess,
+  }) {
     final profile = _asMap(json['profile']);
     final identity = _asMap(profile['identity']);
     final contact = _asMap(profile['contact']);
     final preferences = _asMap(profile['preferences']);
     final security = _asMap(profile['security']);
+    final accountSecurity = _asMap(json['account_security']);
+    final verification = _asMap(accountSecurity['verification']);
     final financial = _asMap(profile['financial']);
     final language = preferences['language_code']?.toString().toLowerCase();
     return _CustomerProfile(
       name: identity['name']?.toString() ?? 'TradeX Customer',
       email: identity['email']?.toString() ?? 'Email unavailable',
+      emailVerified: verification['email_verified'] == true,
       accountType: identity['account_type']?.toString() ?? 'MEMBER',
-      referralCode: identity['referral_code']?.toString() ?? '—',
+      referralCode: premiumAccess
+          ? identity['referral_code']?.toString() ?? ''
+          : '',
+      premiumAccess: premiumAccess,
       whatsApp: contact['whatsapp_number']?.toString() ?? 'Add WhatsApp number',
       whatsAppVerified: contact['whatsapp_verified'] == true,
+      telegramUsername: contact['telegram_username']?.toString() ?? '',
       languageLabel:
           const {
             'en': 'English',
@@ -2780,10 +3323,13 @@ class _CustomerProfile {
 
   final String name;
   final String email;
+  final bool emailVerified;
   final String accountType;
   final String referralCode;
+  final bool premiumAccess;
   final String whatsApp;
   final bool whatsAppVerified;
+  final String telegramUsername;
   final String languageLabel;
   final bool totpConfirmed;
   final List<_FinancialMethod> financialMethods;
@@ -2930,10 +3476,13 @@ class _CustomerProfileHero extends StatelessWidget {
                       label: profile.accountType.toUpperCase(),
                       color: TradeXColors.goldBright,
                     ),
-                    _SmallPill(
-                      label: 'REF ${profile.referralCode}',
-                      color: TradeXColors.success,
-                    ),
+                    if (profile.premiumAccess &&
+                        profile.referralCode.trim().isNotEmpty &&
+                        profile.referralCode != '—')
+                      _SmallPill(
+                        label: 'REF ${profile.referralCode}',
+                        color: TradeXColors.success,
+                      ),
                   ],
                 ),
               ],
@@ -2949,12 +3498,12 @@ class _FinancialMethodsCard extends StatelessWidget {
   const _FinancialMethodsCard({required this.profile, required this.onTap});
 
   final _CustomerProfile profile;
-  final ValueChanged<String> onTap;
+  final Future<void> Function(WithdrawalMethod) onTap;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: Column(
         children: List.generate(profile.financialMethods.length, (index) {
           final method = profile.financialMethods[index];
@@ -2966,7 +3515,14 @@ class _FinancialMethodsCard extends StatelessWidget {
                 subtitle: method.configured
                     ? method.detail ?? 'Configured securely'
                     : 'Not configured',
-                onTap: () => onTap('${method.label} withdrawal method'),
+                onTap: () => unawaited(
+                  onTap(switch (method.label) {
+                    'PayPal' => WithdrawalMethod.paypal,
+                    'Binance' => WithdrawalMethod.binance,
+                    'USDT TRC20' => WithdrawalMethod.usdtTrc20,
+                    _ => WithdrawalMethod.localBank,
+                  }),
+                ),
               ),
               if (index != profile.financialMethods.length - 1)
                 const Divider(height: 1, color: TradeXColors.border),
@@ -2996,7 +3552,7 @@ class _ProfileStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(20),
-    decoration: _panelDecoration,
+    decoration: _panelDecoration(context),
     child: Column(
       children: [
         Icon(icon, size: 38, color: TradeXColors.goldBright),
@@ -3173,7 +3729,7 @@ class _ModuleList extends StatelessWidget {
       ('4', 'Trade Execution', 'Locked', false),
     ];
     return Container(
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: Column(
         children: modules.map((module) {
           final index = modules.indexOf(module);
@@ -3259,7 +3815,7 @@ class _RecommendedCourseCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: Ink(
         padding: const EdgeInsets.all(14),
-        decoration: _panelDecoration,
+        decoration: _panelDecoration(context),
         child: Row(
           children: [
             _CourseThumbnail(label: 'RISK\nMANAGEMENT'),
@@ -3298,6 +3854,8 @@ class _RecommendedCourseCard extends StatelessWidget {
   }
 }
 
+// Kept as the original partial-screen visual reference.
+// ignore: unused_element
 class _RiskNotice extends StatelessWidget {
   const _RiskNotice();
 
@@ -3331,6 +3889,7 @@ class _RiskNotice extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _MarketFilterBar extends StatelessWidget {
   const _MarketFilterBar({required this.onActionTap});
 
@@ -3383,6 +3942,7 @@ class _MarketFilterBar extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _ExpandedIdeaCard extends StatelessWidget {
   const _ExpandedIdeaCard({
     required this.symbol,
@@ -3416,7 +3976,7 @@ class _ExpandedIdeaCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: Ink(
         padding: const EdgeInsets.all(16),
-        decoration: _panelDecoration,
+        decoration: _panelDecoration(context),
         child: Column(
           children: [
             Row(
@@ -3563,6 +4123,8 @@ class _SmallPill extends StatelessWidget {
   }
 }
 
+// Kept as the original partial-screen visual reference.
+// ignore: unused_element
 class _AffiliateHero extends StatelessWidget {
   const _AffiliateHero({required this.onShare});
 
@@ -3646,6 +4208,7 @@ class _AffiliateHero extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _AffiliateMetrics extends StatelessWidget {
   const _AffiliateMetrics();
 
@@ -3669,7 +4232,7 @@ class _AffiliateMetrics extends StatelessWidget {
         final metric = metrics[index];
         return Container(
           padding: const EdgeInsets.all(11),
-          decoration: _panelDecoration,
+          decoration: _panelDecoration(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -3700,6 +4263,7 @@ class _AffiliateMetrics extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _MilestoneCard extends StatelessWidget {
   const _MilestoneCard({required this.onTap});
 
@@ -3712,7 +4276,7 @@ class _MilestoneCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(19),
       child: Ink(
         padding: const EdgeInsets.all(16),
-        decoration: _panelDecoration,
+        decoration: _panelDecoration(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3764,6 +4328,7 @@ class _MilestoneCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _AffiliateTools extends StatelessWidget {
   const _AffiliateTools({required this.onActionTap});
 
@@ -3772,7 +4337,7 @@ class _AffiliateTools extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: Column(
         children: [
           _MenuRow(
@@ -3796,18 +4361,21 @@ class _AffiliateTools extends StatelessWidget {
 
 class _MenuRow extends StatelessWidget {
   const _MenuRow({
+    super.key,
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.onTap,
     this.danger = false,
+    this.status,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool danger;
+  final Widget? status;
 
   @override
   Widget build(BuildContext context) {
@@ -3824,14 +4392,26 @@ class _MenuRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: danger
-                          ? TradeXColors.error
-                          : TradeXColors.primaryText,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: danger
+                                ? TradeXColors.error
+                                : TradeXColors.primaryText,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      if (status != null) ...[
+                        const SizedBox(width: 6),
+                        status!,
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 3),
                   Text(
@@ -3844,7 +4424,7 @@ class _MenuRow extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: color),
+            if (onTap != null) Icon(Icons.chevron_right_rounded, color: color),
           ],
         ),
       ),
@@ -3884,6 +4464,8 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
     return SafeArea(
       top: false,
       child: LayoutBuilder(
@@ -3910,11 +4492,11 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
                           notchCenter: activeCenter,
                         ),
                         child: Container(
+                          key: const ValueKey('dashboard-nav-surface'),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0A100E),
-                            border: Border.all(
-                              color: TradeXColors.gold.withValues(alpha: .42),
-                            ),
+                            color: dark
+                                ? const Color(0xFF0A100E)
+                                : theme.colorScheme.surface,
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: .38),
@@ -3930,6 +4512,9 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
                       left: activeCenter - 25,
                       top: 0,
                       child: Container(
+                        key: ValueKey(
+                          'dashboard-nav-selected-${widget.selectedIndex}',
+                        ),
                         width: 50,
                         height: 50,
                         decoration: BoxDecoration(
@@ -3983,7 +4568,11 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
                                       child: Icon(
                                         item.icon,
                                         size: 21,
-                                        color: TradeXColors.secondaryText,
+                                        color: dark
+                                            ? TradeXColors.secondaryText
+                                            : theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
                                       ),
                                     ),
                                     SizedBox(height: selected ? 19 : 3),
@@ -3994,7 +4583,11 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
                                       style: TextStyle(
                                         color: selected
                                             ? TradeXColors.goldBright
-                                            : TradeXColors.secondaryText,
+                                            : dark
+                                            ? TradeXColors.secondaryText
+                                            : theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
                                         fontSize: 9.5,
                                         fontWeight: selected
                                             ? FontWeight.w900
@@ -4233,30 +4826,25 @@ class _LivePill extends StatelessWidget {
 class _MarketSession {
   const _MarketSession({
     required this.name,
-    required this.timeText,
     required this.isOpen,
-    required this.dialSegments,
+    required this.timezone,
+    required this.openLocal,
+    required this.closeLocal,
   });
 
   factory _MarketSession.fromJson(Map<String, dynamic> json) {
     final status = json['status']?.toString().toLowerCase();
     return _MarketSession(
       name: json['name']?.toString() ?? 'Market',
-      timeText: json['local_time']?.toString() ?? '--:--:--',
       isOpen: status == 'open',
-      dialSegments: (json['dial_segments'] as List? ?? const [])
-          .whereType<Map>()
-          .map(
-            (segment) =>
-                _MarketDialSegment.fromJson(Map<String, dynamic>.from(segment)),
-          )
-          .toList(growable: false),
+      timezone: json['timezone']?.toString() ?? 'UTC',
+      openLocal: json['configured_open_local']?.toString() ?? '--:--',
+      closeLocal: json['configured_close_local']?.toString() ?? '--:--',
     );
   }
 
   factory _MarketSession.fromFallback(
     String name,
-    String hours,
     int startHour,
     int endHour,
     int utcHour,
@@ -4264,39 +4852,31 @@ class _MarketSession {
     final isOpen = startHour < endHour
         ? utcHour >= startHour && utcHour < endHour
         : utcHour >= startHour || utcHour < endHour;
-    final startMinute = startHour * 60;
-    final endMinute = endHour * 60;
-    final segments = endMinute > startMinute
-        ? [_MarketDialSegment(startMinute.toDouble(), endMinute.toDouble())]
-        : [
-            _MarketDialSegment(startMinute.toDouble(), 1440),
-            _MarketDialSegment(0, endMinute.toDouble()),
-          ];
+    final timezone = switch (name) {
+      'Sydney' => 'Australia/Sydney',
+      'Tokyo' => 'Asia/Tokyo',
+      'London' => 'Europe/London',
+      'New York' => 'America/New_York',
+      _ => 'UTC',
+    };
+    final configuredHours = switch (name) {
+      'Tokyo' => ('09:00', '18:00'),
+      _ => ('08:00', '17:00'),
+    };
     return _MarketSession(
       name: name,
-      timeText: hours,
       isOpen: isOpen,
-      dialSegments: segments,
+      timezone: timezone,
+      openLocal: configuredHours.$1,
+      closeLocal: configuredHours.$2,
     );
   }
 
   final String name;
-  final String timeText;
   final bool isOpen;
-  final List<_MarketDialSegment> dialSegments;
-}
-
-class _MarketDialSegment {
-  const _MarketDialSegment(this.startMinute, this.endMinute);
-
-  factory _MarketDialSegment.fromJson(Map<String, dynamic> json) =>
-      _MarketDialSegment(
-        (json['start_minute'] as num?)?.toDouble() ?? 0,
-        (json['end_minute'] as num?)?.toDouble() ?? 0,
-      );
-
-  final double startMinute;
-  final double endMinute;
+  final String timezone;
+  final String openLocal;
+  final String closeLocal;
 }
 
 class _TabItem {
@@ -4314,10 +4894,10 @@ const _tabItems = [
   _TabItem('Profile', Icons.person_outline_rounded),
 ];
 
-final BoxDecoration _panelDecoration = BoxDecoration(
-  color: TradeXColors.surfaceRaised,
+BoxDecoration _panelDecoration(BuildContext context) => BoxDecoration(
+  color: Theme.of(context).colorScheme.surface,
   borderRadius: BorderRadius.circular(20),
-  border: Border.all(color: TradeXColors.border),
+  border: Border.all(color: Theme.of(context).dividerColor),
   boxShadow: [
     BoxShadow(color: Colors.black.withValues(alpha: .19), blurRadius: 10),
   ],

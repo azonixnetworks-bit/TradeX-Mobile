@@ -1,5 +1,6 @@
 package com.azonixnetworks.tradex_mobile
 
+import android.content.Context
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -14,7 +15,13 @@ import java.security.spec.ECGenParameterSpec
 
 class MainActivity : FlutterFragmentActivity() {
     private val channelName = "com.azonixnetworks.tradex_mobile/device_credential"
+    private val lifecycleChannelName = "com.azonixnetworks.tradex_mobile/app_lifecycle"
     private val aliasPrefix = "tradex.quick.login."
+
+    override fun provideFlutterEngine(context: Context): FlutterEngine =
+        TradeXApplication.getOrCreateFlutterEngine(context)
+
+    override fun shouldDestroyEngineWithHost(): Boolean = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -58,6 +65,14 @@ class MainActivity : FlutterFragmentActivity() {
                         error.message ?: "The protected device credential failed.",
                         null
                     )
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, lifecycleChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "moveTaskToBack" -> result.success(moveTaskToBack(true))
+                    else -> result.notImplemented()
                 }
             }
     }

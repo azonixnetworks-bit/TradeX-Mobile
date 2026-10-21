@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
 import '../../../core/auth/secure_session_store.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -56,6 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _submitting = false;
 
   String? _errorMessage;
+  bool _deviceSlotOccupied = false;
 
   bool get _quickLoginAvailable => widget.quickUnlockConfig != null;
 
@@ -214,6 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _submitting = true;
       _errorMessage = null;
+      _deviceSlotOccupied = false;
     });
     try {
       await callback();
@@ -277,6 +280,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _submitting = true;
       _errorMessage = null;
+      _deviceSlotOccupied = false;
     });
 
     try {
@@ -297,6 +301,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
       setState(() {
         _errorMessage = error.toString();
+        _deviceSlotOccupied =
+            error is ApiException &&
+            (error.code == 'DEVICE_SLOT_OCCUPIED' ||
+                error.code == 'DEVICE_LIMIT_REACHED');
       });
     } finally {
       if (mounted) {
@@ -306,6 +314,24 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     }
   }
+
+  Future<void> _showDeviceRecovery() => showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Mobile Device Limit Reached'),
+      content: const SingleChildScrollView(
+        child: Text(
+          'Your account already has two active mobile devices. TradeX cannot safely replace either device from this login because the Laravel backend does not allow unauthenticated device replacement.\n\nFrom an authenticated desktop or mobile session, open Profile → Trusted devices and revoke an old mobile device with TOTP, then retry here. Otherwise contact TradeX support for an audited device reset.\n\nYour password, authenticator code, recovery code, device name, or model alone will not bypass the two-mobile-device policy.',
+        ),
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Understood'),
+        ),
+      ],
+    ),
+  );
 
   void _toggleRecoveryMode() {
     setState(() {
@@ -350,6 +376,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           useRecoveryCode: _useRecoveryCode,
                           submitting: _submitting,
                           errorMessage: _errorMessage,
+                          deviceSlotOccupied: _deviceSlotOccupied,
                           rememberDevice: _rememberDevice,
                           quickUnlockMethod: _quickUnlockMethod,
                           biometricConfirmed: _biometricConfirmed,
@@ -365,6 +392,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           onQuickUnlockMethodChanged: _selectQuickUnlockMethod,
                           onForgotPassword: widget.onForgotPassword,
                           onSubmit: _submit,
+                          onRecoverMobileAccess: _showDeviceRecovery,
                           validateEmail: _validateEmail,
                           validatePassword: _validatePassword,
                           validateSecurityCode: _validateSecurityCode,
@@ -473,6 +501,7 @@ class _LoginCard extends StatelessWidget {
     required this.useRecoveryCode,
     required this.submitting,
     required this.errorMessage,
+    required this.deviceSlotOccupied,
     required this.rememberDevice,
     required this.quickUnlockMethod,
     required this.biometricConfirmed,
@@ -484,6 +513,7 @@ class _LoginCard extends StatelessWidget {
     required this.onQuickUnlockMethodChanged,
     required this.onForgotPassword,
     required this.onSubmit,
+    required this.onRecoverMobileAccess,
     required this.validateEmail,
     required this.validatePassword,
     required this.validateSecurityCode,
@@ -505,6 +535,7 @@ class _LoginCard extends StatelessWidget {
   final bool quickLoginAvailable;
 
   final String? errorMessage;
+  final bool deviceSlotOccupied;
   final TextEditingController quickUnlockPinController;
 
   final VoidCallback onPasswordVisibilityChanged;
@@ -513,6 +544,7 @@ class _LoginCard extends StatelessWidget {
   final ValueChanged<String> onQuickUnlockMethodChanged;
   final VoidCallback onForgotPassword;
   final VoidCallback onSubmit;
+  final VoidCallback onRecoverMobileAccess;
 
   final String? Function(String?) validateEmail;
   final String? Function(String?) validatePassword;
@@ -824,6 +856,17 @@ class _LoginCard extends StatelessWidget {
               const SizedBox(height: 10),
 
               _ErrorMessage(message: errorMessage!),
+              if (deviceSlotOccupied) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: onRecoverMobileAccess,
+                    icon: const Icon(Icons.phonelink_lock_rounded),
+                    label: const Text('Recover Mobile Access'),
+                  ),
+                ),
+              ],
             ],
 
             const SizedBox(height: 16),

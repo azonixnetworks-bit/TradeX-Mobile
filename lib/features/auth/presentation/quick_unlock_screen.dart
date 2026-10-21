@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
 import '../../../core/auth/secure_session_store.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
 
 class QuickUnlockScreen extends StatefulWidget {
@@ -89,7 +90,7 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
       });
       return;
     }
-    await widget.onUnlocked();
+    await _completeServerUnlock();
   }
 
   Future<void> _unlockWithBiometrics() async {
@@ -113,7 +114,7 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
       );
       if (!mounted) return;
       if (unlocked) {
-        await widget.onUnlocked();
+        await _completeServerUnlock();
       } else {
         setState(() {
           _busy = false;
@@ -126,6 +127,24 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
         _busy = false;
         _error =
             '$_biometricLabel is not available on this device. Sign in another way.';
+      });
+    }
+  }
+
+  Future<void> _completeServerUnlock() async {
+    try {
+      await widget.onUnlocked();
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = error.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = 'TradeX could not verify this session. Please try again.';
       });
     }
   }

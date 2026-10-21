@@ -179,6 +179,7 @@ class AuthRepository {
         const <String, dynamic>{},
       );
     } finally {
+      await _apiClient.clearOfflineData();
       await _sessionStore.clearSession();
       if (forgetDevice && quickUnlock != null) {
         await _credentialService.delete(quickUnlock.credentialId);
@@ -192,6 +193,7 @@ class AuthRepository {
     try {
       await _apiClient.postJson('/api/v1/auth/logout-all', const {});
     } finally {
+      await _apiClient.clearOfflineData();
       await _sessionStore.clearSession();
       if (quickUnlock != null) {
         await _credentialService.delete(quickUnlock.credentialId);
@@ -200,8 +202,9 @@ class AuthRepository {
     }
   }
 
-  Future<void> clearLocalSession() {
-    return _sessionStore.clearSession();
+  Future<void> clearLocalSession() async {
+    await _apiClient.clearOfflineData();
+    await _sessionStore.clearSession();
   }
 
   Future<QuickUnlockConfig?> quickUnlockConfiguration() {

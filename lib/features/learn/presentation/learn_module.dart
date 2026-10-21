@@ -1,10 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/preferences/app_preferences.dart';
 import '../data/learn_repository.dart';
+import 'course_video_player_screen.dart';
+import '../../catalog/presentation/secure_workflow_screens.dart';
 
 const _gold = TradeXColors.goldBright;
 
@@ -19,7 +20,32 @@ class LearnHomeScreen extends StatefulWidget {
 class _LearnHomeScreenState extends State<LearnHomeScreen> {
   late Future<JsonMap> _future = widget.repository.overview();
 
-  void _refresh() => setState(() => _future = widget.repository.overview());
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureLanguage());
+  }
+
+  Future<void> _ensureLanguage() async {
+    if (AppPreferences.instance.learnLanguageSelected || !mounted) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => LearnLanguageSelectionScreen(
+          repository: widget.repository,
+          firstEntry: true,
+        ),
+      ),
+    );
+    if (mounted) _refresh();
+  }
+
+  void _refresh() {
+    setState(() {
+      _future = widget.repository.overview();
+    });
+  }
+
   void _open(Widget screen) =>
       Navigator.of(context)
           .push(MaterialPageRoute<void>(builder: (_) => screen))
@@ -85,7 +111,8 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
                   _open(AssignmentsScreen(repository: widget.repository)),
               onAi: () =>
                   _open(AskTradeXAiScreen(repository: widget.repository)),
-              onSettings: () => _open(const LearnSettingsScreen()),
+              onSettings: () =>
+                  _open(LearnSettingsScreen(repository: widget.repository)),
               onSaved: () => _open(
                 MyLearningScreen(
                   repository: widget.repository,
@@ -380,26 +407,12 @@ class UniversalLessonViewerScreen extends StatefulWidget {
 class _UniversalLessonViewerScreenState
     extends State<UniversalLessonViewerScreen> {
   bool bookmarked = false;
-  Timer? checkpoint;
   late Future<JsonMap> future = widget.repository.lesson(widget.lessonUuid);
 
   @override
   void initState() {
     super.initState();
     widget.repository.updateProgress(widget.lessonUuid, status: 'IN_PROGRESS');
-    checkpoint = Timer.periodic(const Duration(seconds: 30), (_) {
-      widget.repository.updateProgress(
-        widget.lessonUuid,
-        status: 'IN_PROGRESS',
-      );
-    });
-  }
-
-  @override
-  void dispose() {
-    checkpoint?.cancel();
-    widget.repository.updateProgress(widget.lessonUuid, status: 'IN_PROGRESS');
-    super.dispose();
   }
 
   @override
@@ -440,6 +453,8 @@ class _UniversalLessonViewerScreenState
               lesson: lesson,
               videos: videos,
               repository: widget.repository,
+              lessonUuid: widget.lessonUuid,
+              progress: LearnRepository.map(data['progress']),
             ),
             const SizedBox(height: 20),
             Row(
@@ -492,10 +507,14 @@ class LessonContentRenderer extends StatelessWidget {
     required this.lesson,
     required this.videos,
     required this.repository,
+    required this.lessonUuid,
+    required this.progress,
   });
   final JsonMap lesson;
   final List<dynamic> videos;
   final LearnRepository repository;
+  final String lessonUuid;
+  final JsonMap progress;
   @override
   Widget build(BuildContext context) {
     final body = LearnRepository.text(lesson['description']);
@@ -511,6 +530,8 @@ class LessonContentRenderer extends StatelessWidget {
               child: VideoLessonRenderer(
                 video: LearnRepository.map(v),
                 repository: repository,
+                lessonUuid: lessonUuid,
+                resumeSeconds: _resumeSeconds(LearnRepository.map(v)),
               ),
             ),
           ),
@@ -526,6 +547,8 @@ class LessonContentRenderer extends StatelessWidget {
                 child: VideoLessonRenderer(
                   video: LearnRepository.map(v),
                   repository: repository,
+                  lessonUuid: lessonUuid,
+                  resumeSeconds: _resumeSeconds(LearnRepository.map(v)),
                 ),
               ),
             )
@@ -535,6 +558,13 @@ class LessonContentRenderer extends StatelessWidget {
     return TextLessonRenderer(
       text: body.isEmpty ? 'Lesson content is being prepared.' : body,
     );
+  }
+
+  int _resumeSeconds(JsonMap video) {
+    final lastVideo = LearnRepository.text(progress['last_video_uuid']);
+    final videoUuid = LearnRepository.text(video['uuid']);
+    if (lastVideo.isNotEmpty && lastVideo != videoUuid) return 0;
+    return LearnRepository.number(progress['last_position_seconds']);
   }
 }
 
@@ -570,9 +600,13 @@ class VideoLessonRenderer extends StatefulWidget {
     super.key,
     required this.video,
     required this.repository,
+    required this.lessonUuid,
+    required this.resumeSeconds,
   });
   final JsonMap video;
   final LearnRepository repository;
+  final String lessonUuid;
+  final int resumeSeconds;
   @override
   State<VideoLessonRenderer> createState() => _VideoLessonRendererState();
 }
@@ -612,11 +646,27 @@ class _VideoLessonRendererState extends State<VideoLessonRenderer> {
                     final token = await widget.repository.playbackToken(
                       LearnRepository.text(widget.video['uuid']),
                     );
-                    final uri = Uri.tryParse(
-                      LearnRepository.text(token['playback_url']),
+                    final playbackUrl = LearnRepository.text(
+                      token['playback_url'],
                     );
-                    if (uri != null) {
-                      await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+                    if (playbackUrl.isNotEmpty && context.mounted) {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => CourseVideoPlayerScreen(
+                            repository: widget.repository,
+                            lessonUuid: widget.lessonUuid,
+                            videoUuid: LearnRepository.text(
+                              widget.video['uuid'],
+                            ),
+                            title: LearnRepository.text(
+                              widget.video['title'],
+                              'TradeX course video',
+                            ),
+                            playbackUrl: playbackUrl,
+                            resumeSeconds: widget.resumeSeconds,
+                          ),
+                        ),
+                      );
                     }
                   } finally {
                     if (mounted) setState(() => loading = false);
@@ -828,49 +878,137 @@ class _AskTradeXAiScreenState extends State<AskTradeXAiScreen> {
   );
 }
 
-class PremiumAccessScreen extends StatelessWidget {
+class PremiumAccessScreen extends StatefulWidget {
   const PremiumAccessScreen({super.key, required this.repository});
   final LearnRepository repository;
+
+  @override
+  State<PremiumAccessScreen> createState() => _PremiumAccessScreenState();
+}
+
+class _PremiumAccessScreenState extends State<PremiumAccessScreen> {
+  late Future<JsonMap> future = widget.repository.premiumAccess();
+
   @override
   Widget build(BuildContext context) => _LearnScaffold(
     title: 'Premium Access',
-    child: ListView(
-      children: [
-        const Icon(Icons.workspace_premium_rounded, color: _gold, size: 72),
-        const SizedBox(height: 12),
-        const Text(
-          'Lifetime Premium',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
-        ),
-        const Text(
-          r'$79 • One-time payment',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: _gold,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 20),
-        const _InfoCard(
-          title: 'Unlock the complete TradeX curriculum',
-          body: 'All premium subjects, secure streaming lessons, progress tracking, assignments and TradeX Second Brain learning assistance.',
-        ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Secure checkout will open from the backend product offer.',
+    child: _FutureBody(
+      future: future,
+      onRetry: _reload,
+      builder: (data) {
+        final products = LearnRepository.map(data['products']);
+        final activation = LearnRepository.map(data['activation']);
+        final items = LearnRepository.list(products['items']).isNotEmpty
+            ? LearnRepository.list(products['items'])
+            : LearnRepository.list(products['products']);
+        return ListView(
+          children: [
+            const Icon(Icons.workspace_premium_rounded, color: _gold, size: 72),
+            const SizedBox(height: 12),
+            _InfoCard(
+              title: 'Membership status',
+              body: LearnRepository.text(
+                activation['status'],
+                LearnRepository.flag(activation['premium_active']) ||
+                        LearnRepository.flag(activation['is_active'])
+                    ? 'Active'
+                    : 'No active entitlement',
               ),
             ),
-          ),
-          child: const Text('Unlock Premium'),
-        ),
-      ],
+            const SizedBox(height: 16),
+            if (items.isEmpty)
+              const _InfoCard(
+                title: 'No offer available',
+                body: 'TradeX has not published a purchasable product for this account.',
+              )
+            else
+              for (final raw in items) ...[
+                _ProductOfferCard(
+                  product: LearnRepository.map(raw),
+                  onPurchase: _openCheckout,
+                ),
+                const SizedBox(height: 12),
+              ],
+            const _InfoCard(
+              title: 'Verified access only',
+              body: 'Premium lessons unlock only after TradeX confirms payment and the education API returns an active entitlement.',
+            ),
+          ],
+        );
+      },
     ),
   );
+
+  void _reload() {
+    setState(() {
+      future = widget.repository.premiumAccess();
+    });
+  }
+
+  Future<void> _openCheckout(String productUuid) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => PaymentCheckoutScreen(
+          apiClient: widget.repository.apiClient,
+          productUuid: productUuid,
+        ),
+      ),
+    );
+    if (mounted) _reload();
+  }
+}
+
+class _ProductOfferCard extends StatelessWidget {
+  const _ProductOfferCard({required this.product, required this.onPurchase});
+  final JsonMap product;
+  final ValueChanged<String> onPurchase;
+
+  @override
+  Widget build(BuildContext context) {
+    final uuid = LearnRepository.text(product['uuid']);
+    final price = LearnRepository.map(product['price']);
+    final amount = LearnRepository.text(
+      product['formatted_price'],
+      LearnRepository.text(price['amount']),
+    );
+    final currency = LearnRepository.text(
+      product['currency'],
+      LearnRepository.text(price['currency']),
+    );
+    return _PremiumCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            LearnRepository.text(product['name'], 'TradeX membership'),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          if (amount.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                '$currency $amount'.trim(),
+                style: const TextStyle(
+                  color: _gold,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
+          Text(
+            LearnRepository.text(product['description']),
+            style: const TextStyle(color: TradeXColors.secondaryText),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: uuid.isEmpty ? null : () => onPurchase(uuid),
+            child: const Text('Choose payment method'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class LearningProgressScreen extends StatelessWidget {
@@ -929,22 +1067,13 @@ class LearningProgressScreen extends StatelessWidget {
 }
 
 class LearnSettingsScreen extends StatefulWidget {
-  const LearnSettingsScreen({super.key});
+  const LearnSettingsScreen({super.key, required this.repository});
+  final LearnRepository repository;
   @override
   State<LearnSettingsScreen> createState() => _LearnSettingsScreenState();
 }
 
 class _LearnSettingsScreenState extends State<LearnSettingsScreen> {
-  String language = 'en';
-  static const languages = {
-    'en': 'English',
-    'ta': 'Tamil',
-    'si': 'Sinhala',
-    'hi': 'Hindi',
-    'ml': 'Malayalam',
-    'te': 'Telugu',
-    'ur': 'Urdu',
-  };
   @override
   Widget build(BuildContext context) => _LearnScaffold(
     title: 'Learn Settings',
@@ -955,18 +1084,50 @@ class _LearnSettingsScreenState extends State<LearnSettingsScreen> {
           body: 'Choose the preferred display language for supported TradeX course translations.',
         ),
         const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          initialValue: language,
-          decoration: const InputDecoration(labelText: 'Learning language'),
-          items: languages.entries
-              .map(
-                (entry) => DropdownMenuItem(
-                  value: entry.key,
-                  child: Text(entry.value),
-                ),
-              )
-              .toList(),
-          onChanged: (value) => setState(() => language = value ?? 'en'),
+        ListTile(
+          leading: const Icon(Icons.language_rounded, color: _gold),
+          title: const Text('Course language'),
+          subtitle: Text(AppPreferences.instance.courseLanguage.toUpperCase()),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () async {
+            await Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    LearnLanguageSelectionScreen(repository: widget.repository),
+              ),
+            );
+            if (mounted) setState(() {});
+          },
+        ),
+        const SizedBox(height: 12),
+        const _SectionHeading(
+          icon: Icons.palette_outlined,
+          title: 'Appearance',
+        ),
+        const SizedBox(height: 8),
+        SegmentedButton<ThemeMode>(
+          segments: const [
+            ButtonSegment(
+              value: ThemeMode.system,
+              label: Text('System'),
+              icon: Icon(Icons.settings_suggest_outlined),
+            ),
+            ButtonSegment(
+              value: ThemeMode.light,
+              label: Text('Light'),
+              icon: Icon(Icons.light_mode_outlined),
+            ),
+            ButtonSegment(
+              value: ThemeMode.dark,
+              label: Text('Dark'),
+              icon: Icon(Icons.dark_mode_outlined),
+            ),
+          ],
+          selected: {AppPreferences.instance.themeMode},
+          onSelectionChanged: (selection) async {
+            await AppPreferences.instance.setThemeMode(selection.first);
+            if (mounted) setState(() {});
+          },
         ),
         const SizedBox(height: 12),
         const ListTile(
@@ -977,6 +1138,121 @@ class _LearnSettingsScreenState extends State<LearnSettingsScreen> {
       ],
     ),
   );
+}
+
+class LearnLanguageSelectionScreen extends StatefulWidget {
+  const LearnLanguageSelectionScreen({
+    super.key,
+    required this.repository,
+    this.firstEntry = false,
+  });
+
+  final LearnRepository repository;
+  final bool firstEntry;
+
+  @override
+  State<LearnLanguageSelectionScreen> createState() =>
+      _LearnLanguageSelectionScreenState();
+}
+
+class _LearnLanguageSelectionScreenState
+    extends State<LearnLanguageSelectionScreen> {
+  late Future<JsonMap> _future = widget.repository.languages();
+  String selected = AppPreferences.instance.courseLanguage;
+  bool saving = false;
+
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: !widget.firstEntry || AppPreferences.instance.learnLanguageSelected,
+    child: _LearnScaffold(
+      title: widget.firstEntry ? 'Choose Course Language' : 'Course Language',
+      child: _FutureBody(
+        future: _future,
+        onRetry: () {
+          setState(() {
+            _future = widget.repository.languages();
+          });
+        },
+        builder: (data) {
+          final languages = _languageEntries(data);
+          return ListView(
+            children: [
+              const _InfoCard(
+                title: 'Learn in your language',
+                body: 'TradeX will show translated course content when it is published. You can change this later in Learn Settings.',
+              ),
+              const SizedBox(height: 12),
+              for (final language in languages)
+                ListTile(
+                  leading: Icon(
+                    selected == language.$1
+                        ? Icons.radio_button_checked_rounded
+                        : Icons.radio_button_off_rounded,
+                    color: selected == language.$1
+                        ? _gold
+                        : TradeXColors.secondaryText,
+                  ),
+                  title: Text(language.$2),
+                  subtitle: Text(language.$1.toUpperCase()),
+                  onTap: () => setState(() => selected = language.$1),
+                ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: saving ? null : _save,
+                icon: saving
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_rounded),
+                label: Text(saving ? 'Saving…' : 'Continue'),
+              ),
+            ],
+          );
+        },
+      ),
+    ),
+  );
+
+  List<(String, String)> _languageEntries(JsonMap data) {
+    final raw = LearnRepository.list(data['languages']).isNotEmpty
+        ? LearnRepository.list(data['languages'])
+        : LearnRepository.list(data['items']).isNotEmpty
+        ? LearnRepository.list(data['items'])
+        : data.values.whereType<Map>().toList();
+    final parsed = raw
+        .map(LearnRepository.map)
+        .map(
+          (item) => (
+            LearnRepository.text(
+              item['code'],
+              LearnRepository.text(item['language_code']),
+            ).toLowerCase(),
+            LearnRepository.text(
+              item['native_name'],
+              LearnRepository.text(item['name'], 'Language'),
+            ),
+          ),
+        )
+        .where((item) => item.$1.isNotEmpty)
+        .toList(growable: false);
+    return parsed.isEmpty ? const [('en', 'English')] : parsed;
+  }
+
+  Future<void> _save() async {
+    setState(() => saving = true);
+    try {
+      await widget.repository.updateLanguage(selected);
+      if (mounted) Navigator.pop(context);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
 }
 
 class AssignmentsScreen extends StatefulWidget {
@@ -1129,9 +1405,9 @@ class _LearnScaffold extends StatelessWidget {
   final List<Widget>? actions;
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: TradeXColors.background,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
     appBar: AppBar(
-      backgroundColor: TradeXColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       title: Text(title),
       actions: actions,
     ),
@@ -1224,9 +1500,9 @@ class _PremiumCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: TradeXColors.surfaceRaised,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(17),
-      border: Border.all(color: TradeXColors.border),
+      border: Border.all(color: Theme.of(context).dividerColor),
     ),
     child: child,
   );
@@ -1479,7 +1755,7 @@ class _LessonCard extends StatelessWidget {
               ? _gold
               : LearnRepository.text(progress['status']) == 'COMPLETED'
               ? TradeXColors.success
-              : TradeXColors.primaryText,
+              : Theme.of(context).colorScheme.onSurface,
         ),
         title: Text(LearnRepository.text(lesson['title'], 'Lesson')),
         subtitle: Text(

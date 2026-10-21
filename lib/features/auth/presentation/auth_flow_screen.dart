@@ -63,7 +63,7 @@ class AuthFlowScreen extends StatefulWidget {
 }
 
 class _AuthFlowScreenState extends State<AuthFlowScreen> {
-  _AuthStep _step = _AuthStep.splash;
+  late _AuthStep _step;
   bool? _hasCompletedFirstLogin;
 
   RegistrationSession? _registrationSession;
@@ -74,12 +74,16 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   PasswordRecoverySession? _recoverySession;
 
   String _registrationEmail = '';
+  String _registrationWhatsApp = '';
   String _recoveryEmail = '';
   String _recoveryWhatsApp = '';
 
   @override
   void initState() {
     super.initState();
+    _step = widget.quickUnlockConfig == null
+        ? _AuthStep.splash
+        : _AuthStep.login;
     _loadLoginHistory();
   }
 
@@ -174,6 +178,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     _registrationRecoveryCodes = null;
     _registrationDraft = null;
     _registrationEmail = '';
+    _registrationWhatsApp = '';
   }
 
   void _clearRecovery() {
@@ -278,6 +283,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     setState(() {
       _registrationSession = session;
       _registrationEmail = draft.email.trim();
+      _registrationWhatsApp = draft.whatsappNumber.trim();
       _step = _AuthStep.registerEmailOtp;
     });
   }
@@ -527,9 +533,9 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
 
       case _AuthStep.registerWhatsAppOtp:
         return MobileOtpVerificationScreen(
-          subtitle: 'WhatsApp delivery is coming soon. Enter the 6-digit code sent to your email.',
-          channelLabel:
-              'Temporary mobile verification code sent to $_registrationEmail.',
+          subtitle:
+              'Enter the 6-digit verification code sent through WhatsApp.',
+          channelLabel: 'Verification code sent to $_registrationWhatsApp.',
           onVerify: _verifyRegistrationWhatsApp,
           onResend: _resendRegistrationWhatsApp,
           onBack: () => _setStep(_AuthStep.registerEmailOtp),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -9,18 +10,92 @@ import '../auth/auth_session.dart';
 import '../auth/secure_session_store.dart';
 import '../config/tradex_api_config.dart';
 import '../device/device_identity.dart';
+import '../offline/offline_cache_store.dart';
 import 'api_exception.dart';
 import 'app_messenger.dart';
 
 class TradeXApiClient {
-  TradeXApiClient(this._sessionStore, this._deviceIdentity, {Dio? dio})
-    : _dio = dio ?? _createPinnedDio();
+  TradeXApiClient(
+    this._sessionStore,
+    this._deviceIdentity, {
+    Dio? dio,
+    OfflineCacheStore? offlineStore,
+  }) : _dio = dio ?? _createPinnedDio(),
+       _offlineStore = offlineStore ?? OfflineCacheStore();
 
   final SecureSessionStore _sessionStore;
   final DeviceIdentity _deviceIdentity;
   final Dio _dio;
+  final OfflineCacheStore _offlineStore;
 
   Future<AuthSession>? _refreshInFlight;
+  Future<void>? _offlineSyncInFlight;
+
+  Future<bool> checkReachability() async {
+    try {
+      await _dio.get<dynamic>(
+        '/api/v1/bootstrap',
+        options: Options(
+          sendTimeout: const Duration(seconds: 6),
+          receiveTimeout: const Duration(seconds: 6),
+        ),
+      );
+      return true;
+    } on DioException {
+      return false;
+    }
+  }
+
+  Future<void> clearOfflineData() async {
+    final session = await _sessionStore.readSession();
+    if (session != null) {
+      await _offlineStore.clearAccount(_accountKey(session));
+    }
+  }
+
+  Future<void> syncOfflineMutations() async {
+    final existing = _offlineSyncInFlight;
+    if (existing != null) return existing;
+    final operation = _performOfflineMutationSync();
+    _offlineSyncInFlight = operation;
+    try {
+      await operation;
+    } finally {
+      if (identical(_offlineSyncInFlight, operation)) {
+        _offlineSyncInFlight = null;
+      }
+    }
+  }
+
+  Future<void> _performOfflineMutationSync() async {
+    final session = await _sessionStore.readSession();
+    if (session == null) return;
+    final accountKey = _accountKey(session);
+    final queued = await _offlineStore.queued(accountKey);
+    for (final mutation in queued) {
+      try {
+        await _send(
+          method: mutation.method,
+          path: mutation.path,
+          body: mutation.body,
+          authenticated: true,
+          retryAfterRefresh: true,
+          allowOfflineQueue: false,
+        );
+        await _offlineStore.removeQueued(accountKey, mutation.key);
+      } on ApiException catch (error) {
+        if (_isTransportFailure(error)) break;
+        if ((error.statusCode ?? 500) >= 400 &&
+            (error.statusCode ?? 500) < 500 &&
+            error.statusCode != 408 &&
+            error.statusCode != 429) {
+          await _offlineStore.removeQueued(accountKey, mutation.key);
+          continue;
+        }
+        break;
+      }
+    }
+  }
 
   Future<Map<String, dynamic>> publicPost(
     String path,
@@ -90,6 +165,81 @@ class TradeXApiClient {
     retryAfterRefresh: true,
   );
 
+  Future<Map<String, dynamic>> postJsonWithHeaders(
+    String path,
+    Map<String, dynamic> body,
+    Map<String, String> headers,
+  ) => _send(
+    method: 'POST',
+    path: path,
+    body: body,
+    authenticated: true,
+    retryAfterRefresh: true,
+    headers: headers,
+  );
+
+  Future<Map<String, dynamic>> postMultipart(
+    String path,
+    Map<String, dynamic> fields,
+    Map<String, String> filePaths,
+  ) async {
+    var session = await _sessionStore.readSession();
+    if (session == null) {
+      throw const ApiException(
+        message: 'Your TradeX session has ended. Please sign in again.',
+        statusCode: 401,
+        code: 'SESSION_MISSING',
+      );
+    }
+    if (session.accessTokenExpired) session = await refreshSession();
+
+    Future<Response<dynamic>> send(AuthSession active) async {
+      final data = FormData.fromMap(fields);
+      for (final entry in filePaths.entries) {
+        data.files.add(
+          MapEntry(
+            entry.key,
+            await MultipartFile.fromFile(
+              entry.value,
+              filename: entry.value.split(RegExp(r'[\\/]')).last,
+            ),
+          ),
+        );
+      }
+      try {
+        return await _dio.post<dynamic>(
+          path,
+          data: data,
+          options: Options(
+            headers: <String, String>{
+              'Accept': 'application/json',
+              'Authorization': 'Bearer ${active.accessToken}',
+            },
+          ),
+        );
+      } on DioException catch (error) {
+        if (_isNoInternetError(error)) {
+          AppMessenger.showNoInternetConnection();
+          throw const ApiException(
+            message:
+                'No internet connection. Connect your internet and try again.',
+            code: 'NO_INTERNET',
+          );
+        }
+        throw const ApiException(
+          message: 'Unable to upload the selected files. Please try again.',
+        );
+      }
+    }
+
+    var response = await send(session);
+    if (response.statusCode == 401) {
+      session = await refreshSession(force: true);
+      response = await send(session);
+    }
+    return _decodeResponse(response);
+  }
+
   Future<Map<String, dynamic>> putJson(
     String path,
     Map<String, dynamic> body,
@@ -152,50 +302,102 @@ class TradeXApiClient {
     Map<String, dynamic>? body,
     required bool authenticated,
     required bool retryAfterRefresh,
+    Map<String, String>? headers,
+    bool allowOfflineQueue = true,
   }) async {
     AuthSession? session;
+    try {
+      if (authenticated) {
+        session = await _sessionStore.readSession();
 
-    if (authenticated) {
-      session = await _sessionStore.readSession();
+        if (session == null) {
+          throw const ApiException(
+            message: 'Your TradeX session has ended. Please sign in again.',
+            statusCode: 401,
+            code: 'SESSION_MISSING',
+          );
+        }
 
-      if (session == null) {
-        throw const ApiException(
-          message: 'Your TradeX session has ended. Please sign in again.',
-          statusCode: 401,
-          code: 'SESSION_MISSING',
-        );
+        if (session.accessTokenExpired) {
+          session = await refreshSession();
+        }
       }
 
-      if (session.accessTokenExpired) {
-        session = await refreshSession();
-      }
-    }
-
-    final response = await _request(
-      method: method,
-      path: path,
-      body: body,
-      accessToken: session?.accessToken,
-    );
-
-    if (authenticated && response.statusCode == 401 && retryAfterRefresh) {
-      try {
-        await refreshSession(force: true);
-      } on ApiException catch (error) {
-        if (error.shouldClearSession) await _sessionStore.clearSession();
-        rethrow;
-      }
-
-      return _send(
+      final response = await _request(
         method: method,
         path: path,
         body: body,
-        authenticated: true,
-        retryAfterRefresh: false,
+        accessToken: session?.accessToken,
+        headers: headers,
       );
-    }
 
-    return _decodeResponse(response);
+      if (authenticated && response.statusCode == 401 && retryAfterRefresh) {
+        try {
+          await refreshSession(force: true);
+        } on ApiException catch (error) {
+          if (error.shouldClearSession) await _sessionStore.clearSession();
+          rethrow;
+        }
+
+        return await _send(
+          method: method,
+          path: path,
+          body: body,
+          authenticated: true,
+          retryAfterRefresh: false,
+          headers: headers,
+          allowOfflineQueue: allowOfflineQueue,
+        );
+      }
+
+      final decoded = _decodeResponse(response);
+      if (method == 'GET' && session != null && _isCacheable(path)) {
+        unawaited(
+          _offlineStore
+              .put(
+                accountKey: _accountKey(session),
+                requestKey: path,
+                payload: decoded,
+                maxAge: _cacheDuration(path),
+              )
+              .catchError((_) {}),
+        );
+      }
+      return decoded;
+    } on ApiException catch (error) {
+      if (session == null || !_isTransportFailure(error)) rethrow;
+      final accountKey = _accountKey(session);
+      if (method == 'GET' && _isCacheable(path)) {
+        final entry = await _offlineStore.get(
+          accountKey: accountKey,
+          requestKey: path,
+        );
+        if (entry != null) {
+          return <String, dynamic>{
+            ...entry.payload,
+            '_offline_cache': <String, dynamic>{
+              'cached_at': entry.cachedAt.toIso8601String(),
+              'expires_at': entry.expiresAt.toIso8601String(),
+              'is_stale': entry.isExpired,
+            },
+          };
+        }
+      }
+      if (allowOfflineQueue && _isSafeOfflineMutation(method, path)) {
+        await _offlineStore.enqueue(
+          accountKey: accountKey,
+          method: method,
+          path: path,
+          body: body,
+        );
+        return <String, dynamic>{
+          'success': true,
+          'data': const <String, dynamic>{'queued_offline': true},
+          '_offline_queued': true,
+        };
+      }
+      rethrow;
+    }
   }
 
   Future<Response<dynamic>> _request({
@@ -204,6 +406,7 @@ class TradeXApiClient {
     Map<String, dynamic>? body,
     String? accessToken,
     ResponseType? responseType,
+    Map<String, String>? headers,
   }) async {
     try {
       return await _dio.request<dynamic>(
@@ -216,6 +419,7 @@ class TradeXApiClient {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
             if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+            ...?headers,
           },
         ),
       );
@@ -246,6 +450,7 @@ class TradeXApiClient {
 
       throw const ApiException(
         message: 'Unable to connect to TradeX. Please try again.',
+        code: 'CONNECTION_ERROR',
       );
     }
   }
@@ -254,6 +459,67 @@ class TradeXApiClient {
     return error.type == DioExceptionType.connectionError ||
         error.type == DioExceptionType.connectionTimeout ||
         error.error is SocketException;
+  }
+
+  bool _isTransportFailure(ApiException error) =>
+      error.code == 'NO_INTERNET' ||
+      error.code == 'REQUEST_TIMEOUT' ||
+      error.code == 'CONNECTION_ERROR';
+
+  String _accountKey(AuthSession session) {
+    final user = session.user;
+    for (final key in const ['uuid', 'id', 'email', 'referral_code']) {
+      final value = user[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) return '$key:$value';
+    }
+    return 'session:${session.sessionUuid}';
+  }
+
+  bool _isCacheable(String value) {
+    final path = Uri.parse(value).path;
+    return path == '/api/v1/languages' ||
+        path == '/api/v1/products' ||
+        path.startsWith('/api/v1/dashboard') ||
+        path.startsWith('/api/v1/economic-news') ||
+        path.startsWith('/api/v1/screener') ||
+        path.startsWith('/api/v1/education/') ||
+        path.startsWith('/api/v1/trade-journal') ||
+        path.startsWith('/api/v1/trading-routine') ||
+        path.startsWith('/api/v1/legal/');
+  }
+
+  Duration _cacheDuration(String value) {
+    final path = Uri.parse(value).path;
+    if (path.startsWith('/api/v1/economic-news') ||
+        path.startsWith('/api/v1/screener') ||
+        path.startsWith('/api/v1/dashboard')) {
+      return const Duration(minutes: 5);
+    }
+    if (path.startsWith('/api/v1/education/')) {
+      return const Duration(hours: 12);
+    }
+    if (path.startsWith('/api/v1/trade-journal') ||
+        path.startsWith('/api/v1/trading-routine')) {
+      return const Duration(hours: 24);
+    }
+    return const Duration(days: 7);
+  }
+
+  bool _isSafeOfflineMutation(String method, String value) {
+    final path = Uri.parse(value).path;
+    if (method == 'PATCH' &&
+        RegExp(r'^/api/v1/education/lessons/[^/]+/progress$').hasMatch(path)) {
+      return true;
+    }
+    if ((method == 'PUT' || method == 'DELETE') &&
+        RegExp(r'^/api/v1/education/lessons/[^/]+/bookmark$').hasMatch(path)) {
+      return true;
+    }
+    if (method == 'PATCH' &&
+        RegExp(r'^/api/v1/trade-journal/[^/]+$').hasMatch(path)) {
+      return true;
+    }
+    return method == 'PUT' && path == '/api/v1/trading-routine/preferences';
   }
 
   Future<AuthSession> refreshSession({
