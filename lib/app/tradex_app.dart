@@ -36,6 +36,7 @@ class TradeXApp extends StatelessWidget {
       animation: AppPreferences.instance,
       builder: (context, _) => MaterialApp(
         title: 'Trade X',
+        restorationScopeId: 'tradex-app',
         debugShowCheckedModeBanner: false,
         scaffoldMessengerKey: AppMessenger.key,
         theme: TradeXTheme.light,

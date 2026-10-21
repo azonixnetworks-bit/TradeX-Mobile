@@ -604,8 +604,13 @@ class _ManualPaymentInstructionsState
 }
 
 class ContactChangeScreen extends StatefulWidget {
-  const ContactChangeScreen({super.key, required this.apiClient});
+  const ContactChangeScreen({
+    super.key,
+    required this.apiClient,
+    this.initialChannel = 'whatsapp',
+  });
   final TradeXApiClient apiClient;
+  final String initialChannel;
 
   @override
   State<ContactChangeScreen> createState() => _ContactChangeScreenState();
@@ -616,10 +621,16 @@ class _ContactChangeScreenState extends State<ContactChangeScreen> {
   final _value = TextEditingController();
   final _totp = TextEditingController();
   final _otp = TextEditingController();
-  String _channel = 'whatsapp';
+  late String _channel;
   String? _challengeId;
   String? _challengeToken;
   bool _working = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _channel = widget.initialChannel == 'telegram' ? 'telegram' : 'whatsapp';
+  }
 
   @override
   void dispose() {
@@ -855,7 +866,11 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
                   Text(snapshot.error.toString(), textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
-                    onPressed: () => setState(() => _catalog = _loadCatalog()),
+                    onPressed: () {
+                      setState(() {
+                        _catalog = _loadCatalog();
+                      });
+                    },
                     icon: const Icon(Icons.refresh_rounded),
                     label: const Text('Retry'),
                   ),

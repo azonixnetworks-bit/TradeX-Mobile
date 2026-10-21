@@ -63,7 +63,7 @@ class AuthFlowScreen extends StatefulWidget {
 }
 
 class _AuthFlowScreenState extends State<AuthFlowScreen> {
-  _AuthStep _step = _AuthStep.splash;
+  late _AuthStep _step;
   bool? _hasCompletedFirstLogin;
 
   RegistrationSession? _registrationSession;
@@ -81,6 +81,9 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   @override
   void initState() {
     super.initState();
+    _step = widget.quickUnlockConfig == null
+        ? _AuthStep.splash
+        : _AuthStep.login;
     _loadLoginHistory();
   }
 

@@ -29,6 +29,7 @@ class TradeXApiClient {
   final OfflineCacheStore _offlineStore;
 
   Future<AuthSession>? _refreshInFlight;
+  Future<void>? _offlineSyncInFlight;
 
   Future<bool> checkReachability() async {
     try {
@@ -53,6 +54,20 @@ class TradeXApiClient {
   }
 
   Future<void> syncOfflineMutations() async {
+    final existing = _offlineSyncInFlight;
+    if (existing != null) return existing;
+    final operation = _performOfflineMutationSync();
+    _offlineSyncInFlight = operation;
+    try {
+      await operation;
+    } finally {
+      if (identical(_offlineSyncInFlight, operation)) {
+        _offlineSyncInFlight = null;
+      }
+    }
+  }
+
+  Future<void> _performOfflineMutationSync() async {
     final session = await _sessionStore.readSession();
     if (session == null) return;
     final accountKey = _accountKey(session);

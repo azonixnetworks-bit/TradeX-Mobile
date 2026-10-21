@@ -81,7 +81,8 @@ class TradeXFeatureScreen extends StatefulWidget {
   State<TradeXFeatureScreen> createState() => _TradeXFeatureScreenState();
 }
 
-class _TradeXFeatureScreenState extends State<TradeXFeatureScreen> {
+class _TradeXFeatureScreenState extends State<TradeXFeatureScreen>
+    with WidgetsBindingObserver {
   final _search = TextEditingController();
   Future<Map<String, dynamic>>? _request;
   String _query = '';
@@ -89,13 +90,22 @@ class _TradeXFeatureScreenState extends State<TradeXFeatureScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _reload();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _search.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && widget.spec.endpoint != null) {
+      _reload();
+    }
   }
 
   void _reload() {

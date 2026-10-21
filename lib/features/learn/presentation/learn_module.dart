@@ -40,7 +40,12 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
     if (mounted) _refresh();
   }
 
-  void _refresh() => setState(() => _future = widget.repository.overview());
+  void _refresh() {
+    setState(() {
+      _future = widget.repository.overview();
+    });
+  }
+
   void _open(Widget screen) =>
       Navigator.of(context)
           .push(MaterialPageRoute<void>(builder: (_) => screen))
@@ -934,7 +939,11 @@ class _PremiumAccessScreenState extends State<PremiumAccessScreen> {
     ),
   );
 
-  void _reload() => setState(() => future = widget.repository.premiumAccess());
+  void _reload() {
+    setState(() {
+      future = widget.repository.premiumAccess();
+    });
+  }
 
   Future<void> _openCheckout(String productUuid) async {
     await Navigator.of(context).push<void>(
@@ -1159,7 +1168,11 @@ class _LearnLanguageSelectionScreenState
       title: widget.firstEntry ? 'Choose Course Language' : 'Course Language',
       child: _FutureBody(
         future: _future,
-        onRetry: () => setState(() => _future = widget.repository.languages()),
+        onRetry: () {
+          setState(() {
+            _future = widget.repository.languages();
+          });
+        },
         builder: (data) {
           final languages = _languageEntries(data);
           return ListView(

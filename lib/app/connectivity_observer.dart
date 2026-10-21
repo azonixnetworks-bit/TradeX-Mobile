@@ -23,8 +23,8 @@ class ConnectivityObserver extends StatefulWidget {
 class _ConnectivityObserverState extends State<ConnectivityObserver>
     with WidgetsBindingObserver {
   StreamSubscription<List<ConnectivityResult>>? _subscription;
-  Timer? _healthTimer;
   bool _wasOffline = false;
+  bool _hasConnectivityState = false;
   bool _checking = false;
 
   @override
@@ -33,23 +33,22 @@ class _ConnectivityObserverState extends State<ConnectivityObserver>
     WidgetsBinding.instance.addObserver(this);
     _subscription = Connectivity().onConnectivityChanged.listen(_onChanged);
     _checkInitialConnectivity();
-    _healthTimer = Timer.periodic(
-      const Duration(seconds: 30),
-      (_) => _checkInitialConnectivity(),
-    );
   }
 
-  Future<void> _checkInitialConnectivity() async {
+  Future<void> _checkInitialConnectivity({bool forceSync = false}) async {
     final connectivity = await Connectivity().checkConnectivity();
-    _onChanged(connectivity);
+    await _onChanged(connectivity, forceSync: forceSync);
   }
 
-  Future<void> _onChanged(List<ConnectivityResult> results) async {
+  Future<void> _onChanged(
+    List<ConnectivityResult> results, {
+    bool forceSync = false,
+  }) async {
     final noNetwork =
         results.isEmpty ||
         results.every((result) => result == ConnectivityResult.none);
     if (noNetwork) {
-      _setOffline(true);
+      _setOffline(true, forceSync: forceSync);
       return;
     }
     if (_checking) return;
@@ -57,17 +56,19 @@ class _ConnectivityObserverState extends State<ConnectivityObserver>
     final reachable = await widget.apiClient.checkReachability();
     _checking = false;
     if (!mounted) return;
-    _setOffline(!reachable);
+    _setOffline(!reachable, forceSync: forceSync);
   }
 
-  void _setOffline(bool offline) {
+  void _setOffline(bool offline, {bool forceSync = false}) {
+    final shouldSync =
+        !offline && (forceSync || !_hasConnectivityState || _wasOffline);
     if (offline && !_wasOffline) {
       AppMessenger.showNoInternetConnection();
     }
 
     if (!offline) {
       AppMessenger.markConnectionAvailable();
-      unawaited(widget.apiClient.syncOfflineMutations());
+      if (shouldSync) unawaited(_syncOfflineChanges());
     }
 
     if (mounted && offline != _wasOffline) {
@@ -75,17 +76,27 @@ class _ConnectivityObserverState extends State<ConnectivityObserver>
     } else {
       _wasOffline = offline;
     }
+    _hasConnectivityState = true;
+  }
+
+  Future<void> _syncOfflineChanges() async {
+    try {
+      await widget.apiClient.syncOfflineMutations();
+    } catch (_) {
+      // A later connectivity event or app resume retries safe queued changes.
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _checkInitialConnectivity();
+    if (state == AppLifecycleState.resumed) {
+      _checkInitialConnectivity(forceSync: true);
+    }
   }
 
   @override
   void dispose() {
     _subscription?.cancel();
-    _healthTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

@@ -15,7 +15,7 @@ class TrustedDevicesScreen extends StatefulWidget {
 }
 
 class _TrustedDevicesScreenState extends State<TrustedDevicesScreen> {
-  late Future<List<_TrustedDevice>> _devices;
+  late Future<_TrustedDeviceState> _devices;
   String? _revokingUuid;
 
   @override
@@ -24,7 +24,7 @@ class _TrustedDevicesScreenState extends State<TrustedDevicesScreen> {
     _devices = _loadDevices();
   }
 
-  Future<List<_TrustedDevice>> _loadDevices() async {
+  Future<_TrustedDeviceState> _loadDevices() async {
     final response = await widget.apiClient.getJson(
       '/api/v1/profile/settings/devices',
     );
@@ -33,15 +33,38 @@ class _TrustedDevicesScreenState extends State<TrustedDevicesScreen> {
     if (items is! List) {
       throw const ApiException(message: 'Trusted devices are unavailable.');
     }
-    return items
+    final devices = items
         .whereType<Map>()
         .map((item) => _TrustedDevice.fromJson(Map<String, dynamic>.from(item)))
         .toList(growable: false);
+    final policy = data is Map ? data['policy'] : null;
+    return _TrustedDeviceState(
+      devices: devices,
+      maximumMobileDevices: _positivePolicyValue(
+        policy,
+        'maximum_active_mobile_devices',
+        2,
+      ),
+      maximumDesktopDevices: _positivePolicyValue(
+        policy,
+        'maximum_active_desktop_devices',
+        1,
+      ),
+    );
+  }
+
+  int _positivePolicyValue(Object? policy, String key, int fallback) {
+    if (policy is! Map) return fallback;
+    final raw = policy[key];
+    final parsed = raw is num ? raw.toInt() : int.tryParse('$raw');
+    return parsed != null && parsed > 0 ? parsed : fallback;
   }
 
   Future<void> _refresh() async {
     final future = _loadDevices();
-    setState(() => _devices = future);
+    setState(() {
+      _devices = future;
+    });
     await future;
   }
 
@@ -74,81 +97,10 @@ class _TrustedDevicesScreenState extends State<TrustedDevicesScreen> {
   }
 
   Future<String?> _requestTotp() async {
-    final controller = TextEditingController();
-    String? validationMessage;
-    final result = await showDialog<String>(
+    return showDialog<String>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: TradeXColors.surfaceRaised,
-          title: const Text(
-            'Confirm device revoke',
-            style: TextStyle(color: TradeXColors.primaryText),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Enter your current 6-digit authenticator code.',
-                style: TextStyle(color: TradeXColors.secondaryText),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: const TextStyle(
-                  color: TradeXColors.primaryText,
-                  letterSpacing: 8,
-                  fontWeight: FontWeight.w800,
-                ),
-                decoration: InputDecoration(
-                  counterText: '',
-                  labelText: 'Authenticator code',
-                  errorText: validationMessage,
-                  labelStyle: const TextStyle(
-                    color: TradeXColors.secondaryText,
-                  ),
-                  enabledBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: TradeXColors.borderStrong),
-                  ),
-                  focusedBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: TradeXColors.goldBright),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: TradeXColors.error,
-              ),
-              onPressed: () {
-                final code = controller.text.trim();
-                if (!RegExp(r'^\d{6}$').hasMatch(code)) {
-                  setDialogState(
-                    () => validationMessage = 'Enter all 6 digits.',
-                  );
-                  return;
-                }
-                Navigator.pop(dialogContext, code);
-              },
-              child: const Text('Revoke device'),
-            ),
-          ],
-        ),
-      ),
+      builder: (_) => const _RevokeDeviceDialog(),
     );
-    controller.dispose();
-    return result;
   }
 
   @override
@@ -161,7 +113,7 @@ class _TrustedDevicesScreenState extends State<TrustedDevicesScreen> {
         title: const Text('Trusted devices'),
       ),
       body: SafeArea(
-        child: FutureBuilder<List<_TrustedDevice>>(
+        child: FutureBuilder<_TrustedDeviceState>(
           future: _devices,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
@@ -175,7 +127,14 @@ class _TrustedDevicesScreenState extends State<TrustedDevicesScreen> {
               return _DeviceLoadError(onRetry: _refresh);
             }
 
-            final devices = snapshot.data ?? const <_TrustedDevice>[];
+            final state = snapshot.requireData;
+            final devices = state.devices;
+            final mobile = devices
+                .where((device) => device.slot == 'MOBILE')
+                .toList(growable: false);
+            final desktop = devices
+                .where((device) => device.slot == 'DESKTOP')
+                .toList(growable: false);
             return RefreshIndicator(
               color: TradeXColors.goldBright,
               onRefresh: _refresh,
@@ -185,15 +144,22 @@ class _TrustedDevicesScreenState extends State<TrustedDevicesScreen> {
                 children: [
                   const _SecurityNotice(),
                   const SizedBox(height: 16),
-                  ...devices.map(
-                    (device) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _DeviceCard(
-                        device: device,
-                        busy: _revokingUuid == device.uuid,
-                        onRevoke: () => _revoke(device),
-                      ),
-                    ),
+                  _DeviceGroup(
+                    title: 'Mobile Devices',
+                    subtitle:
+                        'Android and iOS · up to ${state.maximumMobileDevices} active devices',
+                    devices: mobile,
+                    revokingUuid: _revokingUuid,
+                    onRevoke: _revoke,
+                  ),
+                  const SizedBox(height: 16),
+                  _DeviceGroup(
+                    title: 'Desktop Devices',
+                    subtitle:
+                        'Windows, macOS and Web · up to ${state.maximumDesktopDevices} active device',
+                    devices: desktop,
+                    revokingUuid: _revokingUuid,
+                    onRevoke: _revoke,
                   ),
                 ],
               ),
@@ -203,6 +169,145 @@ class _TrustedDevicesScreenState extends State<TrustedDevicesScreen> {
       ),
     );
   }
+}
+
+class _RevokeDeviceDialog extends StatefulWidget {
+  const _RevokeDeviceDialog();
+
+  @override
+  State<_RevokeDeviceDialog> createState() => _RevokeDeviceDialogState();
+}
+
+class _RevokeDeviceDialogState extends State<_RevokeDeviceDialog> {
+  final _controller = TextEditingController();
+  String? _validationMessage;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final code = _controller.text.trim();
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
+      setState(() => _validationMessage = 'Enter all 6 digits.');
+      return;
+    }
+    Navigator.of(context).pop(code);
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    backgroundColor: TradeXColors.surfaceRaised,
+    title: const Text(
+      'Confirm device revoke',
+      style: TextStyle(color: TradeXColors.primaryText),
+    ),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Enter your current 6-digit authenticator code.',
+          style: TextStyle(color: TradeXColors.secondaryText),
+        ),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          style: const TextStyle(
+            color: TradeXColors.primaryText,
+            letterSpacing: 8,
+            fontWeight: FontWeight.w800,
+          ),
+          decoration: InputDecoration(
+            counterText: '',
+            labelText: 'Authenticator code',
+            errorText: _validationMessage,
+            labelStyle: const TextStyle(color: TradeXColors.secondaryText),
+            enabledBorder: const OutlineInputBorder(
+              borderSide: BorderSide(color: TradeXColors.borderStrong),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderSide: BorderSide(color: TradeXColors.goldBright),
+            ),
+          ),
+          onSubmitted: (_) => _submit(),
+        ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        style: FilledButton.styleFrom(backgroundColor: TradeXColors.error),
+        onPressed: _submit,
+        child: const Text('Revoke device'),
+      ),
+    ],
+  );
+}
+
+class _DeviceGroup extends StatelessWidget {
+  const _DeviceGroup({
+    required this.title,
+    required this.subtitle,
+    required this.devices,
+    required this.revokingUuid,
+    required this.onRevoke,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<_TrustedDevice> devices;
+  final String? revokingUuid;
+  final ValueChanged<_TrustedDevice> onRevoke;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        title,
+        style: Theme.of(context).textTheme.titleMedium
+            ?.copyWith(fontWeight: FontWeight.w900),
+      ),
+      const SizedBox(height: 2),
+      Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+      const SizedBox(height: 10),
+      if (devices.isEmpty)
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: TradeXColors.surfaceRaised,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: TradeXColors.border),
+          ),
+          child: const Text(
+            'No registered devices in this category.',
+            style: TextStyle(color: TradeXColors.secondaryText),
+          ),
+        )
+      else
+        ...devices.map(
+          (device) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _DeviceCard(
+              device: device,
+              busy: revokingUuid == device.uuid,
+              onRevoke: () => onRevoke(device),
+            ),
+          ),
+        ),
+    ],
+  );
 }
 
 class _SecurityNotice extends StatelessWidget {
@@ -223,7 +328,7 @@ class _SecurityNotice extends StatelessWidget {
         SizedBox(width: 11),
         Expanded(
           child: Text(
-            'Only your current device stays signed in. Revoking another device immediately removes its access and refresh tokens.',
+            'Your account supports two active mobile devices and one active desktop device. Revoking a device immediately removes its access and refresh tokens.',
             style: TextStyle(color: TradeXColors.secondaryText, height: 1.4),
           ),
         ),
@@ -295,6 +400,19 @@ class _DeviceCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 13),
+        if (device.deviceModel.isNotEmpty)
+          _DeviceFact(label: 'Model', value: device.deviceModel),
+        _DeviceFact(
+          label: 'Trust',
+          value: device.trusted ? 'Trusted' : 'Untrusted',
+        ),
+        _DeviceFact(
+          label: 'Status',
+          value: device.active ? 'Active' : 'Revoked',
+        ),
+        _DeviceFact(label: 'Registered', value: device.registeredLabel),
+        if (device.revokedAt != null)
+          _DeviceFact(label: 'Revoked', value: device.revokedLabel),
         Text(
           'Last active ${device.lastSeenLabel}',
           style: const TextStyle(
@@ -322,6 +440,41 @@ class _DeviceCard extends StatelessWidget {
             ),
           ),
         ],
+      ],
+    ),
+  );
+}
+
+class _DeviceFact extends StatelessWidget {
+  const _DeviceFact({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 5),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 82,
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: TradeXColors.tertiaryText,
+              fontSize: 11,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              color: TradeXColors.secondaryText,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
       ],
     ),
   );
@@ -393,6 +546,18 @@ class _DeviceLoadError extends StatelessWidget {
   );
 }
 
+class _TrustedDeviceState {
+  const _TrustedDeviceState({
+    required this.devices,
+    required this.maximumMobileDevices,
+    required this.maximumDesktopDevices,
+  });
+
+  final List<_TrustedDevice> devices;
+  final int maximumMobileDevices;
+  final int maximumDesktopDevices;
+}
+
 class _TrustedDevice {
   const _TrustedDevice({
     required this.uuid,
@@ -402,8 +567,11 @@ class _TrustedDevice {
     required this.deviceName,
     required this.deviceModel,
     required this.osVersion,
+    required this.trusted,
     required this.active,
+    required this.registeredAt,
     required this.lastSeenAt,
+    required this.revokedAt,
   });
 
   factory _TrustedDevice.fromJson(Map<String, dynamic> json) => _TrustedDevice(
@@ -414,8 +582,11 @@ class _TrustedDevice {
     deviceName: json['device_name']?.toString() ?? '',
     deviceModel: json['device_model']?.toString() ?? '',
     osVersion: json['os_version']?.toString() ?? 'Unknown OS',
+    trusted: json['trusted'] == true,
     active: json['active'] == true,
+    registeredAt: DateTime.tryParse(json['registered_at']?.toString() ?? ''),
     lastSeenAt: DateTime.tryParse(json['last_seen_at']?.toString() ?? ''),
+    revokedAt: DateTime.tryParse(json['revoked_at']?.toString() ?? ''),
   );
 
   final String uuid;
@@ -425,8 +596,11 @@ class _TrustedDevice {
   final String deviceName;
   final String deviceModel;
   final String osVersion;
+  final bool trusted;
   final bool active;
+  final DateTime? registeredAt;
   final DateTime? lastSeenAt;
+  final DateTime? revokedAt;
 
   String get displayName => deviceName.isNotEmpty
       ? deviceName
@@ -435,7 +609,14 @@ class _TrustedDevice {
       : 'TradeX device';
 
   String get lastSeenLabel {
-    final value = lastSeenAt?.toLocal();
+    return _dateLabel(lastSeenAt);
+  }
+
+  String get registeredLabel => _dateLabel(registeredAt);
+  String get revokedLabel => _dateLabel(revokedAt);
+
+  String _dateLabel(DateTime? dateTime) {
+    final value = dateTime?.toLocal();
     if (value == null) return 'not available';
     final date = '${value.year}-${_two(value.month)}-${_two(value.day)}';
     final time = '${_two(value.hour)}:${_two(value.minute)}';

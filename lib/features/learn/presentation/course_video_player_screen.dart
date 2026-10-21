@@ -30,15 +30,20 @@ class CourseVideoPlayerScreen extends StatefulWidget {
       _CourseVideoPlayerScreenState();
 }
 
-class _CourseVideoPlayerScreenState extends State<CourseVideoPlayerScreen> {
+class _CourseVideoPlayerScreenState extends State<CourseVideoPlayerScreen>
+    with WidgetsBindingObserver {
   late final VideoPlayerController _controller;
   Timer? _checkpoint;
+  Future<void>? _progressSaveInFlight;
   bool _fullscreen = false;
+  bool _foreground = true;
+  int? _lastSavedPosition;
   Object? _error;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = VideoPlayerController.networkUrl(
       Uri.parse(widget.playbackUrl),
     );
@@ -53,12 +58,9 @@ class _CourseVideoPlayerScreenState extends State<CourseVideoPlayerScreen> {
         await _controller.seekTo(resume);
       }
       _controller.addListener(_refresh);
-      _checkpoint = Timer.periodic(
-        const Duration(seconds: 15),
-        (_) => _saveProgress(),
-      );
+      _startCheckpoint();
       if (mounted) setState(() {});
-      await _controller.play();
+      if (_foreground) await _controller.play();
     } catch (error) {
       if (mounted) setState(() => _error = error);
     }
@@ -68,11 +70,46 @@ class _CourseVideoPlayerScreenState extends State<CourseVideoPlayerScreen> {
     if (mounted) setState(() {});
   }
 
+  void _startCheckpoint() {
+    _checkpoint?.cancel();
+    _checkpoint = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _saveProgress(),
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _foreground = true;
+      if (_controller.value.isInitialized) _startCheckpoint();
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      if (!_foreground) return;
+      _foreground = false;
+      _checkpoint?.cancel();
+      _checkpoint = null;
+      if (_controller.value.isInitialized) {
+        unawaited(_controller.pause());
+        unawaited(_saveProgress());
+      }
+    }
+  }
+
   Future<void> _saveProgress() async {
     if (!_controller.value.isInitialized) return;
     final position = _controller.value.position.inSeconds;
     final duration = _controller.value.duration.inSeconds;
-    await widget.repository.updateProgress(
+    if (position == _lastSavedPosition) return;
+    final activeSave = _progressSaveInFlight;
+    if (activeSave != null) await activeSave;
+    if (position == _lastSavedPosition) return;
+    final operation = widget.repository.updateProgress(
       widget.lessonUuid,
       status: duration > 0 && position >= duration - 3
           ? 'COMPLETED'
@@ -80,6 +117,15 @@ class _CourseVideoPlayerScreenState extends State<CourseVideoPlayerScreen> {
       videoUuid: widget.videoUuid,
       positionSeconds: position,
     );
+    _progressSaveInFlight = operation;
+    try {
+      await operation;
+      _lastSavedPosition = position;
+    } finally {
+      if (identical(_progressSaveInFlight, operation)) {
+        _progressSaveInFlight = null;
+      }
+    }
   }
 
   Future<void> _toggleFullscreen() async {
@@ -105,6 +151,7 @@ class _CourseVideoPlayerScreenState extends State<CourseVideoPlayerScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _checkpoint?.cancel();
     _controller.removeListener(_refresh);
     _saveProgress();
