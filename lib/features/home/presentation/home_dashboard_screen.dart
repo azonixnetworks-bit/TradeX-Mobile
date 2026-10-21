@@ -268,14 +268,7 @@ class _HomeContent extends StatelessWidget {
               _Header(onLogout: onLogout, onNotificationTap: onActionTap),
               const SizedBox(height: 14),
               _SessionClockCard(apiClient: apiClient),
-              const SizedBox(height: 20),
-              _SectionTitle(
-                icon: Icons.newspaper_rounded,
-                title: 'Market News',
-                action: 'View all',
-                onAction: () => onActionTap('Economic News'),
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 18),
               _MarketNewsSection(
                 repository: MarketNewsRepository(apiClient),
                 onOpenAll: () => onActionTap('Economic News'),
@@ -488,36 +481,9 @@ class _SessionClockCardState extends State<_SessionClockCard>
         .toList(growable: false);
     return Container(
       key: const ValueKey('world-market-sessions'),
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+      padding: const EdgeInsets.all(5),
       decoration: _panelDecoration(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.public_rounded,
-                color: TradeXColors.goldBright,
-                size: 19,
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'World Market Sessions',
-                  style: TextStyle(
-                    color: TradeXColors.primaryText,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const _LivePill(),
-            ],
-          ),
-          const SizedBox(height: 11),
-          _WorldClockGrid(now: now, sessions: sessions),
-        ],
-      ),
+      child: _WorldClockGrid(now: now, sessions: sessions),
     );
   }
 
@@ -570,7 +536,7 @@ class _WorldClockGrid extends StatelessWidget {
       clock('Sydney', 'Australia/Sydney', '08:00–17:00'),
     ];
     return SizedBox(
-      height: 128,
+      height: 96,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -618,8 +584,8 @@ class _WorldClockTile extends StatelessWidget {
     final isOpen = clock.session?.isOpen ?? false;
     final stateColor = isOpen ? TradeXColors.success : const Color(0xFFFF6666);
     return Container(
-      height: 128,
-      padding: const EdgeInsets.fromLTRB(6, 8, 6, 0),
+      height: 96,
+      padding: const EdgeInsets.fromLTRB(6, 7, 6, 0),
       decoration: BoxDecoration(
         color: const Color(0xFF0A0E0D),
         borderRadius: BorderRadius.circular(11),
@@ -635,7 +601,7 @@ class _WorldClockTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: TradeXColors.primaryText,
-              fontSize: 9,
+              fontSize: 8.5,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -645,7 +611,7 @@ class _WorldClockTile extends StatelessWidget {
             maxLines: 1,
             style: const TextStyle(
               color: TradeXColors.primaryText,
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: FontWeight.w900,
               fontFeatures: [FontFeature.tabularFigures()],
             ),
@@ -688,7 +654,7 @@ class _WorldClockTile extends StatelessWidget {
           ),
           const Spacer(),
           SizedBox(
-            height: 42,
+            height: 29,
             width: double.infinity,
             child: CustomPaint(painter: _CitySkylinePainter(clock.label)),
           ),
@@ -872,53 +838,73 @@ class _MarketNewsSectionState extends State<_MarketNewsSection> {
           );
         }
 
-        final visible = items.take(3).toList(growable: false);
-        if (visible.length == 1) {
-          return SizedBox(
-            key: const ValueKey('market-news-section'),
-            height: 172,
-            child: _MarketNewsCard(
-              item: visible.first,
-              featured: true,
-              artworkIndex: 0,
-              onTap: widget.onOpenAll,
-            ),
-          );
-        }
-
-        return SizedBox(
+        final visible = items.take(4).toList(growable: false);
+        return Container(
           key: const ValueKey('market-news-section'),
-          height: 190,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+          decoration: _panelDecoration(context),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                flex: 6,
-                child: _MarketNewsCard(
-                  item: visible.first,
-                  featured: true,
-                  artworkIndex: 0,
-                  onTap: widget.onOpenAll,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 5,
-                child: Column(
-                  children: [
-                    for (var index = 1; index < visible.length; index++) ...[
-                      if (index > 1) const SizedBox(height: 8),
-                      Expanded(
-                        child: _MarketNewsCard(
-                          item: visible[index],
-                          featured: false,
-                          artworkIndex: index,
-                          onTap: widget.onOpenAll,
-                        ),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.newspaper_rounded,
+                    color: TradeXColors.goldBright,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 6),
+                  const Expanded(
+                    child: Text(
+                      'Market News',
+                      style: TextStyle(
+                        color: TradeXColors.primaryText,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
                       ),
-                    ],
-                    if (visible.length == 2) const Spacer(),
-                  ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: widget.onOpenAll,
+                    style: TextButton.styleFrom(
+                      foregroundColor: TradeXColors.goldBright,
+                      minimumSize: const Size(0, 28),
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'View all',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(width: 2),
+                        Icon(Icons.chevron_right_rounded, size: 14),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 7),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: visible.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 7,
+                  mainAxisSpacing: 7,
+                  childAspectRatio: 1.52,
+                ),
+                itemBuilder: (context, index) => _MarketNewsCard(
+                  key: ValueKey('market-news-card-$index'),
+                  item: visible[index],
+                  artworkIndex: index,
+                  onTap: widget.onOpenAll,
                 ),
               ),
             ],
@@ -969,14 +955,13 @@ class _MarketNewsMessage extends StatelessWidget {
 
 class _MarketNewsCard extends StatelessWidget {
   const _MarketNewsCard({
+    super.key,
     required this.item,
-    required this.featured,
     required this.artworkIndex,
     required this.onTap,
   });
 
   final MarketNewsItem item;
-  final bool featured;
   final int artworkIndex;
   final VoidCallback onTap;
 
@@ -1015,7 +1000,7 @@ class _MarketNewsCard extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.all(featured ? 11 : 8),
+                  padding: const EdgeInsets.all(8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1058,27 +1043,16 @@ class _MarketNewsCard extends StatelessWidget {
                       const Spacer(),
                       Text(
                         item.title,
-                        maxLines: featured ? 3 : 2,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: TradeXColors.primaryText,
-                          fontSize: featured ? 13 : 9.5,
+                          fontSize: 9.5,
                           height: 1.12,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      SizedBox(height: featured ? 5 : 3),
-                      if (featured)
-                        Text(
-                          item.summary,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: TradeXColors.secondaryText,
-                            fontSize: 9,
-                            height: 1.25,
-                          ),
-                        ),
+                      const SizedBox(height: 3),
                       const SizedBox(height: 4),
                       Text(
                         _marketNewsTime(item),
@@ -4481,6 +4455,7 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
             builder: (context, activeIndex, child) {
               final activeCenter = (activeIndex + .5) * itemWidth;
               return SizedBox(
+                key: const ValueKey('dashboard-nav-root'),
                 height: 82,
                 child: Stack(
                   clipBehavior: Clip.none,
@@ -4793,31 +4768,6 @@ class _MiniCandles extends StatelessWidget {
             ),
           );
         }),
-      ),
-    );
-  }
-}
-
-class _LivePill extends StatelessWidget {
-  const _LivePill();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: TradeXColors.success.withValues(alpha: .12),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: TradeXColors.success.withValues(alpha: .55)),
-      ),
-      child: const Text(
-        '24H LIVE',
-        style: TextStyle(
-          color: TradeXColors.success,
-          fontSize: 9,
-          fontWeight: FontWeight.w900,
-          letterSpacing: .7,
-        ),
       ),
     );
   }

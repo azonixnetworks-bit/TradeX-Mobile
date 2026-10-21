@@ -54,11 +54,19 @@ void main() {
           find.byKey(const ValueKey('dashboard-nav-selected-0')),
           findsOneWidget,
         );
-        expect(find.text('Home'), findsOneWidget);
-        expect(find.text('Learn'), findsOneWidget);
-        expect(find.text('Trade Ideas'), findsOneWidget);
-        expect(find.text('Affiliate'), findsOneWidget);
-        expect(find.text('Profile'), findsOneWidget);
+        final nav = find.byKey(const ValueKey('dashboard-nav-root'));
+        for (final label in const [
+          'Home',
+          'Learn',
+          'Trade Ideas',
+          'Affiliate',
+          'Profile',
+        ]) {
+          expect(
+            find.descendant(of: nav, matching: find.text(label)),
+            findsOneWidget,
+          );
+        }
       },
     );
   }

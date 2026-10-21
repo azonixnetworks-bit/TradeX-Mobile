@@ -5,7 +5,7 @@ class MarketNewsRepository {
 
   final TradeXApiClient _apiClient;
 
-  Future<List<MarketNewsItem>> latest({int limit = 3}) async {
+  Future<List<MarketNewsItem>> latest({int limit = 4}) async {
     final liveResponse = await _apiClient.getJson(
       '/api/v1/economic-news/live?per_page=$limit',
     );

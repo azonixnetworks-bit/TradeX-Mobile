@@ -53,6 +53,8 @@ void main() {
     expect(find.text('Sydney'), findsOneWidget);
     expect(find.text('Device Time'), findsNothing);
     expect(find.byKey(const ValueKey('market-news-section')), findsOneWidget);
+    expect(find.byKey(const ValueKey('market-news-card-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('market-news-card-3')), findsOneWidget);
     expect(find.text('Federal Reserve holds rates steady'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -99,6 +101,17 @@ class _HomeMarketApiClient extends TradeXApiClient {
                 <String, dynamic>{'symbol': 'BTCUSD'},
               ],
               'published_at_utc': '2026-10-20T08:30:00Z',
+            },
+            <String, dynamic>{
+              'uuid': 'update-4',
+              'event_uuid': 'event-4',
+              'event_title': 'Oil rises after inventory report',
+              'message': 'Energy markets respond to the latest stock data.',
+              'impact': 'MEDIUM',
+              'affected_pairs': <Map<String, dynamic>>[
+                <String, dynamic>{'symbol': 'WTIUSD'},
+              ],
+              'published_at_utc': '2026-10-20T08:15:00Z',
             },
           ],
         },
