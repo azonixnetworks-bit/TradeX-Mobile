@@ -8,8 +8,21 @@ class TradeIdeasRepository {
 
   final TradeXApiClient _apiClient;
 
-  Future<List<DashboardTradeIdea>> latestThree() async {
-    final index = await _apiClient.getJson('/api/v1/trade-ideas?per_page=12');
+  Future<List<DashboardTradeIdea>> latestThree() => _latest(perPage: 12);
+
+  Future<List<DashboardTradeIdea>> latestCrypto({int limit = 5}) =>
+      _latest(perPage: limit.clamp(1, 20).toInt(), category: 'CRYPTO');
+
+  Future<List<DashboardTradeIdea>> _latest({
+    required int perPage,
+    String? category,
+  }) async {
+    final categoryQuery = category == null
+        ? ''
+        : '&category=${Uri.encodeQueryComponent(category)}';
+    final index = await _apiClient.getJson(
+      '/api/v1/trade-ideas?per_page=$perPage$categoryQuery',
+    );
     final data = index['data'];
     final ideas = data is Map ? data['trade_ideas'] : null;
     if (ideas is! List) return const [];
@@ -59,6 +72,7 @@ class TradeIdeasRepository {
 class DashboardTradeIdea {
   DashboardTradeIdea({
     required this.uuid,
+    required this.category,
     required this.symbol,
     required this.instrumentName,
     required this.direction,
@@ -82,6 +96,7 @@ class DashboardTradeIdea {
     final reactions = json['reactions'];
     return DashboardTradeIdea(
       uuid: json['uuid']?.toString() ?? '',
+      category: json['category']?.toString().toUpperCase() ?? '',
       symbol: json['symbol']?.toString() ?? 'MARKET',
       instrumentName: json['instrument_name']?.toString() ?? '',
       direction: json['direction']?.toString() ?? '—',
@@ -119,6 +134,7 @@ class DashboardTradeIdea {
   }
 
   final String uuid;
+  final String category;
   final String symbol;
   final String instrumentName;
   final String direction;

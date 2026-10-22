@@ -46,6 +46,11 @@ class TradeXApiClient {
     }
   }
 
+  Future<String?> currentAccountStorageKey() async {
+    final session = await _sessionStore.readSession();
+    return session == null ? null : _accountKey(session);
+  }
+
   Future<void> clearOfflineData() async {
     final session = await _sessionStore.readSession();
     if (session != null) {

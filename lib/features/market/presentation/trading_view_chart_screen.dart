@@ -58,12 +58,7 @@ class _TradingViewChartScreenState extends State<TradingViewChartScreen> {
 }
 
 String _chartHtml(String symbol, String segment) {
-  final cleanSymbol = symbol
-      .replaceAll(RegExp('[^A-Za-z0-9]'), '')
-      .toUpperCase();
-  final tradingViewSymbol = segment == 'FUTURES'
-      ? 'BINANCE:$cleanSymbol.P'
-      : 'BINANCE:$cleanSymbol';
+  final tradingViewSymbol = tradingViewTicker(symbol, segment);
   final configuration = jsonEncode({
     'autosize': true,
     'symbol': tradingViewSymbol,
@@ -108,6 +103,15 @@ String _chartHtml(String symbol, String segment) {
 </body>
 </html>
 ''';
+}
+
+String tradingViewTicker(String symbol, String segment) {
+  final cleanSymbol = symbol
+      .replaceAll(RegExp('[^A-Za-z0-9]'), '')
+      .toUpperCase();
+  return segment == 'FUTURES'
+      ? 'BINANCE:$cleanSymbol.P'
+      : 'BINANCE:$cleanSymbol';
 }
 
 String _segmentLabel(String segment) =>
