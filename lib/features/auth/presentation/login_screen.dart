@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
@@ -15,6 +17,7 @@ class LoginScreen extends StatefulWidget {
     required this.onLogin,
     this.quickUnlockConfig,
     this.onQuickUnlock,
+    this.authenticateBiometric,
   });
 
   final VoidCallback onBack;
@@ -22,6 +25,7 @@ class LoginScreen extends StatefulWidget {
   final VoidCallback onCreateAccount;
   final QuickUnlockConfig? quickUnlockConfig;
   final Future<void> Function()? onQuickUnlock;
+  final Future<bool> Function()? authenticateBiometric;
 
   final Future<void> Function({
     required String email,
@@ -55,6 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String _quickUnlockMethod = 'BIOMETRIC';
   bool _biometricConfirmed = false;
   bool _submitting = false;
+  bool _automaticBiometricPromptAttempted = false;
 
   String? _errorMessage;
   bool _deviceSlotOccupied = false;
@@ -68,6 +73,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (config != null) {
       _rememberDevice = true;
       _quickUnlockMethod = config.hasBiometric ? 'BIOMETRIC' : 'PIN';
+      if (config.hasBiometric && widget.onQuickUnlock != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) unawaited(_promptBiometricOnLogin());
+        });
+      }
     }
   }
 
@@ -134,21 +144,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<bool> _confirmFingerprint() async {
     try {
-      final supported =
-          await _localAuth.canCheckBiometrics ||
-          await _localAuth.isDeviceSupported();
-      if (!supported) {
-        throw PlatformException(code: 'NOT_AVAILABLE');
-      }
+      final authenticateBiometric = widget.authenticateBiometric;
+      final bool confirmed;
+      if (authenticateBiometric != null) {
+        confirmed = await authenticateBiometric();
+      } else {
+        final supported =
+            await _localAuth.canCheckBiometrics ||
+            await _localAuth.isDeviceSupported();
+        if (!supported) {
+          throw PlatformException(code: 'NOT_AVAILABLE');
+        }
 
-      final confirmed = await _localAuth.authenticate(
-        localizedReason:
-            'Place your finger on the sensor to sign in to TradeX.',
-        options: const AuthenticationOptions(
-          biometricOnly: true,
-          stickyAuth: true,
-        ),
-      );
+        confirmed = await _localAuth.authenticate(
+          localizedReason:
+              'Place your finger on the sensor to sign in to TradeX.',
+          options: const AuthenticationOptions(
+            biometricOnly: true,
+            stickyAuth: true,
+          ),
+        );
+      }
       if (mounted) {
         setState(() {
           _biometricConfirmed = confirmed;
@@ -165,6 +181,22 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
       return false;
+    }
+  }
+
+  Future<void> _promptBiometricOnLogin() async {
+    if (_automaticBiometricPromptAttempted ||
+        _submitting ||
+        !_rememberDevice ||
+        _quickUnlockMethod != 'BIOMETRIC' ||
+        widget.quickUnlockConfig?.hasBiometric != true ||
+        widget.onQuickUnlock == null) {
+      return;
+    }
+
+    _automaticBiometricPromptAttempted = true;
+    if (await _confirmFingerprint()) {
+      await _completeQuickLogin();
     }
   }
 

@@ -144,6 +144,10 @@ class MarketNewsItem {
     required this.uuid,
     required this.title,
     required this.summary,
+    required this.previous,
+    required this.forecast,
+    required this.actual,
+    required this.countryCode,
     required this.currency,
     required this.impact,
     required this.bias,
@@ -162,6 +166,10 @@ class MarketNewsItem {
       uuid: _text(json['event_uuid'], fallback: _text(json['uuid'])),
       title: _text(json['event_title'], fallback: message),
       summary: message,
+      previous: _nullableText(json['previous']),
+      forecast: _nullableText(json['forecast']),
+      actual: _nullableText(json['actual']),
+      countryCode: _text(json['country_code']),
       currency: pairs.isEmpty ? '' : pairs.first,
       impact: _text(json['impact'], fallback: 'LOW'),
       bias: _text(json['bias'], fallback: 'NEUTRAL'),
@@ -177,10 +185,14 @@ class MarketNewsItem {
   factory MarketNewsItem.fromEvent(Map<String, dynamic> json) {
     final actual = _nullableText(json['actual']);
     final forecast = _nullableText(json['forecast']);
+    final previous =
+        _nullableText(json['revised_previous']) ??
+        _nullableText(json['previous']);
     final reason = _nullableText(json['reason']);
     final details = <String>[];
     if (actual != null) details.add('Actual $actual');
     if (forecast != null) details.add('Forecast $forecast');
+    if (previous != null) details.add('Previous $previous');
     if (reason != null) details.add(reason);
     final pairs = _pairSymbols(json['affected_pairs']);
     return MarketNewsItem(
@@ -189,6 +201,10 @@ class MarketNewsItem {
       summary: details.isEmpty
           ? 'Scheduled market-moving economic event'
           : details.join(' • '),
+      previous: previous,
+      forecast: forecast,
+      actual: actual,
+      countryCode: _text(json['country_code']),
       currency: _text(
         json['currency'],
         fallback: pairs.isEmpty ? _text(json['country_code']) : pairs.first,
@@ -207,6 +223,10 @@ class MarketNewsItem {
   final String uuid;
   final String title;
   final String summary;
+  final String? previous;
+  final String? forecast;
+  final String? actual;
+  final String countryCode;
   final String currency;
   final String impact;
   final String bias;

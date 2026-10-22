@@ -132,4 +132,53 @@ void main() {
       expect(find.byType(TextFormField), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'remembered fingerprint login prompts and unlocks automatically once',
+    (tester) async {
+      var biometricPrompts = 0;
+      var quickUnlocks = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: LoginScreen(
+            onBack: () {},
+            onForgotPassword: () {},
+            onCreateAccount: () {},
+            quickUnlockConfig: const QuickUnlockConfig(
+              method: 'BIOMETRIC',
+              email: 'trader@example.test',
+              credentialId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            ),
+            authenticateBiometric: () async {
+              biometricPrompts += 1;
+              return true;
+            },
+            onQuickUnlock: () async {
+              quickUnlocks += 1;
+            },
+            onLogin: ({
+              required email,
+              required password,
+              totpCode,
+              recoveryCode,
+              quickUnlockMethod,
+              quickUnlockPin,
+            }) async {},
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump();
+
+      expect(biometricPrompts, 1);
+      expect(quickUnlocks, 1);
+
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(biometricPrompts, 1);
+      expect(quickUnlocks, 1);
+    },
+  );
 }

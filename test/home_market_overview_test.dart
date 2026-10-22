@@ -83,6 +83,15 @@ void main() {
     expect(find.byKey(const ValueKey('market-news-card-0')), findsOneWidget);
     expect(find.byKey(const ValueKey('market-news-card-3')), findsOneWidget);
     expect(find.text('Federal Reserve holds rates steady'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('market-news-values-event-1')),
+      findsOneWidget,
+    );
+    expect(find.text('Previous'), findsWidgets);
+    expect(find.text('Forecast'), findsWidgets);
+    expect(find.text('Actual'), findsWidgets);
+    expect(find.text('5.25%'), findsWidgets);
+    expect(find.text('5.50%'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }
@@ -100,6 +109,10 @@ class _HomeMarketApiClient extends TradeXApiClient {
               'uuid': 'event-1',
               'title': 'Federal Reserve holds rates steady',
               'impact': 'HIGH',
+              'currency': 'USD',
+              'previous': '5.50%',
+              'forecast': '5.25%',
+              'actual': '5.25%',
               'affected_pairs': <Map<String, dynamic>>[
                 <String, dynamic>{'symbol': 'EURUSD'},
               ],

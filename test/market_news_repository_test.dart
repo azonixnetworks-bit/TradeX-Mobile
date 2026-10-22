@@ -36,6 +36,9 @@ void main() {
       expect(first.single.bias, 'BEARISH');
       expect(first.single.confidenceScore, 82);
       expect(first.single.affectedPairs, ['EURUSD', 'XAUUSD']);
+      expect(first.single.previous, '2.7%');
+      expect(first.single.forecast, '2.8%');
+      expect(first.single.actual, '2.9%');
     },
   );
 
@@ -105,6 +108,7 @@ class _EconomicNewsApiClient extends TradeXApiClient {
             'status': 'SCHEDULED',
             'forecast': '2.8%',
             'previous': '2.7%',
+            'actual': '2.9%',
             'scheduled_at_utc': '2026-10-22T12:30:00Z',
             'source': <String, dynamic>{
               'code': 'TE',

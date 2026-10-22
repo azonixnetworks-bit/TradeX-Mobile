@@ -18,13 +18,19 @@ class EconomicNewsScreen extends StatefulWidget {
 class _EconomicNewsScreenState extends State<EconomicNewsScreen>
     with WidgetsBindingObserver {
   late final EconomicNewsCubit _cubit;
-  final _verticalController = ScrollController();
+  late final PageController _pageController;
+  late final Map<EconomicNewsFilter, ScrollController> _verticalControllers;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _cubit = EconomicNewsCubit(MarketNewsRepository(widget.apiClient))..load();
+    _pageController = PageController();
+    _verticalControllers = <EconomicNewsFilter, ScrollController>{
+      for (final filter in EconomicNewsFilter.values)
+        filter: ScrollController(),
+    };
   }
 
   @override
@@ -38,8 +44,21 @@ class _EconomicNewsScreenState extends State<EconomicNewsScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _cubit.close();
-    _verticalController.dispose();
+    _pageController.dispose();
+    for (final controller in _verticalControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  void _selectFilter(EconomicNewsFilter filter) {
+    _cubit.selectFilter(filter);
+    if (!_pageController.hasClients) return;
+    _pageController.animateToPage(
+      filter.index,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override
@@ -85,24 +104,33 @@ class _EconomicNewsScreenState extends State<EconomicNewsScreen>
               ),
               EconomicNewsStatus.success => Column(
                 children: [
-                  _FilterBar(
-                    selected: state.filter,
-                    onSelected: _cubit.selectFilter,
-                  ),
+                  _FilterBar(selected: state.filter, onSelected: _selectFilter),
                   const SizedBox(height: 10),
                   Expanded(
-                    child: state.visibleItems.isEmpty
-                        ? _NewsState(
-                            icon: Icons.event_available_rounded,
-                            message: 'No upcoming events in this category.',
-                            action: 'Refresh',
-                            onTap: _cubit.refresh,
-                          )
-                        : _EconomicNewsCards(
-                            items: state.visibleItems,
-                            now: state.now,
-                            verticalController: _verticalController,
-                          ),
+                    child: PageView.builder(
+                      key: const ValueKey('economic-news-pages'),
+                      controller: _pageController,
+                      itemCount: EconomicNewsFilter.values.length,
+                      onPageChanged: (index) =>
+                          _cubit.selectFilter(EconomicNewsFilter.values[index]),
+                      itemBuilder: (context, index) {
+                        final filter = EconomicNewsFilter.values[index];
+                        final items = _itemsForFilter(state.items, filter);
+                        return items.isEmpty
+                            ? _NewsState(
+                                icon: Icons.event_available_rounded,
+                                message: 'No upcoming events in this category.',
+                                action: 'Refresh',
+                                onTap: _cubit.refresh,
+                              )
+                            : _EconomicNewsCards(
+                                items: items,
+                                now: state.now,
+                                verticalController:
+                                    _verticalControllers[filter]!,
+                              );
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -112,6 +140,17 @@ class _EconomicNewsScreenState extends State<EconomicNewsScreen>
       ),
     );
   }
+}
+
+List<MarketNewsItem> _itemsForFilter(
+  List<MarketNewsItem> items,
+  EconomicNewsFilter filter,
+) {
+  final impact = filter.impact;
+  if (impact == null) return items;
+  return items
+      .where((item) => item.impact.toUpperCase() == impact)
+      .toList(growable: false);
 }
 
 class _FilterBar extends StatelessWidget {
@@ -187,167 +226,305 @@ class _EconomicNewsCards extends StatelessWidget {
   }
 }
 
-class _EconomicNewsCard extends StatelessWidget {
+class _EconomicNewsCard extends StatefulWidget {
   const _EconomicNewsCard({required this.item, required this.now});
 
   final MarketNewsItem item;
   final DateTime now;
 
   @override
+  State<_EconomicNewsCard> createState() => _EconomicNewsCardState();
+}
+
+class _EconomicNewsCardState extends State<_EconomicNewsCard> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
+    final item = widget.item;
+    final now = widget.now;
     final impactColor = _impactColor(item.impact);
     final pairs = item.affectedPairs.take(4).toList(growable: false);
     final hiddenPairCount = item.affectedPairs.length - pairs.length;
 
-    return Container(
-      key: ValueKey('economic-news-card-${item.uuid}'),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: TradeXColors.surfaceRaised,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: impactColor.withValues(alpha: .42)),
-        boxShadow: [
-          BoxShadow(
-            color: impactColor.withValues(alpha: .06),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+    return AnimatedScale(
+      key: ValueKey('economic-news-card-${item.uuid}-press-scale'),
+      scale: _pressed ? .985 : 1,
+      duration: const Duration(milliseconds: 130),
+      curve: Curves.easeOutCubic,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        child: Container(
+          key: ValueKey('economic-news-card-${item.uuid}'),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: TradeXColors.surfaceRaised,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: impactColor.withValues(alpha: .42)),
+            boxShadow: [
+              BoxShadow(
+                color: impactColor.withValues(alpha: _pressed ? .13 : .06),
+                blurRadius: _pressed ? 10 : 18,
+                offset: Offset(0, _pressed ? 3 : 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: 0,
-            top: 20,
-            bottom: 20,
-            child: Container(
-              width: 4,
-              decoration: BoxDecoration(
-                color: impactColor,
-                borderRadius: const BorderRadius.horizontal(
-                  right: Radius.circular(8),
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                top: 20,
+                bottom: 20,
+                child: Container(
+                  width: 4,
+                  decoration: BoxDecoration(
+                    color: impactColor,
+                    borderRadius: const BorderRadius.horizontal(
+                      right: Radius.circular(8),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _ImpactBadge(impact: item.impact),
-                    const Spacer(),
-                    _RemainingTimeBadge(label: _remainingTime(item, now)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  item.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: TradeXColors.primaryText,
-                    fontSize: 16,
-                    height: 1.15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.public_rounded,
-                      color: TradeXColors.secondaryText,
-                      size: 13,
-                    ),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text(
-                        item.source,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: TradeXColors.secondaryText,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                    Row(
+                      children: [
+                        _CountryFlagBadge(
+                          flag: _countryFlag(item.countryCode, item.currency),
                         ),
+                        const SizedBox(width: 7),
+                        _ImpactBadge(impact: item.impact),
+                        const Spacer(),
+                        _RemainingTimeBadge(label: _remainingTime(item, now)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: TradeXColors.primaryText,
+                        fontSize: 16,
+                        height: 1.15,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                const Divider(height: 1, color: TradeXColors.border),
-                const SizedBox(height: 12),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final tileWidth = (constraints.maxWidth - 10) / 2;
-                    return Wrap(
-                      spacing: 10,
-                      runSpacing: 12,
+                    const SizedBox(height: 5),
+                    Row(
                       children: [
-                        _EventDetail(
-                          width: tileWidth,
-                          icon: Icons.payments_outlined,
-                          label: 'Currency',
-                          value: item.currency.isEmpty ? '—' : item.currency,
+                        const Icon(
+                          Icons.public_rounded,
+                          color: TradeXColors.secondaryText,
+                          size: 13,
                         ),
-                        _EventDetail(
-                          width: tileWidth,
-                          icon: Icons.calendar_month_outlined,
-                          label: 'Time',
-                          value: _scheduledTime(item.occurredAt),
-                        ),
-                        _EventDetail(
-                          width: tileWidth,
-                          icon: Icons.trending_up_rounded,
-                          label: 'Bias',
-                          value: _titleCase(item.bias),
-                          valueColor: _biasColor(item.bias),
-                        ),
-                        _EventDetail(
-                          width: tileWidth,
-                          icon: Icons.verified_outlined,
-                          label: 'Confidence',
-                          value: '${item.confidenceScore}%',
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            item.source,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: TradeXColors.secondaryText,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ],
-                    );
-                  },
+                    ),
+                    const SizedBox(height: 14),
+                    const Divider(height: 1, color: TradeXColors.border),
+                    const SizedBox(height: 12),
+                    _ReleaseValues(item: item),
+                    const SizedBox(height: 14),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final tileWidth = (constraints.maxWidth - 10) / 2;
+                        return Wrap(
+                          spacing: 10,
+                          runSpacing: 12,
+                          children: [
+                            _EventDetail(
+                              width: tileWidth,
+                              icon: Icons.payments_outlined,
+                              label: 'Currency',
+                              value: item.currency.isEmpty
+                                  ? '—'
+                                  : item.currency,
+                            ),
+                            _EventDetail(
+                              width: tileWidth,
+                              icon: Icons.calendar_month_outlined,
+                              label: 'Time',
+                              value: _scheduledTime(item.occurredAt),
+                            ),
+                            _EventDetail(
+                              width: tileWidth,
+                              icon: Icons.trending_up_rounded,
+                              label: 'Bias',
+                              value: _titleCase(item.bias),
+                              valueColor: _biasColor(item.bias),
+                            ),
+                            _EventDetail(
+                              width: tileWidth,
+                              icon: Icons.verified_outlined,
+                              label: 'Confidence',
+                              value: '${item.confidenceScore}%',
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 13),
+                    const Text(
+                      'Affected Pairs',
+                      style: TextStyle(
+                        color: TradeXColors.secondaryText,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    if (pairs.isEmpty)
+                      const Text(
+                        '—',
+                        style: TextStyle(color: TradeXColors.secondaryText),
+                      )
+                    else
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final pair in pairs) _PairChip(label: pair),
+                          if (hiddenPairCount > 0)
+                            _PairChip(label: '+$hiddenPairCount'),
+                        ],
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 13),
-                const Text(
-                  'Affected Pairs',
-                  style: TextStyle(
-                    color: TradeXColors.secondaryText,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 7),
-                if (pairs.isEmpty)
-                  const Text(
-                    '—',
-                    style: TextStyle(color: TradeXColors.secondaryText),
-                  )
-                else
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      for (final pair in pairs) _PairChip(label: pair),
-                      if (hiddenPairCount > 0)
-                        _PairChip(label: '+$hiddenPairCount'),
-                    ],
-                  ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
+}
+
+class _ReleaseValues extends StatelessWidget {
+  const _ReleaseValues({required this.item});
+
+  final MarketNewsItem item;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: ValueKey('economic-news-values-${item.uuid}'),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    decoration: BoxDecoration(
+      color: TradeXColors.background.withValues(alpha: .58),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: TradeXColors.border),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: _ReleaseValue(label: 'Previous', value: item.previous ?? '—'),
+        ),
+        const _ReleaseValueDivider(),
+        Expanded(
+          child: _ReleaseValue(label: 'Forecast', value: item.forecast ?? '—'),
+        ),
+        const _ReleaseValueDivider(),
+        Expanded(
+          child: _ReleaseValue(
+            label: 'Actual',
+            value: item.actual ?? 'Pending',
+            highlighted: item.actual != null,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ReleaseValue extends StatelessWidget {
+  const _ReleaseValue({
+    required this.label,
+    required this.value,
+    this.highlighted = false,
+  });
+
+  final String label;
+  final String value;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: TradeXColors.secondaryText,
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        value,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: highlighted
+              ? TradeXColors.goldBright
+              : TradeXColors.primaryText,
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    ],
+  );
+}
+
+class _ReleaseValueDivider extends StatelessWidget {
+  const _ReleaseValueDivider();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 1,
+    height: 30,
+    margin: const EdgeInsets.symmetric(horizontal: 7),
+    color: TradeXColors.border,
+  );
+}
+
+class _CountryFlagBadge extends StatelessWidget {
+  const _CountryFlagBadge({required this.flag});
+
+  final String flag;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 32,
+    height: 29,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: TradeXColors.background.withValues(alpha: .6),
+      borderRadius: BorderRadius.circular(9),
+      border: Border.all(color: TradeXColors.border),
+    ),
+    child: Text(flag, style: const TextStyle(fontSize: 17, height: 1)),
+  );
 }
 
 class _ImpactBadge extends StatelessWidget {
@@ -500,16 +677,71 @@ String _remainingTime(MarketNewsItem item, DateTime now) {
   if (scheduled == null) return '—';
   final remaining = scheduled.difference(now);
   if (remaining.isNegative) return 'Elapsed';
+  final hours = remaining.inHours % 24;
+  final minutes = remaining.inMinutes % 60;
+  final seconds = remaining.inSeconds % 60;
+  final clock =
+      '${hours.toString().padLeft(2, '0')}:'
+      '${minutes.toString().padLeft(2, '0')}:'
+      '${seconds.toString().padLeft(2, '0')}';
   if (remaining.inDays > 0) {
-    return '${remaining.inDays}d ${(remaining.inHours % 24).toString().padLeft(2, '0')}h';
+    return '${remaining.inDays}d $clock';
   }
-  if (remaining.inHours > 0) {
-    return '${remaining.inHours.toString().padLeft(2, '0')}h '
-        '${(remaining.inMinutes % 60).toString().padLeft(2, '0')}m';
-  }
-  if (remaining.inMinutes > 0) return '${remaining.inMinutes}m';
-  return '<1m';
+  return clock;
 }
+
+String _countryFlag(String countryCode, String currency) {
+  final explicitCountry = countryCode.trim().toUpperCase();
+  final normalizedCurrency = currency.trim().toUpperCase();
+  final mappedCountry =
+      _currencyCountries[normalizedCurrency] ??
+      (normalizedCurrency.length >= 3
+          ? _currencyCountries[normalizedCurrency.substring(0, 3)]
+          : null);
+  final code = explicitCountry.length == 2 ? explicitCountry : mappedCountry;
+  if (code == null || !RegExp(r'^[A-Z]{2}$').hasMatch(code)) return '🌐';
+  return String.fromCharCodes(
+    code.codeUnits.map((character) => character + 127397),
+  );
+}
+
+const Map<String, String> _currencyCountries = <String, String>{
+  'AED': 'AE',
+  'AUD': 'AU',
+  'BDT': 'BD',
+  'BRL': 'BR',
+  'CAD': 'CA',
+  'CHF': 'CH',
+  'CNH': 'CN',
+  'CNY': 'CN',
+  'DKK': 'DK',
+  'EUR': 'EU',
+  'GBP': 'GB',
+  'HKD': 'HK',
+  'IDR': 'ID',
+  'ILS': 'IL',
+  'INR': 'IN',
+  'JPY': 'JP',
+  'KRW': 'KR',
+  'LKR': 'LK',
+  'MXN': 'MX',
+  'MYR': 'MY',
+  'NOK': 'NO',
+  'NZD': 'NZ',
+  'PHP': 'PH',
+  'PKR': 'PK',
+  'PLN': 'PL',
+  'RUB': 'RU',
+  'SAR': 'SA',
+  'SEK': 'SE',
+  'SGD': 'SG',
+  'THB': 'TH',
+  'TRY': 'TR',
+  'TWD': 'TW',
+  'USD': 'US',
+  'VND': 'VN',
+  'ZAR': 'ZA',
+};
 
 String _scheduledTime(DateTime? value) {
   if (value == null) return '—';

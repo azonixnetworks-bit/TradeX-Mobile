@@ -46,6 +46,22 @@ void main() {
     expect(find.text('US CPI'), findsOneWidget);
     expect(find.text('ECB Rate Decision'), findsOneWidget);
     expect(find.text('Japan Consumer Confidence'), findsOneWidget);
+    expect(find.text('🇺🇸'), findsOneWidget);
+    expect(find.text('Previous'), findsWidgets);
+    expect(find.text('Forecast'), findsWidgets);
+    expect(find.text('Actual'), findsWidgets);
+    expect(find.text('2.7%'), findsWidgets);
+    expect(find.text('2.8%'), findsWidgets);
+    expect(find.text('2.9%'), findsWidgets);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            RegExp(r'^(?:\d+d )?\d{2}:\d{2}:\d{2}$')
+                .hasMatch(widget.data ?? ''),
+      ),
+      findsWidgets,
+    );
 
     await tester.tap(find.byKey(const ValueKey('economic-news-filter-high')));
     await tester.pumpAndSettle();
@@ -53,6 +69,59 @@ void main() {
     expect(find.text('US CPI'), findsOneWidget);
     expect(find.text('ECB Rate Decision'), findsNothing);
     expect(find.text('Japan Consumer Confidence'), findsNothing);
+
+    final press = await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('economic-news-card-high'))),
+    );
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(
+      tester
+          .widget<AnimatedScale>(
+            find.byKey(const ValueKey('economic-news-card-high-press-scale')),
+          )
+          .scale,
+      .985,
+    );
+    await press.up();
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<AnimatedScale>(
+            find.byKey(const ValueKey('economic-news-card-high-press-scale')),
+          )
+          .scale,
+      1,
+    );
+
+    await tester.drag(
+      find.byKey(const ValueKey('economic-news-pages')),
+      const Offset(-320, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('US CPI'), findsNothing);
+    expect(find.text('ECB Rate Decision'), findsOneWidget);
+    expect(find.text('Japan Consumer Confidence'), findsNothing);
+
+    await tester.drag(
+      find.byKey(const ValueKey('economic-news-pages')),
+      const Offset(-320, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('US CPI'), findsNothing);
+    expect(find.text('ECB Rate Decision'), findsNothing);
+    expect(find.text('Japan Consumer Confidence'), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const ValueKey('economic-news-pages')),
+      const Offset(320, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('ECB Rate Decision'), findsOneWidget);
+    expect(find.text('Japan Consumer Confidence'), findsNothing);
+
     await tester.drag(
       find.byKey(const ValueKey('economic-news-filters')),
       const Offset(-240, 0),
@@ -71,7 +140,7 @@ class _NewsApiClient extends TradeXApiClient {
     return <String, dynamic>{
       'data': <String, dynamic>{
         'events': <Map<String, dynamic>>[
-          _event('high', 'US CPI', 'HIGH', 'BEARISH', 82, 'EURUSD'),
+          _event('high', 'US CPI', 'HIGH', 'BEARISH', 82, 'EURUSD', 'USD'),
           _event(
             'medium',
             'ECB Rate Decision',
@@ -79,6 +148,7 @@ class _NewsApiClient extends TradeXApiClient {
             'NEUTRAL',
             64,
             'EURGBP',
+            'EUR',
           ),
           _event(
             'low',
@@ -87,6 +157,7 @@ class _NewsApiClient extends TradeXApiClient {
             'BULLISH',
             48,
             'USDJPY',
+            'JPY',
           ),
         ],
       },
@@ -100,13 +171,18 @@ class _NewsApiClient extends TradeXApiClient {
     String bias,
     int confidence,
     String pair,
+    String currency,
   ) => <String, dynamic>{
     'uuid': id,
     'title': title,
     'impact': impact,
     'bias': bias,
     'confidence_score': confidence,
+    'currency': currency,
     'status': 'SCHEDULED',
+    'previous': '2.7%',
+    'forecast': '2.8%',
+    'actual': id == 'high' ? '2.9%' : null,
     'scheduled_at_utc': DateTime.now()
         .toUtc()
         .add(const Duration(hours: 6))

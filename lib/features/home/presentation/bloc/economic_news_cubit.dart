@@ -57,7 +57,7 @@ class EconomicNewsCubit extends Cubit<EconomicNewsState> {
     : _now = now ?? DateTime.now,
       super(EconomicNewsState(now: (now ?? DateTime.now)())) {
     _clock = Timer.periodic(
-      const Duration(minutes: 1),
+      const Duration(seconds: 1),
       (_) => emit(state.copyWith(now: _now())),
     );
     _refreshTimer = Timer.periodic(

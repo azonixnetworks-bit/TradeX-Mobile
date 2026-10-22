@@ -1265,7 +1265,7 @@ class _MarketNewsSectionState extends State<_MarketNewsSection>
                     crossAxisCount: 2,
                     crossAxisSpacing: 7,
                     mainAxisSpacing: 7,
-                    childAspectRatio: 1.52,
+                    childAspectRatio: 1.35,
                   ),
                   itemBuilder: (context, index) => _MarketNewsCard(
                     key: ValueKey('market-news-card-$index'),
@@ -1421,6 +1421,7 @@ class _MarketNewsCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 3),
+                      _MarketNewsReleaseValues(item: item),
                       const SizedBox(height: 4),
                       Text(
                         _marketNewsTime(item),
@@ -1460,6 +1461,77 @@ class _MarketNewsCard extends StatelessWidget {
     return '${local.day.toString().padLeft(2, '0')}/'
         '${local.month.toString().padLeft(2, '0')} • $hour:$minute';
   }
+}
+
+class _MarketNewsReleaseValues extends StatelessWidget {
+  const _MarketNewsReleaseValues({required this.item});
+
+  final MarketNewsItem item;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: ValueKey('market-news-values-${item.uuid}'),
+    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+    decoration: BoxDecoration(
+      color: const Color(0xC9070A08),
+      borderRadius: BorderRadius.circular(7),
+      border: Border.all(color: TradeXColors.border.withValues(alpha: .8)),
+    ),
+    child: Row(
+      children: [
+        _MarketNewsReleaseValue(label: 'Previous', value: item.previous ?? '—'),
+        _MarketNewsReleaseValue(label: 'Forecast', value: item.forecast ?? '—'),
+        _MarketNewsReleaseValue(
+          label: 'Actual',
+          value: item.actual ?? 'Pending',
+          highlighted: item.actual != null,
+        ),
+      ],
+    ),
+  );
+}
+
+class _MarketNewsReleaseValue extends StatelessWidget {
+  const _MarketNewsReleaseValue({
+    required this.label,
+    required this.value,
+    this.highlighted = false,
+  });
+
+  final String label;
+  final String value;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Column(
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: TradeXColors.tertiaryText,
+            fontSize: 5.8,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 1),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: highlighted
+                ? TradeXColors.goldBright
+                : TradeXColors.primaryText,
+            fontSize: 7,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _MarketNewsArtworkPainter extends CustomPainter {
