@@ -8,8 +8,15 @@ class TradeIdeasRepository {
 
   final TradeXApiClient _apiClient;
 
-  Future<List<DashboardTradeIdea>> latestThree() async {
-    final index = await _apiClient.getJson('/api/v1/trade-ideas?per_page=12');
+  Future<List<DashboardTradeIdea>> latestThree() =>
+      _latest('/api/v1/trade-ideas?per_page=12');
+
+  Future<List<DashboardTradeIdea>> latestCrypto({int limit = 4}) => _latest(
+    '/api/v1/trade-ideas?category=CRYPTO&status=PUBLISHED&per_page=$limit',
+  );
+
+  Future<List<DashboardTradeIdea>> _latest(String path) async {
+    final index = await _apiClient.getJson(path);
     final data = index['data'];
     final ideas = data is Map ? data['trade_ideas'] : null;
     if (ideas is! List) return const [];

@@ -32,6 +32,7 @@ import '../../catalog/models/feature_spec.dart';
 import '../../catalog/presentation/feature_catalog_screen.dart';
 import 'bloc/home_navigation_cubit.dart';
 import 'bloc/home_market_news_cubit.dart';
+import 'crypto_market_screen.dart';
 
 bool _timeZoneDatabaseInitialized = false;
 
@@ -214,6 +215,17 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => FeatureCatalogScreen(apiClient: widget.apiClient),
+        ),
+      );
+      return;
+    }
+    if (normalized == 'crypto market') {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => CryptoMarketScreen(
+            apiClient: widget.apiClient,
+            tradeIdeasRepository: widget.tradeIdeasRepository,
+          ),
         ),
       );
       return;
@@ -2326,6 +2338,7 @@ class _CategoryGrid extends StatelessWidget {
     return SizedBox(
       height: 154,
       child: ListView.separated(
+        key: const ValueKey('market-category-scroll'),
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: categories.length,
@@ -2339,7 +2352,11 @@ class _CategoryGrid extends StatelessWidget {
               ideas: category.ideas,
               accent: category.accent,
               imageAsset: category.imageAsset,
-              onTap: () => onTap('${category.label} trade ideas'),
+              onTap: () => onTap(
+                category.label == 'Crypto'
+                    ? 'Crypto market'
+                    : '${category.label} trade ideas',
+              ),
             ),
           );
         },
@@ -2366,6 +2383,7 @@ class _CategoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
+      key: ValueKey('market-category-$label'),
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: Ink(

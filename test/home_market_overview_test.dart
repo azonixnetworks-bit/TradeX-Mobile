@@ -92,6 +92,15 @@ void main() {
     expect(find.text('Actual'), findsWidgets);
     expect(find.text('5.25%'), findsWidgets);
     expect(find.text('5.50%'), findsWidgets);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('market-category-Crypto')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('market-category-Crypto')));
+    await tester.pumpAndSettle();
+    expect(find.text('Crypto Market'), findsOneWidget);
+    expect(find.byKey(const ValueKey('crypto-live-summary')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
@@ -164,6 +173,52 @@ class _HomeMarketApiClient extends TradeXApiClient {
     if (path.startsWith('/api/v1/market-clock')) {
       return <String, dynamic>{
         'data': <String, dynamic>{'sessions': <dynamic>[]},
+      };
+    }
+    if (path.startsWith('/api/v1/screener/results')) {
+      return <String, dynamic>{
+        'data': <String, dynamic>{
+          'provider': 'BINANCE',
+          'generated_at_utc': DateTime.now().toUtc().toIso8601String(),
+          'cache': <String, dynamic>{'stale': false},
+          'results': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'symbol': 'BTCUSDT',
+              'name': 'Bitcoin / Tether',
+              'base_currency': 'BTC',
+              'quote_currency': 'USDT',
+              'price': 67842.2,
+              'change_percent': 2.48,
+              'trend': 'BULLISH',
+            },
+          ],
+        },
+      };
+    }
+    if (path.startsWith('/api/v1/screener/bubbles')) {
+      return <String, dynamic>{
+        'data': <String, dynamic>{
+          'provider': 'BINANCE',
+          'source': 'BINANCE_LIVE',
+          'generated_at_utc': DateTime.now().toUtc().toIso8601String(),
+          'stale': false,
+          'summary': <String, dynamic>{
+            'total_assets': 1,
+            'gainers': 1,
+            'losers': 0,
+            'average_change': 2.48,
+            'total_quote_volume': 2200000000,
+          },
+          'assets': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'symbol': 'BTCUSDT',
+              'base_currency': 'BTC',
+              'price': 67842.2,
+              'change_percent': 2.48,
+              'quote_volume': 2200000000,
+            },
+          ],
+        },
       };
     }
     if (path.startsWith('/api/v1/trade-ideas')) {
