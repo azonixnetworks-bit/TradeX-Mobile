@@ -23,6 +23,7 @@ import '../../profile/presentation/mobile_number_details_screen.dart';
 import '../../profile/presentation/withdrawal_method_screen.dart';
 import '../../learn/data/learn_repository.dart';
 import '../../learn/presentation/learn_module.dart';
+import '../../market/presentation/crypto_market_screen.dart';
 import '../../auth/presentation/quick_unlock_settings_screen.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../catalog/models/feature_spec.dart';
@@ -168,6 +169,14 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => FeatureCatalogScreen(apiClient: widget.apiClient),
+        ),
+      );
+      return;
+    }
+    if (normalized == 'crypto trade ideas') {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => CryptoMarketScreen(apiClient: widget.apiClient),
         ),
       );
       return;
