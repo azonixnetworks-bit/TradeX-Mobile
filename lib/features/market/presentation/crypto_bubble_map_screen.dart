@@ -199,8 +199,21 @@ class _BubbleMapCanvas extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = math.max(820.0, constraints.maxWidth * 1.8);
-        final height = math.max(680.0, constraints.maxHeight * 1.35);
+        final mediaSize = MediaQuery.sizeOf(context);
+        final width = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : mediaSize.width;
+        final height = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : mediaSize.height;
+        final assetCount = math.max(1, state.assets.length);
+        final averageRadius =
+            math.sqrt((width * height) / (assetCount * math.pi)) * .55;
+        final minRadius = (averageRadius * .62).clamp(12.0, 24.0).toDouble();
+        final maxRadius = (averageRadius * 1.35)
+            .clamp(minRadius + 6, 50.0)
+            .toDouble();
+        final fieldPadding = (averageRadius * .3).clamp(6.0, 16.0).toDouble();
         return ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
           child: Container(
@@ -208,26 +221,20 @@ class _BubbleMapCanvas extends StatelessWidget {
               color: const Color(0xFF0B1420),
               border: Border.all(color: Colors.white.withValues(alpha: .08)),
             ),
-            child: InteractiveViewer(
-              constrained: false,
-              minScale: .55,
-              maxScale: 2.8,
-              boundaryMargin: const EdgeInsets.all(120),
-              child: SizedBox(
-                width: width,
-                height: height,
-                child: CryptoBubbleField(
-                  assets: state.assets,
-                  minRadius: 28,
-                  maxRadius: 70,
-                  padding: 18,
-                  speed: 9,
-                  onBubbleTap: (asset) => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => TradingViewChartScreen(
-                        symbol: asset.symbol,
-                        segment: asset.segment,
-                      ),
+            child: SizedBox(
+              width: width,
+              height: height,
+              child: CryptoBubbleField(
+                assets: state.assets,
+                minRadius: minRadius,
+                maxRadius: maxRadius,
+                padding: fieldPadding,
+                speed: 9,
+                onBubbleTap: (asset) => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => TradingViewChartScreen(
+                      symbol: asset.symbol,
+                      segment: asset.segment,
                     ),
                   ),
                 ),

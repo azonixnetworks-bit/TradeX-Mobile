@@ -7,8 +7,9 @@ import '../data/crypto_market_repository.dart';
 
 /// Animated bubble field backed by live crypto assets.
 ///
-/// Bubble size follows quote volume. Movement is deliberately slow, and
-/// collisions use an elastic impulse so touching bubbles bounce apart.
+/// Bubble size follows the absolute 24h percentage move. Movement is
+/// deliberately slow, and collisions use an elastic impulse so touching
+/// bubbles bounce apart.
 class CryptoBubbleField extends StatefulWidget {
   const CryptoBubbleField({
     super.key,
@@ -117,6 +118,12 @@ class _CryptoBubbleFieldState extends State<CryptoBubbleField>
         _resolveCollision(_bodies[first], _bodies[second]);
       }
     }
+
+    // Collision separation can move an edge bubble by a few pixels. Clamp
+    // once more so no bubble can escape the visible device-sized canvas.
+    for (final body in _bodies) {
+      body.position = _clampPosition(body.position, body.radius, _fieldSize);
+    }
   }
 
   void _resolveCollision(_BubbleBody first, _BubbleBody second) {
@@ -190,17 +197,21 @@ class _CryptoBubbleFieldState extends State<CryptoBubbleField>
     final previousByMarket = {
       for (final body in _bodies) _bodyKey(body.asset): body,
     };
+    // Place the largest movers first so the packing algorithm reserves enough
+    // room for them and fills the remaining gaps with smaller movers.
     final sorted = [...widget.assets]
-      ..sort((left, right) => right.quoteVolume.compareTo(left.quoteVolume));
-    final maximumVolume = sorted.fold<double>(
-      1,
-      (value, asset) => math.max(value, asset.quoteVolume),
-    );
+      ..sort(
+        (left, right) =>
+            _changeMagnitude(right).compareTo(_changeMagnitude(left)),
+      );
+    final changeMagnitudes = sorted.map(_changeMagnitude).toList();
+    final minimumChange = changeMagnitudes.reduce(math.min);
+    final maximumChange = changeMagnitudes.reduce(math.max);
     final next = <_BubbleBody>[];
 
     for (var index = 0; index < sorted.length; index++) {
       final asset = sorted[index];
-      final radius = _radiusFor(asset, maximumVolume, size);
+      final radius = _radiusFor(asset, minimumChange, maximumChange, size);
       final existing = previousByMarket.remove(_bodyKey(asset));
       if (existing != null) {
         existing
@@ -219,12 +230,26 @@ class _CryptoBubbleFieldState extends State<CryptoBubbleField>
       ..addAll(next);
   }
 
-  double _radiusFor(CryptoAsset asset, double maximumVolume, Size size) {
-    final volumeRatio = asset.quoteVolume <= 0
-        ? 0.0
-        : math.sqrt(asset.quoteVolume / maximumVolume);
+  double _changeMagnitude(CryptoAsset asset) {
+    final magnitude = asset.changePercent.abs();
+    return magnitude.isFinite ? magnitude : 0;
+  }
+
+  double _radiusFor(
+    CryptoAsset asset,
+    double minimumChange,
+    double maximumChange,
+    Size size,
+  ) {
+    final minimumScale = math.log(1 + minimumChange);
+    final maximumScale = math.log(1 + maximumChange);
+    final scaleRange = maximumScale - minimumScale;
+    final changeRatio = scaleRange <= .000001
+        ? .5
+        : ((math.log(1 + _changeMagnitude(asset)) - minimumScale) / scaleRange)
+              .clamp(0.0, 1.0);
     final requestedRadius =
-        widget.minRadius + volumeRatio * (widget.maxRadius - widget.minRadius);
+        widget.minRadius + changeRatio * (widget.maxRadius - widget.minRadius);
     final fieldLimit = math.max(
       10.0,
       math.min(size.width, size.height) / 2 - widget.padding - 1,

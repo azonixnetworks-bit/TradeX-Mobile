@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../core/theme/tradex_colors.dart';
@@ -26,6 +27,7 @@ class _TradingViewChartScreenState extends State<TradingViewChartScreen> {
   @override
   void initState() {
     super.initState();
+    _enterLandscape();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFF08111D))
@@ -39,19 +41,54 @@ class _TradingViewChartScreenState extends State<TradingViewChartScreen> {
       ..loadHtmlString(_chartHtml(widget.symbol, widget.segment));
   }
 
+  Future<void> _enterLandscape() async {
+    await SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  Future<void> _restoreSystemUi() async {
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    await SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.portraitUp,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    _restoreSystemUi();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFF08111D),
-    appBar: AppBar(
-      title: Text('${widget.symbol} · ${_segmentLabel(widget.segment)}'),
-    ),
+    backgroundColor: Colors.black,
     body: Stack(
+      fit: StackFit.expand,
       children: [
-        WebViewWidget(controller: _controller),
+        Center(
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: WebViewWidget(controller: _controller),
+          ),
+        ),
         if (_loading)
           const Center(
             child: CircularProgressIndicator(color: TradeXColors.goldBright),
           ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: SafeArea(
+            child: IconButton.filledTonal(
+              tooltip: 'Close chart',
+              onPressed: () => Navigator.of(context).maybePop(),
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ),
+        ),
       ],
     ),
   );
@@ -69,15 +106,15 @@ String _chartHtml(String symbol, String segment) {
     'locale': 'en',
     'backgroundColor': '#08111D',
     'gridColor': 'rgba(255, 255, 255, 0.04)',
-    'hide_top_toolbar': true,
-    'hide_side_toolbar': true,
+    'hide_top_toolbar': false,
+    'hide_side_toolbar': false,
     'hide_legend': false,
     'hide_volume': true,
     'allow_symbol_change': false,
     'calendar': false,
     'details': false,
     'hotlist': false,
-    'save_image': false,
+    'save_image': true,
     'withdateranges': true,
     'watchlist': <String>[],
     'compareSymbols': <String>[],
@@ -113,6 +150,3 @@ String tradingViewTicker(String symbol, String segment) {
       ? 'BINANCE:$cleanSymbol.P'
       : 'BINANCE:$cleanSymbol';
 }
-
-String _segmentLabel(String segment) =>
-    segment == 'FUTURES' ? 'Futures' : 'Spot';
