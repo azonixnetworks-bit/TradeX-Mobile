@@ -11,6 +11,10 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../../home/presentation/economic_news_screen.dart';
+import '../../journal/data/trade_journal_repository.dart';
+import '../../journal/presentation/trade_journal_home_screen.dart';
+import '../../journal/presentation/trade_journal_insights_screens.dart';
+import '../../journal/presentation/trade_journal_trade_screens.dart';
 import '../models/feature_spec.dart';
 import 'secure_workflow_screens.dart';
 
@@ -53,8 +57,16 @@ Future<void> openTradeXFeature(
   TradeXApiClient apiClient,
   FeatureSpec spec,
 ) {
+  final journal = TradeJournalRepository(apiClient);
   final workflow = switch (spec.id) {
     'economic-news' => EconomicNewsScreen(apiClient: apiClient),
+    'trade-journal' => TradeJournalHomeScreen(
+      apiClient: apiClient,
+      repository: journal,
+    ),
+    'trade-entry-form' => TradeJournalPlanScreen(repository: journal),
+    'trade-entry-details' => TradeJournalEntriesScreen(repository: journal),
+    'trade-performance' => TradeJournalAnalyticsScreen(repository: journal),
     'kyc-submit' => KycSubmissionScreen(apiClient: apiClient),
     'payment-proof' => PaymentProofScreen(apiClient: apiClient),
     'contact-number' => ContactChangeScreen(apiClient: apiClient),
