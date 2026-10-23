@@ -171,6 +171,32 @@ void main() {
       find.byKey(const ValueKey('trade-symbol-suggestions')),
       findsNothing,
     );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('trade-session-dropdown')),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.byKey(const ValueKey('trade-time-picker')), findsOneWidget);
+    expect(find.byKey(const ValueKey('trade-time-now')), findsOneWidget);
+    expect(find.text('Broker'), findsNothing);
+    expect(find.text('Account'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('trade-session-dropdown')));
+    await tester.pumpAndSettle();
+    expect(find.text('Asia'), findsWidgets);
+    expect(find.text('London'), findsOneWidget);
+    expect(find.text('New York'), findsOneWidget);
+    expect(find.text('Other'), findsOneWidget);
+    await tester.tap(find.text('Other'));
+    await tester.pumpAndSettle();
+    expect(find.text('Other Session'), findsOneWidget);
+
+    final useCurrentTime = tester.widget<TextButton>(
+      find.byKey(const ValueKey('trade-time-now')),
+    );
+    useCurrentTime.onPressed!();
+    await tester.pump();
     expect(tester.takeException(), isNull);
   });
 }

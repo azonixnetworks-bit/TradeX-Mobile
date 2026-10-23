@@ -31,6 +31,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   var _market = 'crypto';
   var _direction = 'buy';
   var _status = 'planned';
+  var _session = 'asia';
   String? _stockRegion;
   String? _emotion;
   final _timeframes = <String>{};
@@ -87,6 +88,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       _market = entry.market;
       _direction = entry.direction;
       _status = entry.status;
+      _session = _sessionChoice(entry.sessionLabel);
       _stockRegion = entry.stockRegion;
       _emotion = entry.psychologyBefore['emotion']?.toString();
       _timeframes.addAll(entry.timeframes);
@@ -96,10 +98,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       _tradeDate = entry.tradeAt?.toLocal() ?? _tradeDate;
       _tradeTime = TimeOfDay.fromDateTime(_tradeDate);
       _set('symbol', entry.symbol);
-      _set(
-        'session_label',
-        entry.sessionSource == 'manual' ? entry.sessionLabel : null,
-      );
+      if (_session == 'other') _set('session_label', entry.sessionLabel);
       _set('broker', entry.broker);
       _set('account_label', entry.accountLabel);
       _set('setup_strategy', entry.setupStrategy);
@@ -250,6 +249,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           child: Column(
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: _PickerTile(
@@ -262,24 +262,44 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _PickerTile(
+                      key: const ValueKey('trade-time-picker'),
                       icon: Icons.schedule_rounded,
                       label: 'Trade Time',
-                      value: _time(_tradeTime),
+                      value: MaterialLocalizations.of(context)
+                          .formatTimeOfDay(_tradeTime),
                       onTap: _pickTime,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              _textField('session_label', 'Session (blank = automatic)'),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(child: _textField('broker', 'Broker')),
-                  const SizedBox(width: 10),
-                  Expanded(child: _textField('account_label', 'Account')),
-                ],
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  key: const ValueKey('trade-time-now'),
+                  onPressed: () => setState(() {
+                    final now = DateTime.now();
+                    _tradeTime = TimeOfDay.fromDateTime(now);
+                  }),
+                  icon: const Icon(Icons.bolt_rounded, size: 17),
+                  label: const Text('Use current time'),
+                ),
               ),
+              _dropdown(
+                key: const ValueKey('trade-session-dropdown'),
+                label: 'Session',
+                value: _session,
+                values: const ['asia', 'london', 'new_york', 'other'],
+                onChanged: (value) => setState(() {
+                  _session = value;
+                  if (value != 'other') {
+                    _controllers['session_label']!.clear();
+                  }
+                }),
+              ),
+              if (_session == 'other') ...[
+                const SizedBox(height: 12),
+                _textField('session_label', 'Other Session', required: true),
+              ],
             ],
           ),
         ),
@@ -687,6 +707,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   );
 
   Widget _dropdown({
+    Key? key,
     required String label,
     required String? value,
     required List<String> values,
@@ -696,6 +717,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
     final items = <String>{...values};
     if (value?.isNotEmpty == true) items.add(value!);
     return DropdownButtonFormField<String>(
+      key: key,
       initialValue: value,
       decoration: InputDecoration(labelText: label),
       items: [
@@ -737,7 +759,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
         if (_market == 'stocks') 'stock_region': _stockRegion,
         'symbol': _controller('symbol').toUpperCase(),
         'direction': _direction,
-        'session_label': _nullText('session_label'),
+        'session_label': _selectedSessionLabel,
         'broker': _nullText('broker'),
         'account_label': _nullText('account_label'),
         'setup_strategy': _nullText('setup_strategy'),
@@ -787,6 +809,23 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   }
 
   String _controller(String name) => _controllers[name]!.text.trim();
+
+  String _sessionChoice(String label) {
+    final normalized = label.trim().toLowerCase().replaceAll(' ', '_');
+    return const {'asia', 'london', 'new_york'}.contains(normalized)
+        ? normalized
+        : normalized.isEmpty
+        ? 'asia'
+        : 'other';
+  }
+
+  String? get _selectedSessionLabel => switch (_session) {
+    'asia' => 'Asia',
+    'london' => 'London',
+    'new_york' => 'New York',
+    _ => _nullText('session_label'),
+  };
+
   String? _nullText(String name) {
     final value = _controller(name);
     return value.isEmpty ? null : value;
@@ -1666,6 +1705,7 @@ class _TradeHeader extends StatelessWidget {
 
 class _PickerTile extends StatelessWidget {
   const _PickerTile({
+    super.key,
     required this.icon,
     required this.label,
     required this.value,
