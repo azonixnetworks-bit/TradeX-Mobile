@@ -34,6 +34,7 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
   Timer? _searchDebounce;
   Timer? _liveRefreshTimer;
   var _appIsActive = true;
+  var _typedQuery = '';
 
   @override
   void initState() {
@@ -114,11 +115,47 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
   }
 
   void _searchCoins(String value) {
+    final query = value.trim();
+    setState(() => _typedQuery = query);
     _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 450), () {
+    _searchDebounce = Timer(const Duration(milliseconds: 250), () {
       if (!mounted) return;
       _cubit.search(value);
     });
+  }
+
+  void _clearSearch() {
+    _searchDebounce?.cancel();
+    _search.clear();
+    setState(() => _typedQuery = '');
+    _cubit.search('');
+  }
+
+  void _openAssetChart(CryptoAsset asset) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) =>
+          TradingViewChartScreen(symbol: asset.symbol, segment: asset.segment),
+    ),
+  );
+
+  List<CryptoAsset> _matchingSuggestions(List<CryptoAsset> assets) {
+    final normalized = _typedQuery.toUpperCase();
+    if (normalized.isEmpty) return const [];
+    final futuresOnly = normalized.endsWith('.P');
+    final term = futuresOnly
+        ? normalized.substring(0, normalized.length - 2)
+        : normalized;
+    if (term.isEmpty) return const [];
+    return assets
+        .where((asset) {
+          if (futuresOnly && asset.segment != 'FUTURES') return false;
+          final searchable =
+              '${asset.symbol} ${asset.baseCurrency} ${asset.name}'
+                  .toUpperCase();
+          return searchable.contains(term);
+        })
+        .take(5)
+        .toList(growable: false);
   }
 
   @override
@@ -173,6 +210,7 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
             return _MarketError(onRetry: _reload);
           }
           final visible = market.assets;
+          final suggestions = _matchingSuggestions(visible);
           return RefreshIndicator(
             color: TradeXColors.goldBright,
             onRefresh: _reload,
@@ -182,43 +220,88 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
               ),
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
               children: [
-                _LiveHeader(market: market, fromCache: state.fromCache),
-                const SizedBox(height: 14),
-                _AllCryptoHeader(
-                  segment: state.segment,
-                  onChanged: _cubit.selectSegment,
+                Row(
+                  children: [
+                    Expanded(
+                      child: _LiveHeader(
+                        market: market,
+                        fromCache: state.fromCache,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    _CryptoSegmentSwitcher(
+                      segment: state.segment,
+                      onChanged: _cubit.selectSegment,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 14),
                 TextField(
                   controller: _search,
                   onChanged: _searchCoins,
                   decoration: InputDecoration(
-                    hintText: 'Search BTC, Bitcoin or BTCUSDT.P',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: state.search.isEmpty
+                    hintText: 'Search BTC, ETH, SOL...',
+                    hintStyle: const TextStyle(
+                      color: Color(0xFF7F8DA1),
+                      fontSize: 13,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: Color(0xFF91A1B7),
+                      size: 20,
+                    ),
+                    suffixIcon: _typedQuery.isEmpty
                         ? null
                         : IconButton(
-                            onPressed: () {
-                              _search.clear();
-                              _cubit.search('');
-                            },
+                            tooltip: 'Clear coin search',
+                            onPressed: _clearSearch,
                             icon: const Icon(Icons.close_rounded),
                           ),
+                    filled: true,
+                    fillColor: const Color(0xFF102035),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 13),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: TradeXColors.goldBright.withValues(alpha: .7),
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 7),
-                Text(
-                  state.search.trim().isEmpty
-                      ? 'Highest 24h volume first · 5 coins per page · swipe left'
-                      : state.search.trim().toUpperCase().endsWith('.P')
-                      ? 'Futures results (.P)'
-                      : 'Showing matching Spot and Futures markets',
-                  style: const TextStyle(
-                    color: TradeXColors.secondaryText,
-                    fontSize: 11,
+                if (_typedQuery.isNotEmpty) ...[
+                  const SizedBox(height: 7),
+                  _CryptoSearchSuggestions(
+                    query: _typedQuery,
+                    assets: suggestions,
+                    loading:
+                        state.refreshing ||
+                        state.search.trim() != _typedQuery.trim(),
+                    onTap: _openAssetChart,
                   ),
-                ),
+                ],
                 const SizedBox(height: 12),
+                const _AllCryptoHeader(),
+                if (state.search.trim().isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Text(
+                    state.search.trim().toUpperCase().endsWith('.P')
+                        ? 'Futures results (.P)'
+                        : 'Matching Spot and Futures markets',
+                    style: const TextStyle(
+                      color: TradeXColors.secondaryText,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 10),
                 if (visible.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 30),
@@ -312,15 +395,19 @@ class _LiveHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        Text(
-          market.partialData
-              ? 'Limited market data · server update required'
-              : market.stale || fromCache
-              ? 'Saved market snapshot'
-              : stamp,
-          style: const TextStyle(
-            color: TradeXColors.secondaryText,
-            fontWeight: FontWeight.w700,
+        Expanded(
+          child: Text(
+            market.partialData
+                ? 'Limited market data · server update required'
+                : market.stale || fromCache
+                ? 'Saved market snapshot'
+                : stamp,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: TradeXColors.secondaryText,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
@@ -966,32 +1053,278 @@ String _tradeIdeaSymbol(String raw) {
   return symbol.replaceAll('/', '');
 }
 
-class _AllCryptoHeader extends StatelessWidget {
-  const _AllCryptoHeader({required this.segment, required this.onChanged});
+class _CryptoSegmentSwitcher extends StatelessWidget {
+  const _CryptoSegmentSwitcher({
+    required this.segment,
+    required this.onChanged,
+  });
+
   final String segment;
   final ValueChanged<String> onChanged;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      const Expanded(
-        child: _SectionHeading(
-          title: 'All Crypto Coins',
-          subtitle: 'Live Binance markets',
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(3),
+    decoration: BoxDecoration(
+      color: const Color(0xFF102035),
+      borderRadius: BorderRadius.circular(22),
+      border: Border.all(color: Colors.white.withValues(alpha: .06)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _SegmentChoice(
+          label: 'Spot',
+          selected: segment == 'SPOT',
+          onTap: () => onChanged('SPOT'),
+        ),
+        _SegmentChoice(
+          label: 'Futures',
+          selected: segment == 'FUTURES',
+          onTap: () => onChanged('FUTURES'),
+        ),
+      ],
+    ),
+  );
+}
+
+class _SegmentChoice extends StatelessWidget {
+  const _SegmentChoice({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(18),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: selected
+            ? TradeXColors.goldBright.withValues(alpha: .13)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: selected
+              ? TradeXColors.goldBright
+              : TradeXColors.secondaryText,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
         ),
       ),
-      SegmentedButton<String>(
-        segments: const [
-          ButtonSegment(value: 'SPOT', label: Text('Spot')),
-          ButtonSegment(value: 'FUTURES', label: Text('Futures')),
-        ],
-        selected: {segment},
-        onSelectionChanged: (value) => onChanged(value.first),
-        showSelectedIcon: false,
-        style: const ButtonStyle(visualDensity: VisualDensity.compact),
+    ),
+  );
+}
+
+class _AllCryptoHeader extends StatelessWidget {
+  const _AllCryptoHeader();
+
+  @override
+  Widget build(BuildContext context) => const Row(
+    children: [
+      Expanded(
+        child: Text(
+          'All Crypto Coins',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+        ),
+      ),
+      Text(
+        '24h Volume  ⌄',
+        style: TextStyle(color: TradeXColors.secondaryText, fontSize: 10),
       ),
     ],
   );
+}
+
+class _CryptoSearchSuggestions extends StatelessWidget {
+  const _CryptoSearchSuggestions({
+    required this.query,
+    required this.assets,
+    required this.loading,
+    required this.onTap,
+  });
+
+  final String query;
+  final List<CryptoAsset> assets;
+  final bool loading;
+  final ValueChanged<CryptoAsset> onTap;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const ValueKey('crypto-search-suggestions'),
+    clipBehavior: Clip.antiAlias,
+    decoration: BoxDecoration(
+      color: const Color(0xFF0D1928),
+      borderRadius: BorderRadius.circular(13),
+      border: Border.all(color: const Color(0xFF273A52)),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x33000000),
+          blurRadius: 10,
+          offset: Offset(0, 5),
+        ),
+      ],
+    ),
+    child: assets.isEmpty
+        ? Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            child: Row(
+              children: [
+                if (loading) ...[
+                  const SizedBox.square(
+                    dimension: 15,
+                    child: CircularProgressIndicator(
+                      color: TradeXColors.goldBright,
+                      strokeWidth: 1.8,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ] else ...[
+                  const Icon(
+                    Icons.search_off_rounded,
+                    color: TradeXColors.secondaryText,
+                    size: 19,
+                  ),
+                  const SizedBox(width: 9),
+                ],
+                Expanded(
+                  child: Text(
+                    loading
+                        ? 'Searching live coin list...'
+                        : 'No coins found for "$query"',
+                    style: const TextStyle(
+                      color: TradeXColors.secondaryText,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var index = 0; index < assets.length; index++) ...[
+                _CryptoSearchSuggestionRow(
+                  asset: assets[index],
+                  onTap: () => onTap(assets[index]),
+                ),
+                if (index < assets.length - 1)
+                  const Divider(
+                    height: 1,
+                    indent: 55,
+                    color: Color(0xFF213149),
+                  ),
+              ],
+            ],
+          ),
+  );
+}
+
+class _CryptoSearchSuggestionRow extends StatelessWidget {
+  const _CryptoSearchSuggestionRow({required this.asset, required this.onTap});
+
+  final CryptoAsset asset;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final changeColor = _changeColor(asset.changePercent);
+    return Semantics(
+      button: true,
+      label:
+          'Open ${asset.symbol} ${_segmentLabel(asset.segment)} chart from search',
+      child: InkWell(
+        key: ValueKey('crypto-search-suggestion-${asset.marketKey}'),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+          child: Row(
+            children: [
+              _CoinLogo(asset: asset, size: 34, onTap: onTap),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            asset.symbol,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        _MarketSegmentBadge(segment: asset.segment),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      asset.name.isNotEmpty
+                          ? asset.name
+                          : '${asset.baseCurrency} / USDT',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF91A1B7),
+                        fontSize: 9,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    asset.price > 0 ? _price(asset.price) : '—',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${asset.changePercent >= 0 ? '+' : ''}${asset.changePercent.toStringAsFixed(2)}%',
+                    style: TextStyle(
+                      color: changeColor,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: TradeXColors.secondaryText,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _CryptoCoinCarousel extends StatelessWidget {
@@ -1016,7 +1349,7 @@ class _CryptoCoinCarousel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const batchSize = 5;
-    const cardHeight = 157.0;
+    const cardHeight = 74.0;
     const cardSpacing = 10.0;
     final visibleCount = math.min(batchSize, assets.length);
     final batchCount = (assets.length / batchSize).ceil();
@@ -1109,7 +1442,6 @@ class _CoinRow extends StatelessWidget {
 
   Widget _topCryptoCard(BuildContext context) {
     final changeColor = _changeColor(asset.changePercent);
-    final trend = asset.resolvedTrend;
     return Semantics(
       button: true,
       label: 'Open ${asset.symbol} ${_segmentLabel(segment)} chart',
@@ -1117,134 +1449,115 @@ class _CoinRow extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: () => _openChart(context),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 11),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF111D2C), Color(0xFF0D1622)],
+              colors: [Color(0xFF102034), Color(0xFF0D1A2A)],
             ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: .07)),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFF273A52)),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x29000000),
-                blurRadius: 10,
-                offset: Offset(0, 5),
+                color: Color(0x22000000),
+                blurRadius: 7,
+                offset: Offset(0, 3),
               ),
             ],
           ),
-          child: Column(
+          child: Row(
             children: [
-              Row(
-                children: [
-                  _CoinLogo(
-                    asset: asset,
-                    size: 44,
-                    onTap: () => _openChart(context),
-                  ),
-                  const SizedBox(width: 11),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              _CoinLogo(
+                asset: asset,
+                size: 42,
+                onTap: () => _openChart(context),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                asset.symbol,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: TradeXColors.goldBright,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            _MarketSegmentBadge(segment: segment),
-                          ],
-                        ),
-                        if (asset.name.isNotEmpty)
-                          Text(
-                            asset.name,
+                        Flexible(
+                          child: Text(
+                            asset.symbol,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              color: TradeXColors.secondaryText,
-                              fontSize: 10.5,
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 5),
+                        _MarketSegmentBadge(segment: segment),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  _WatchlistStarButton(
-                    symbol: asset.symbol,
-                    selected: isWatchlisted,
-                    onPressed: onWatchlistToggle,
-                  ),
-                  const SizedBox(width: 4),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        'PRICE',
-                        style: TextStyle(
-                          color: TradeXColors.secondaryText,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: .8,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        asset.price > 0 ? _price(asset.price) : '—',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 11),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: .18),
-                  borderRadius: BorderRadius.circular(11),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: .05),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _TopCryptoMetric(
-                        label: '24H CHANGE',
-                        value:
-                            '${asset.changePercent >= 0 ? '+' : ''}${asset.changePercent.toStringAsFixed(2)}%',
-                        color: changeColor,
-                        icon: asset.changePercent >= 0
-                            ? Icons.arrow_upward_rounded
-                            : Icons.arrow_downward_rounded,
+                    const SizedBox(height: 3),
+                    Text(
+                      asset.name.isNotEmpty
+                          ? asset.name
+                          : '${asset.baseCurrency} / USDT',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF91A1B7),
+                        fontSize: 9.5,
                       ),
                     ),
-                    Container(
-                      width: 1,
-                      height: 29,
-                      margin: const EdgeInsets.symmetric(horizontal: 10),
-                      color: Colors.white.withValues(alpha: .08),
-                    ),
-                    Expanded(child: _TrendBadge(trend: trend)),
                   ],
                 ),
+              ),
+              const SizedBox(width: 7),
+              SizedBox(
+                width: 48,
+                height: 28,
+                child: CustomPaint(
+                  painter: _CoinTrendPainter(
+                    positive: asset.changePercent >= 0,
+                    seed: asset.symbol.hashCode,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 7),
+              SizedBox(
+                width: 72,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      asset.price > 0 ? _price(asset.price) : '—',
+                      maxLines: 1,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${asset.changePercent >= 0 ? '+' : ''}${asset.changePercent.toStringAsFixed(2)}%',
+                      style: TextStyle(
+                        color: changeColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 2),
+              _WatchlistStarButton(
+                symbol: asset.symbol,
+                selected: isWatchlisted,
+                onPressed: onWatchlistToggle,
               ),
             ],
           ),
@@ -1357,108 +1670,49 @@ class _MarketSegmentBadge extends StatelessWidget {
 String _segmentLabel(String segment) =>
     segment == 'FUTURES' ? 'Futures' : 'Spot';
 
-class _TopCryptoMetric extends StatelessWidget {
-  const _TopCryptoMetric({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.icon,
-  });
+class _CoinTrendPainter extends CustomPainter {
+  const _CoinTrendPainter({required this.positive, required this.seed});
 
-  final String label;
-  final String value;
-  final Color color;
-  final IconData icon;
+  final bool positive;
+  final int seed;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        label,
-        style: const TextStyle(
-          color: TradeXColors.secondaryText,
-          fontSize: 8,
-          fontWeight: FontWeight.w800,
-          letterSpacing: .65,
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(seed);
+    final color = positive ? const Color(0xFF20D8A0) : const Color(0xFFFF626B);
+    final path = Path();
+    const points = 7;
+    for (var index = 0; index < points; index++) {
+      final progress = index / (points - 1);
+      final direction = positive ? 1 - progress : progress;
+      final jitter = (random.nextDouble() - .5) * size.height * .24;
+      final point = Offset(
+        progress * size.width,
+        (size.height * (.2 + direction * .58) + jitter).clamp(
+          2,
+          size.height - 2,
         ),
-      ),
-      const SizedBox(height: 3),
-      Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 2),
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    ],
-  );
-}
-
-class _TrendBadge extends StatelessWidget {
-  const _TrendBadge({required this.trend});
-
-  final String trend;
-
-  @override
-  Widget build(BuildContext context) {
-    final (color, icon) = switch (trend) {
-      'BULLISH' => (const Color(0xFF35D49A), Icons.trending_up_rounded),
-      'BEARISH' => (const Color(0xFFFF626B), Icons.trending_down_rounded),
-      _ => (const Color(0xFF9AA6B6), Icons.trending_flat_rounded),
-    };
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'TREND',
-          style: TextStyle(
-            color: TradeXColors.secondaryText,
-            fontSize: 8,
-            fontWeight: FontWeight.w800,
-            letterSpacing: .65,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: .12),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withValues(alpha: .42)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 13),
-              const SizedBox(width: 3),
-              Flexible(
-                child: Text(
-                  trend,
-                  maxLines: 1,
-                  overflow: TextOverflow.fade,
-                  softWrap: false,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+      );
+      if (index == 0) {
+        path.moveTo(point.dx, point.dy);
+      } else {
+        path.lineTo(point.dx, point.dy);
+      }
+    }
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color
+        ..strokeWidth = 1.7
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
     );
   }
+
+  @override
+  bool shouldRepaint(covariant _CoinTrendPainter oldDelegate) =>
+      oldDelegate.positive != positive || oldDelegate.seed != seed;
 }
 
 class _CoinLogo extends StatelessWidget {

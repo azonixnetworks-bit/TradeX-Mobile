@@ -31,16 +31,20 @@ void main() {
 
     expect(find.text('Crypto Market'), findsOneWidget);
     expect(find.text('All Crypto Coins'), findsOneWidget);
-    expect(find.text('24h Volume'), findsOneWidget);
-    expect(
-      tester.getTopLeft(find.text('All Crypto Coins')).dy,
-      lessThan(tester.getTopLeft(find.text('24h Volume')).dy),
-    );
+    expect(find.text('Search BTC, ETH, SOL...'), findsOneWidget);
+    expect(find.text('Spot'), findsOneWidget);
+    expect(find.text('Futures'), findsOneWidget);
     expect(find.text('BTCUSDT'), findsWidgets);
-    expect(find.text('PRICE'), findsOneWidget);
-    expect(find.text('24H CHANGE'), findsOneWidget);
-    expect(find.text('TREND'), findsOneWidget);
-    expect(find.text('BULLISH'), findsOneWidget);
+    expect(find.text(r'$68000.00'), findsOneWidget);
+    expect(find.text('+2.40%'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'Open BTCUSDT Spot chart',
+      ),
+      findsOneWidget,
+    );
     await tester.scrollUntilVisible(
       find.text('Open map'),
       250,
@@ -101,6 +105,8 @@ void main() {
   testWidgets('all crypto section shows five cards in its default batch', (
     tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     SharedPreferences.setMockInitialValues({});
     final store = SecureSessionStore();
     final api = _CryptoApiClient(
@@ -122,6 +128,7 @@ void main() {
     for (var index = 0; index < 5; index++) {
       expect(find.text('COIN${index}USDT'), findsOneWidget);
     }
+    expect(find.text('COI'), findsNWidgets(5));
     expect(tester.takeException(), isNull);
   });
 
@@ -313,22 +320,31 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
-    await tester.scrollUntilVisible(
-      find.text('All Crypto Coins'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
 
     await tester.enterText(find.byType(TextField), 'BTC');
-    await tester.pump(const Duration(milliseconds: 500));
     await tester.pump();
-    expect(find.text('SPOT'), findsOneWidget);
-    expect(find.text('FUTURES'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('crypto-search-suggestions')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('crypto-search-suggestion-SPOT:BTCUSDT')),
+      findsOneWidget,
+    );
+
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(find.text('SPOT'), findsWidgets);
+    expect(find.text('FUTURES'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('crypto-search-suggestion-FUTURES:BTCUSDT')),
+      findsOneWidget,
+    );
 
     await tester.enterText(find.byType(TextField), 'BTCUSDT.P');
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
-    expect(find.text('FUTURES'), findsOneWidget);
+    expect(find.text('FUTURES'), findsWidgets);
     expect(find.text('SPOT'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -336,6 +352,49 @@ void main() {
   test('TradingView ticker selects Spot and Futures correctly', () {
     expect(tradingViewTicker('BTCUSDT', 'SPOT'), 'BINANCE:BTCUSDT');
     expect(tradingViewTicker('BTCUSDT', 'FUTURES'), 'BINANCE:BTCUSDT.P');
+  });
+
+  test('catalog metadata is enriched with live ticker price and change', () {
+    const catalog = CryptoAsset(
+      symbol: 'BTCUSDT',
+      name: 'Bitcoin / Tether',
+      baseCurrency: 'BTC',
+      logoUrl: '',
+      price: 0,
+      changePercent: 0,
+      quoteVolume: 0,
+    );
+    const ticker = CryptoAsset(
+      symbol: 'BTCUSDT',
+      name: 'BTC / USDT',
+      baseCurrency: 'BTC',
+      logoUrl: '',
+      price: 70123.45,
+      changePercent: 2.75,
+      quoteVolume: 9000000,
+    );
+
+    final enriched = catalog.mergeMarket(ticker);
+
+    expect(enriched.price, 70123.45);
+    expect(enriched.changePercent, 2.75);
+    expect(enriched.quoteVolume, 9000000);
+  });
+
+  test('live refresh updates prices for coins already on screen', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final api = _CryptoApiClient(store, DeviceIdentity(store));
+    final cubit = CryptoMarketCubit(CryptoMarketRepository(api));
+
+    await cubit.initialize();
+    expect(cubit.state.snapshot?.assets.first.price, 68000);
+
+    api.liveBubblePrice = 69125.5;
+    await cubit.refreshBubbles();
+
+    expect(cubit.state.snapshot?.assets.first.price, 69125.5);
+    await cubit.close();
   });
 
   test('right-to-left paging appends the next coin batch', () async {
@@ -375,6 +434,7 @@ class _CryptoApiClient extends TradeXApiClient {
   var bubbleRequestCount = 0;
   String? lastBubbleRequestPath;
   var cryptoTradeIdeasRequestCount = 0;
+  double liveBubblePrice = 68000;
 
   @override
   Future<String?> currentAccountStorageKey() async => null;
@@ -433,6 +493,9 @@ class _CryptoApiClient extends TradeXApiClient {
                   ),
                 ]
           : bubbleAssets ?? [asset()];
+      final liveBubbles = path.contains('bubble_mode=LOSERS')
+          ? selectedBubbles
+          : bubbleAssets ?? [asset(price: liveBubblePrice)];
       return {
         'data': {
           'generated_at_utc': DateTime.now().toUtc().toIso8601String(),
@@ -446,8 +509,8 @@ class _CryptoApiClient extends TradeXApiClient {
           'bubble_selection': path.contains('bubble_mode=LOSERS')
               ? 'TOP_LOSERS_24H'
               : 'TOP_GAINERS_24H',
-          'bubbles': selectedBubbles,
-          'assets': selectedBubbles,
+          'bubbles': liveBubbles,
+          'assets': liveBubbles,
           'pagination': {
             'current_page': 1,
             'last_page': 1,
@@ -495,6 +558,7 @@ class _CryptoApiClient extends TradeXApiClient {
 
   static Map<String, dynamic> asset({
     String symbol = 'BTCUSDT',
+    double price = 68000,
     double changePercent = 2.4,
     double quoteVolume = 2500000000,
   }) => {
@@ -503,7 +567,7 @@ class _CryptoApiClient extends TradeXApiClient {
     'base_currency': symbol.replaceAll('USDT', ''),
     'quote_currency': 'USDT',
     'logo_url': '',
-    'price': 68000,
+    'price': price,
     'change_percent': changePercent,
     'trend': 'BULLISH',
     'quote_volume': quoteVolume,

@@ -111,17 +111,25 @@ class CryptoMarketRepository {
     CryptoBubbleMode mode = CryptoBubbleMode.gainers,
   }) async {
     final response = await _apiClient.getJson(
-      '/api/v1/screener/bubbles?limit=100&page=1&per_page=20'
+      '/api/v1/screener/bubbles?limit=100'
       '&segment=$segment&bubble_mode=${mode.apiValue}',
     );
     final data = _data(response);
-    final assets = _rankBubbleAssets(data, mode: mode);
+    final assets = _rankBubbleAssets(
+      data,
+      mode: mode,
+    ).map((asset) => asset.withSegment(segment)).toList(growable: false);
+    final marketAssets = _maps(data['assets'])
+        .map(CryptoAsset.fromJson)
+        .map((asset) => asset.withSegment(segment))
+        .toList(growable: false);
     if (assets.isEmpty) {
       throw StateError('Live top-gainer bubbles are unavailable.');
     }
     return CryptoBubbleUpdate(
       summary: CryptoMarketSummary.fromJson(_map(data['summary'])),
       assets: assets,
+      marketAssets: marketAssets,
       generatedAt: DateTime.tryParse(
         data['generated_at_utc']?.toString() ?? '',
       ),
@@ -322,14 +330,16 @@ class CryptoMarketSnapshot {
 
   CryptoMarketSnapshot copyWith({
     CryptoMarketSummary? summary,
+    List<CryptoAsset>? assets,
     List<CryptoAsset>? bubbleAssets,
+    List<CryptoAsset>? topAssets,
     DateTime? generatedAt,
     bool? stale,
   }) => CryptoMarketSnapshot(
     summary: summary ?? this.summary,
-    assets: assets,
+    assets: assets ?? this.assets,
     bubbleAssets: bubbleAssets ?? this.bubbleAssets,
-    topAssets: topAssets,
+    topAssets: topAssets ?? this.topAssets,
     generatedAt: generatedAt ?? this.generatedAt,
     stale: stale ?? this.stale,
     pagination: pagination,
@@ -341,12 +351,14 @@ class CryptoBubbleUpdate {
   const CryptoBubbleUpdate({
     required this.summary,
     required this.assets,
+    required this.marketAssets,
     required this.generatedAt,
     required this.stale,
   });
 
   final CryptoMarketSummary summary;
   final List<CryptoAsset> assets;
+  final List<CryptoAsset> marketAssets;
   final DateTime? generatedAt;
   final bool stale;
 }
@@ -457,8 +469,10 @@ class CryptoAsset {
         : (market?.baseCurrency ?? ''),
     logoUrl: logoUrl?.isNotEmpty == true ? logoUrl : market?.logoUrl,
     price: price > 0 ? price : (market?.price ?? 0),
-    changePercent: changePercent,
-    quoteVolume: market?.quoteVolume ?? quoteVolume,
+    changePercent: price > 0 || quoteVolume > 0
+        ? changePercent
+        : (market?.changePercent ?? changePercent),
+    quoteVolume: quoteVolume > 0 ? quoteVolume : (market?.quoteVolume ?? 0),
     segment: segment,
     trend: trend,
   );
@@ -474,6 +488,21 @@ class CryptoAsset {
     segment: value.toUpperCase() == 'FUTURES' ? 'FUTURES' : 'SPOT',
     trend: trend,
   );
+
+  CryptoAsset withLiveMarket(CryptoAsset? live) {
+    if (live == null) return this;
+    return CryptoAsset(
+      symbol: symbol,
+      name: name.isNotEmpty ? name : live.name,
+      baseCurrency: baseCurrency.isNotEmpty ? baseCurrency : live.baseCurrency,
+      logoUrl: logoUrl?.isNotEmpty == true ? logoUrl : live.logoUrl,
+      price: live.price > 0 ? live.price : price,
+      changePercent: live.changePercent,
+      quoteVolume: live.quoteVolume > 0 ? live.quoteVolume : quoteVolume,
+      segment: segment,
+      trend: live.trend ?? trend,
+    );
+  }
 }
 
 double _number(dynamic value) => value is num

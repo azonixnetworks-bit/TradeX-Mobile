@@ -73,15 +73,42 @@ class CryptoMarketCubit extends Cubit<CryptoMarketState> {
     if (state.snapshot == null || _refreshingBubbles) return;
     _refreshingBubbles = true;
     try {
-      final update = await _repository.loadBubbleUpdate(segment: state.segment);
+      final snapshot = state.snapshot!;
+      final segments = <String>{
+        state.segment,
+        for (final asset in snapshot.assets) asset.segment,
+      };
+      final responses = await Future.wait(segments.map(_loadLiveSegmentSafely));
+      final updates = responses
+          .whereType<MapEntry<String, CryptoBubbleUpdate>>()
+          .toList(growable: false);
       if (isClosed || state.snapshot == null) return;
+      if (updates.isEmpty) return;
+
+      CryptoBubbleUpdate? primaryUpdate;
+      final liveByMarket = <String, CryptoAsset>{};
+      for (final entry in updates) {
+        if (entry.key == state.segment) primaryUpdate = entry.value;
+        for (final asset in entry.value.marketAssets) {
+          liveByMarket[asset.marketKey] = asset;
+        }
+      }
+      final current = state.snapshot!;
+      final refreshedAssets = current.assets
+          .map((asset) => asset.withLiveMarket(liveByMarket[asset.marketKey]))
+          .toList(growable: false);
+      final refreshedTopAssets = current.topAssets
+          .map((asset) => asset.withLiveMarket(liveByMarket[asset.marketKey]))
+          .toList(growable: false);
       emit(
         state.copyWith(
-          snapshot: state.snapshot!.copyWith(
-            summary: update.summary,
-            bubbleAssets: update.assets,
-            generatedAt: update.generatedAt,
-            stale: update.stale,
+          snapshot: current.copyWith(
+            summary: primaryUpdate?.summary,
+            assets: refreshedAssets,
+            bubbleAssets: primaryUpdate?.assets,
+            topAssets: refreshedTopAssets,
+            generatedAt: primaryUpdate?.generatedAt,
+            stale: primaryUpdate?.stale,
           ),
           fromCache: false,
         ),
@@ -90,6 +117,17 @@ class CryptoMarketCubit extends Cubit<CryptoMarketState> {
       // Retain the last successful live bubble set until the next refresh.
     } finally {
       _refreshingBubbles = false;
+    }
+  }
+
+  Future<MapEntry<String, CryptoBubbleUpdate>?> _loadLiveSegmentSafely(
+    String segment,
+  ) async {
+    try {
+      final update = await _repository.loadBubbleUpdate(segment: segment);
+      return MapEntry(segment, update);
+    } catch (_) {
+      return null;
     }
   }
 
