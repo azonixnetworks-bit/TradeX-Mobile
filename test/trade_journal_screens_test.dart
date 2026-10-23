@@ -12,6 +12,7 @@ import 'package:tradex_mobile/features/journal/data/trade_journal_models.dart';
 import 'package:tradex_mobile/features/journal/data/trade_journal_repository.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_home_screen.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_insights_screens.dart';
+import 'package:tradex_mobile/features/journal/presentation/trade_journal_risk_psychology_sections.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_strategy_section.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_trade_screens.dart';
 
@@ -439,6 +440,167 @@ void main() {
 
     expect(find.byType(StrategyReasonSection), findsOneWidget);
     expect(find.byType(ConfirmationFindingCard), findsNWidgets(5));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('premium risk and psychology controls preserve form state', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final repository = TradeJournalRepository(
+      _JournalApiClient(store, DeviceIdentity(store)),
+      'UTC',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalPlanScreen(repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final scrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('trade-plan-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+
+    Future<void> jumpUntilBuilt(Finder finder) async {
+      for (
+        var attempt = 0;
+        attempt < 30 && finder.evaluate().isEmpty;
+        attempt++
+      ) {
+        await tester.drag(scrollable, const Offset(0, -500));
+        await tester.pumpAndSettle();
+      }
+      expect(finder, findsOneWidget);
+    }
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('strategy-reason-section')),
+      320,
+      scrollable: scrollable,
+    );
+    await tester.pumpAndSettle();
+    await jumpUntilBuilt(find.byKey(const ValueKey('price-risk-plan-section')));
+    expect(find.byType(PriceRiskPlanSection), findsOneWidget);
+    expect(find.byKey(const ValueKey('risk-stop-loss')), findsOneWidget);
+    expect(find.byKey(const ValueKey('risk-take-profit')), findsOneWidget);
+    expect(find.byKey(const ValueKey('risk-position-size')), findsOneWidget);
+    expect(find.byKey(const ValueKey('risk-percent')), findsOneWidget);
+    expect(find.byKey(const ValueKey('risk-amount')), findsOneWidget);
+
+    final plannedEntry = find.descendant(
+      of: find.byKey(const ValueKey('risk-planned-entry')),
+      matching: find.byType(TextFormField),
+    );
+    await tester.enterText(plannedEntry, '1.2345');
+    expect(
+      tester.widget<TextFormField>(plannedEntry).controller?.text,
+      '1.2345',
+    );
+    final currency = tester.widget<DropdownButtonFormField<String>>(
+      find.descendant(
+        of: find.byKey(const ValueKey('risk-currency')),
+        matching: find.byType(DropdownButtonFormField<String>),
+      ),
+    );
+    expect(currency.initialValue, 'USD');
+
+    await jumpUntilBuilt(
+      find.byKey(const ValueKey('psychology-checklist-section')),
+    );
+    final confidence = tester.widget<ConfidenceSelector>(
+      find.byType(ConfidenceSelector),
+    );
+    confidence.onChanged(3);
+    await tester.pump();
+    expect(
+      tester.widget<ConfidenceSelector>(find.byType(ConfidenceSelector)).value,
+      3,
+    );
+
+    final note = find.byKey(const ValueKey('mental-state-note-field'));
+    await tester.enterText(note, 'x' * 301);
+    expect(tester.widget<TextFormField>(note).controller?.text.length, 300);
+    final checklist = tester.widget<PremiumChecklistTile>(
+      find.byKey(const ValueKey('checklist-news_checked')),
+    );
+    checklist.onChanged(false);
+    await tester.pump();
+    expect(
+      tester
+          .widget<PremiumChecklistTile>(
+            find.byKey(const ValueKey('checklist-news_checked')),
+          )
+          .selected,
+      isFalse,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('risk and psychology cards remain responsive at 320 pixels', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final repository = TradeJournalRepository(
+      _JournalApiClient(store, DeviceIdentity(store)),
+      'UTC',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalPlanScreen(repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final scrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('trade-plan-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    final psychology = find.byKey(
+      const ValueKey('psychology-checklist-section'),
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('strategy-reason-section')),
+      280,
+      scrollable: scrollable,
+    );
+    await tester.pumpAndSettle();
+    final priceRisk = find.byKey(const ValueKey('price-risk-plan-section'));
+    for (
+      var attempt = 0;
+      attempt < 30 && priceRisk.evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.drag(scrollable, const Offset(0, -500));
+      await tester.pumpAndSettle();
+    }
+    expect(find.byType(PriceRiskPlanSection), findsOneWidget);
+    for (
+      var attempt = 0;
+      attempt < 30 && psychology.evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.drag(scrollable, const Offset(0, -500));
+      await tester.pumpAndSettle();
+    }
+    expect(find.byType(PsychologyChecklistSection), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

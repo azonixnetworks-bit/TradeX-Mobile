@@ -9,6 +9,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../data/trade_journal_models.dart';
 import '../data/trade_journal_repository.dart';
+import 'trade_journal_risk_psychology_sections.dart';
 import 'trade_journal_strategy_section.dart';
 import 'trade_journal_ui.dart';
 
@@ -93,6 +94,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
     for (final name in _fields) {
       _controllers[name] = TextEditingController();
     }
+    _controllers['risk_currency']!.text = 'USD';
     final entry = widget.entry;
     if (entry != null) {
       _market = entry.market;
@@ -343,125 +345,32 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           onEntryTypeChanged: (value) => setState(() => _direction = value),
         ),
         const SizedBox(height: 18),
-        const JournalSectionTitle(title: 'Price & Risk Plan'),
-        const SizedBox(height: 10),
-        JournalPanel(
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _textField(
-                      'planned_entry',
-                      'Planned Entry',
-                      numeric: true,
-                    ),
-                  ),
-                  if (_status == 'open' && !_editing) ...[
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _textField(
-                        'actual_entry',
-                        'Actual Entry',
-                        required: true,
-                        numeric: true,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _textField('planned_sl', 'Stop Loss', numeric: true),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _textField(
-                      'planned_tp',
-                      'Take Profit',
-                      numeric: true,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _textField(
-                      'position_size',
-                      'Position Size',
-                      numeric: true,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _textField('risk_percent', 'Risk %', numeric: true),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _textField(
-                      'risk_amount',
-                      'Risk Amount',
-                      numeric: true,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(child: _textField('risk_currency', 'Currency')),
-                ],
-              ),
-            ],
-          ),
+        PriceRiskPlanSection(
+          plannedEntryController: _controllers['planned_entry']!,
+          actualEntryController: _controllers['actual_entry']!,
+          stopLossController: _controllers['planned_sl']!,
+          takeProfitController: _controllers['planned_tp']!,
+          positionSizeController: _controllers['position_size']!,
+          riskPercentController: _controllers['risk_percent']!,
+          riskAmountController: _controllers['risk_amount']!,
+          riskCurrencyController: _controllers['risk_currency']!,
+          showActualEntry: _status == 'open' && !_editing,
+          actualEntryRequired: _status == 'open' && !_editing,
+          onCurrencyChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 18),
-        const JournalSectionTitle(title: 'Psychology & Checklist'),
-        const SizedBox(height: 10),
-        JournalPanel(
-          child: Column(
-            children: [
-              _dropdown(
-                label: 'Emotion Before',
-                value: _emotion,
-                values: meta.emotionsBefore,
-                onChanged: (value) => setState(() => _emotion = value),
-                optional: true,
-              ),
-              const SizedBox(height: 12),
-              _textField(
-                'confidence_before',
-                'Confidence (1–5)',
-                numeric: true,
-              ),
-              const SizedBox(height: 12),
-              _textField('mental_state_note', 'Mental-state Note', lines: 2),
-              const SizedBox(height: 10),
-              for (final item in const {
-                'followed_trading_plan': 'Trading plan prepared',
-                'sl_planned': 'Stop loss planned',
-                'tp_planned': 'Take profit planned',
-                'session_checked': 'Session checked',
-                'news_checked': 'News checked',
-                'risk_checked': 'Risk checked',
-                'setup_confirmed': 'Setup confirmed',
-              }.entries)
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  value: _checklist[item.key] == 'yes',
-                  onChanged: (value) => setState(
-                    () => _checklist[item.key] = value ? 'yes' : 'no',
-                  ),
-                  title: Text(item.value),
-                  activeThumbColor: journalGreen,
-                ),
-            ],
+        PsychologyChecklistSection(
+          emotion: _emotion,
+          emotions: meta.emotionsBefore,
+          confidence: _int('confidence_before'),
+          mentalStateController: _controllers['mental_state_note']!,
+          checklist: _checklist,
+          onEmotionChanged: (value) => setState(() => _emotion = value),
+          onConfidenceChanged: (value) => setState(
+            () => _controllers['confidence_before']!.text = '$value',
           ),
+          onChecklistChanged: (key, selected) =>
+              setState(() => _checklist[key] = selected ? 'yes' : 'no'),
         ),
         const SizedBox(height: 18),
         SaveTradeButton(
