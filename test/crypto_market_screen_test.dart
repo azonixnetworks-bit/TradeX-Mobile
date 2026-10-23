@@ -164,6 +164,7 @@ void main() {
     expect(find.text('Open TradingView chart'), findsOneWidget);
 
     final carousel = find.byKey(const ValueKey('crypto-trade-ideas-carousel'));
+    expect(tester.getSize(carousel).height, 184);
     await tester.ensureVisible(carousel);
     await tester.fling(carousel, const Offset(-500, 0), 1200);
     await tester.pumpAndSettle();
@@ -267,17 +268,17 @@ void main() {
     ]);
   });
 
-  test('bubble repository limits the ranked bubble field to twenty', () async {
+  test('bubble repository limits the ranked bubble field to fifty', () async {
     SharedPreferences.setMockInitialValues({});
     final store = SecureSessionStore();
     final api = _CryptoApiClient(
       store,
       DeviceIdentity(store),
       bubbleAssets: List.generate(
-        25,
+        60,
         (index) => _CryptoApiClient.asset(
           symbol: 'COIN${index.toString().padLeft(2, '0')}USDT',
-          changePercent: 25 - index.toDouble(),
+          changePercent: 60 - index.toDouble(),
           quoteVolume: 1000000 - index.toDouble(),
         ),
       ),
@@ -285,9 +286,10 @@ void main() {
 
     final market = await CryptoMarketRepository(api).load(segment: 'SPOT');
 
-    expect(market.bubbleAssets, hasLength(20));
+    expect(market.bubbleAssets, hasLength(50));
     expect(market.bubbleAssets.first.symbol, 'COIN00USDT');
-    expect(market.bubbleAssets.last.symbol, 'COIN19USDT');
+    expect(market.bubbleAssets.last.symbol, 'COIN49USDT');
+    expect(api.lastBubbleRequestPath, contains('per_page=50'));
   });
 
   test('bubble repository requests and ranks live losers', () async {

@@ -27,6 +27,8 @@ enum CryptoBubbleMode {
 class CryptoMarketRepository {
   CryptoMarketRepository(this._apiClient);
 
+  static const int bubbleAssetLimit = 50;
+
   final TradeXApiClient _apiClient;
   final Future<SharedPreferences> _cache = SharedPreferences.getInstance();
 
@@ -46,7 +48,8 @@ class CryptoMarketRepository {
     final secondarySegment = primarySegment == 'SPOT' ? 'FUTURES' : 'SPOT';
     final requests = await Future.wait([
       _safeGet(
-        '/api/v1/screener/bubbles?limit=100&page=1&per_page=20'
+        '/api/v1/screener/bubbles?limit=100&page=1'
+        '&per_page=$bubbleAssetLimit'
         '&segment=$segment&bubble_mode=GAINERS',
       ),
       _safeGet(
@@ -278,7 +281,7 @@ class CryptoMarketRepository {
             ? changeOrder
             : right.quoteVolume.compareTo(left.quoteVolume);
       });
-    return ranked.take(20).toList(growable: false);
+    return ranked.take(bubbleAssetLimit).toList(growable: false);
   }
 
   Future<Map<String, dynamic>> _safeGet(String path) async {
