@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../data/binance_live_ticker_service.dart';
 import '../data/crypto_market_repository.dart';
 import 'crypto_bubble_field.dart';
 import 'crypto_market_cubit.dart';
@@ -16,11 +17,15 @@ class CryptoBubbleMapScreen extends StatefulWidget {
     required this.assets,
     required this.repository,
     this.segment = 'SPOT',
+    this.liveTickerService,
+    this.enableDirectStream = true,
   });
 
   final List<CryptoAsset> assets;
   final CryptoMarketRepository repository;
   final String segment;
+  final BinanceLiveTickerService? liveTickerService;
+  final bool enableDirectStream;
 
   @override
   State<CryptoBubbleMapScreen> createState() => _CryptoBubbleMapScreenState();
@@ -40,8 +45,12 @@ class _CryptoBubbleMapScreenState extends State<CryptoBubbleMapScreen>
       widget.repository,
       segment: widget.segment,
       initialGainers: widget.assets,
+      liveTickerService: widget.liveTickerService,
     );
     _cubit.initialize();
+    if (widget.enableDirectStream) {
+      unawaited(_cubit.setLivePricesEnabled(true));
+    }
     _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted && _appIsActive) _cubit.refresh();
     });
@@ -50,6 +59,9 @@ class _CryptoBubbleMapScreenState extends State<CryptoBubbleMapScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _appIsActive = state == AppLifecycleState.resumed;
+    if (widget.enableDirectStream) {
+      unawaited(_cubit.setLivePricesEnabled(_appIsActive));
+    }
   }
 
   @override

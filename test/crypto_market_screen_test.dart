@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,6 +8,7 @@ import 'package:tradex_mobile/core/auth/secure_session_store.dart';
 import 'package:tradex_mobile/core/device/device_identity.dart';
 import 'package:tradex_mobile/core/network/tradex_api_client.dart';
 import 'package:tradex_mobile/core/theme/tradex_theme.dart';
+import 'package:tradex_mobile/features/market/data/binance_live_ticker_service.dart';
 import 'package:tradex_mobile/features/market/data/crypto_market_repository.dart';
 import 'package:tradex_mobile/features/market/presentation/crypto_market_screen.dart';
 import 'package:tradex_mobile/features/market/presentation/crypto_market_cubit.dart';
@@ -23,7 +27,10 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: TradeXTheme.dark,
-        home: CryptoMarketScreen(apiClient: api),
+        home: CryptoMarketScreen(
+          apiClient: api,
+          enableDirectBubbleStream: false,
+        ),
       ),
     );
     await tester.pump();
@@ -354,6 +361,49 @@ void main() {
     expect(tradingViewTicker('BTCUSDT', 'FUTURES'), 'BINANCE:BTCUSDT.P');
   });
 
+  test('Binance mini ticker parser returns live bubble values', () {
+    final updates = parseBinanceMiniTickerPayload(
+      jsonEncode([
+        {'s': 'BTCUSDT', 'c': '105', 'o': '100', 'q': '1250000'},
+        {'s': 'ETHBTC', 'c': '0.04', 'o': '0.03', 'q': '100'},
+      ]),
+    );
+
+    expect(updates.keys, ['BTCUSDT']);
+    expect(updates['BTCUSDT']?.price, 105);
+    expect(updates['BTCUSDT']?.changePercent, 5);
+    expect(updates['BTCUSDT']?.quoteVolume, 1250000);
+  });
+
+  test('bubble map applies Binance ticks over the Laravel snapshot', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final service = _FakeBinanceLiveTickerService();
+    final cubit = CryptoBubbleMapCubit(
+      CryptoMarketRepository(_CryptoApiClient(store, DeviceIdentity(store))),
+      segment: 'SPOT',
+      initialGainers: [CryptoAsset.fromJson(_CryptoApiClient.asset())],
+      liveTickerService: service,
+    );
+
+    await cubit.setLivePricesEnabled(true);
+    service.add(
+      const BinanceLiveTicker(
+        symbol: 'BTCUSDT',
+        price: 71234.5,
+        changePercent: 4.25,
+        quoteVolume: 9900000,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(cubit.state.assets.first.price, 71234.5);
+    expect(cubit.state.assets.first.changePercent, 4.25);
+    expect(cubit.state.assets.first.quoteVolume, 9900000);
+    await cubit.close();
+    await service.close();
+  });
+
   test('catalog metadata is enriched with live ticker price and change', () {
     const catalog = CryptoAsset(
       symbol: 'BTCUSDT',
@@ -415,6 +465,21 @@ void main() {
     expect(cubit.state.snapshot?.assets.last.symbol, 'EXTRAUSDT');
     await cubit.close();
   });
+}
+
+class _FakeBinanceLiveTickerService extends BinanceLiveTickerService {
+  final _controller =
+      StreamController<Map<String, BinanceLiveTicker>>.broadcast();
+
+  @override
+  Stream<Map<String, BinanceLiveTicker>> watch(String segment) =>
+      _controller.stream;
+
+  void add(BinanceLiveTicker ticker) {
+    _controller.add({ticker.symbol: ticker});
+  }
+
+  Future<void> close() => _controller.close();
 }
 
 class _CryptoApiClient extends TradeXApiClient {

@@ -503,6 +503,22 @@ class CryptoAsset {
       trend: live.trend ?? trend,
     );
   }
+
+  CryptoAsset withLiveTicker({
+    required double price,
+    required double changePercent,
+    required double quoteVolume,
+  }) => CryptoAsset(
+    symbol: symbol,
+    name: name,
+    baseCurrency: baseCurrency,
+    logoUrl: logoUrl,
+    price: price > 0 ? price : this.price,
+    changePercent: changePercent,
+    quoteVolume: quoteVolume > 0 ? quoteVolume : this.quoteVolume,
+    segment: segment,
+    trend: trend,
+  );
 }
 
 double _number(dynamic value) => value is num
