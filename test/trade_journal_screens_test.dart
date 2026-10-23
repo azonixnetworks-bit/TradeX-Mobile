@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:tradex_mobile/features/journal/data/trade_journal_models.dart';
 import 'package:tradex_mobile/features/journal/data/trade_journal_repository.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_home_screen.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_insights_screens.dart';
+import 'package:tradex_mobile/features/journal/presentation/trade_journal_strategy_section.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_trade_screens.dart';
 
 void main() {
@@ -199,12 +201,250 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('premium strategy controls keep independent responsive state', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final api = _JournalApiClient(store, DeviceIdentity(store));
+    final repository = TradeJournalRepository(api, 'UTC');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalPlanScreen(repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final scrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('trade-plan-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+
+    Future<void> reveal(Key key) async {
+      await tester.scrollUntilVisible(
+        find.byKey(key),
+        260,
+        scrollable: scrollable,
+      );
+      await tester.pump();
+    }
+
+    const mnUp = ValueKey('strategy-trend-MN-up');
+    const mnDown = ValueKey('strategy-trend-MN-down');
+    const w1Down = ValueKey('strategy-trend-W1-down');
+    await reveal(mnUp);
+    await tester.tap(find.byKey(mnUp));
+    await tester.tap(find.byKey(w1Down));
+    await tester.tap(find.byKey(mnDown));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TrendOptionTile>(find.byKey(mnUp)).selected, isFalse);
+    expect(tester.widget<TrendOptionTile>(find.byKey(mnDown)).selected, isTrue);
+    expect(tester.widget<TrendOptionTile>(find.byKey(w1Down)).selected, isTrue);
+
+    const zoneSupply = ValueKey('strategy-zone-M30-supply_demand');
+    const zoneOrderFlow = ValueKey('strategy-zone-M30-orderflow');
+    await reveal(zoneSupply);
+    await tester.tap(find.byKey(zoneSupply));
+    await tester.tap(find.byKey(zoneOrderFlow));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<PremiumCheckboxTile>(find.byKey(zoneSupply)).selected,
+      isTrue,
+    );
+    expect(
+      tester.widget<PremiumCheckboxTile>(find.byKey(zoneOrderFlow)).selected,
+      isTrue,
+    );
+
+    const confirmationMss = ValueKey('strategy-confirmation-M5-mss');
+    const confirmationSms = ValueKey('strategy-confirmation-M5-sms');
+    await reveal(confirmationMss);
+    await tester.tap(find.byKey(confirmationMss));
+    await tester.tap(find.byKey(confirmationSms));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<PremiumCheckboxTile>(find.byKey(confirmationMss)).selected,
+      isTrue,
+    );
+    expect(
+      tester.widget<PremiumCheckboxTile>(find.byKey(confirmationSms)).selected,
+      isTrue,
+    );
+
+    const directionPro = ValueKey('strategy-direction-pro');
+    const directionCounter = ValueKey('strategy-direction-counter');
+    await reveal(directionPro);
+    await tester.tap(find.byKey(directionPro));
+    await tester.tap(find.byKey(directionCounter));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<DirectionSelector>(find.byType(DirectionSelector)).value,
+      'COUNTER',
+    );
+
+    const entrySell = ValueKey('strategy-entry-sell');
+    await reveal(entrySell);
+    await tester.tap(find.byKey(entrySell));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<EntryTypeSelector>(find.byType(EntryTypeSelector)).value,
+      'sell',
+    );
+
+    const setupField = ValueKey('strategy-setup-field');
+    await reveal(setupField);
+    final field = tester.widget<TextFormField>(find.byKey(setupField));
+    await tester.enterText(find.byKey(setupField), 'x' * 801);
+    expect(field.controller?.text.length, 800);
+    await tester.enterText(
+      find.byKey(setupField),
+      'Liquidity sweep and retest',
+    );
+    tester
+        .widget<EntryTypeSelector>(find.byType(EntryTypeSelector))
+        .onChanged('buy');
+    await tester.pump();
+    expect(field.controller?.text, 'Liquidity sweep and retest');
+    expect(find.text('Reversal'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('strategy selections use the existing trade save workflow', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final api = _JournalApiClient(store, DeviceIdentity(store));
+    final repository = TradeJournalRepository(api, 'UTC');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalPlanScreen(repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final scrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('trade-plan-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+
+    await tester.enterText(
+      find.byKey(const ValueKey('trade-symbol-field')),
+      'BTCUSDT',
+    );
+    final strategySection = find.byKey(
+      const ValueKey('strategy-reason-section'),
+    );
+    await tester.scrollUntilVisible(
+      strategySection,
+      320,
+      scrollable: scrollable,
+    );
+    final strategy = tester.widget<StrategyReasonSection>(
+      find.byType(StrategyReasonSection),
+    );
+    strategy.onHtfChanged('MN', 'UP');
+    strategy.onLtfChanged('H2', 'DOWN');
+    strategy.onZoneChanged('M30', 'Supply / Demand');
+    strategy.onConfirmationChanged('M5', 'MSS');
+    strategy.onDirectionChanged('PRO');
+    strategy.onEntryTypeChanged('sell');
+    await tester.pump();
+    final setup = 'Liquidity sweep confirmation ' * 10;
+    final setupField = find.byKey(const ValueKey('strategy-setup-field'));
+    tester.widget<TextFormField>(setupField).controller!.text = setup;
+    await tester.pump();
+
+    final save = find.byKey(const ValueKey('save-trade-button'));
+    for (var attempt = 0; attempt < 12 && save.evaluate().isEmpty; attempt++) {
+      final position = tester.state<ScrollableState>(scrollable).position;
+      position.jumpTo(position.maxScrollExtent);
+      await tester.pumpAndSettle();
+    }
+    expect(save, findsOneWidget);
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+
+    expect(api.lastPostedPath, '/api/v1/trade-journal');
+    final body = api.lastPostedBody!;
+    expect(body['direction'], 'sell');
+    expect(body['setup_strategy'].toString().length, 160);
+    expect(body['timeframes'], ['M30', 'M5']);
+    final encoded = body['entry_reason'].toString();
+    expect(encoded, startsWith('TRADEX_STRATEGY_REASON_V1:'));
+    final decodedStrategy = jsonDecode(encoded.split(':').skip(1).join(':'));
+    expect(decodedStrategy['htf']['MN'], 'UP');
+    expect(decodedStrategy['ltf']['H2'], 'DOWN');
+    expect(decodedStrategy['zone_finding']['M30'], contains('Supply / Demand'));
+    expect(decodedStrategy['confirmation_finding']['M5'], contains('MSS'));
+    expect(decodedStrategy['direction'], 'PRO');
+    expect(decodedStrategy['entry_type'], 'sell');
+    expect(decodedStrategy['strategy_setup'], setup.trim());
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('premium strategy layout does not overflow on narrow phones', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final repository = TradeJournalRepository(
+      _JournalApiClient(store, DeviceIdentity(store)),
+      'UTC',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalPlanScreen(repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final scrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('trade-plan-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('strategy-reason-section')),
+      280,
+      scrollable: scrollable,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(StrategyReasonSection), findsOneWidget);
+    expect(find.byType(ConfirmationFindingCard), findsNWidgets(5));
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class _JournalApiClient extends TradeXApiClient {
   _JournalApiClient(super.sessionStore, super.deviceIdentity);
 
   final paths = <String>[];
+  String? lastPostedPath;
+  Map<String, dynamic>? lastPostedBody;
 
   @override
   Future<Map<String, dynamic>> getJson(String path) async {
@@ -217,7 +457,7 @@ class _JournalApiClient extends TradeXApiClient {
           'directions': ['buy', 'sell'],
           'statuses': ['planned', 'open', 'closed', 'cancelled'],
           'results': ['win', 'loss', 'breakeven', 'partial'],
-          'timeframes': ['M1', 'M5', 'M15', 'H1', 'H4', 'D1'],
+          'timeframes': ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'W1'],
           'emotions_before': ['calm', 'confident', 'fear'],
           'emotions_after': ['calm', 'satisfied', 'disappointed'],
           'followed_plan_after': ['yes', 'partially', 'no'],
@@ -284,6 +524,17 @@ class _JournalApiClient extends TradeXApiClient {
 
   @override
   Future<Uint8List> getBytes(String path) async => Uint8List(0);
+
+  @override
+  Future<Map<String, dynamic>> postJson(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    paths.add(path);
+    lastPostedPath = path;
+    lastPostedBody = Map<String, dynamic>.from(body);
+    return {'data': entry()};
+  }
 
   static Map<String, dynamic> summary() => {
     'total_executed': 12,

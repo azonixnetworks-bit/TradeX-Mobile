@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -8,7 +9,10 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../data/trade_journal_models.dart';
 import '../data/trade_journal_repository.dart';
+import 'trade_journal_strategy_section.dart';
 import 'trade_journal_ui.dart';
+
+const _strategyReasonPrefix = 'TRADEX_STRATEGY_REASON_V1:';
 
 class TradeJournalPlanScreen extends StatefulWidget {
   const TradeJournalPlanScreen({
@@ -32,6 +36,12 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   var _direction = 'buy';
   var _status = 'planned';
   var _session = 'asia';
+  Map<String, String> _htfTrends = const {};
+  Map<String, String> _ltfTrends = const {};
+  Map<String, Set<String>> _zoneFinding = const {};
+  Map<String, Set<String>> _confirmationFinding = const {};
+  String? _strategyDirection;
+  String? _legacyEntryReason;
   String? _stockRegion;
   String? _emotion;
   final _timeframes = <String>{};
@@ -103,6 +113,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       _set('account_label', entry.accountLabel);
       _set('setup_strategy', entry.setupStrategy);
       _set('entry_reason', entry.entryReason);
+      _restoreStrategyReason(entry.entryReason);
       _set('notes_before', entry.notesBefore);
       for (final key in const [
         'planned_entry',
@@ -166,6 +177,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   Widget _buildForm(TradeJournalMeta meta) => Form(
     key: _formKey,
     child: ListView(
+      key: const ValueKey('trade-plan-scroll'),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
       children: [
         const JournalSectionTitle(
@@ -304,43 +316,31 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           ),
         ),
         const SizedBox(height: 18),
-        const JournalSectionTitle(title: 'Strategy & Reason'),
-        const SizedBox(height: 10),
-        JournalPanel(
-          child: Column(
-            children: [
-              _textField('setup_strategy', 'Strategy / Setup'),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Wrap(
-                  spacing: 7,
-                  runSpacing: 6,
-                  children: [
-                    for (final timeframe in meta.timeframes)
-                      FilterChip(
-                        label: Text(timeframe),
-                        selected: _timeframes.contains(timeframe),
-                        onSelected: (selected) => setState(() {
-                          selected
-                              ? _timeframes.add(timeframe)
-                              : _timeframes.remove(timeframe);
-                        }),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              _textField(
-                'entry_reason',
-                'Entry Reason',
-                required: true,
-                lines: 3,
-              ),
-              const SizedBox(height: 12),
-              _textField('notes_before', 'Notes', lines: 3),
-            ],
+        StrategyReasonSection(
+          htfTrends: _htfTrends,
+          ltfTrends: _ltfTrends,
+          zoneFinding: _zoneFinding,
+          confirmationFinding: _confirmationFinding,
+          direction: _strategyDirection,
+          entryType: _direction,
+          strategyController: _controllers['setup_strategy']!,
+          onHtfChanged: (timeframe, trend) =>
+              _setTrend(htf: true, timeframe: timeframe, trend: trend),
+          onLtfChanged: (timeframe, trend) =>
+              _setTrend(htf: false, timeframe: timeframe, trend: trend),
+          onZoneChanged: (timeframe, option) => _toggleFinding(
+            confirmation: false,
+            timeframe: timeframe,
+            option: option,
           ),
+          onConfirmationChanged: (timeframe, option) => _toggleFinding(
+            confirmation: true,
+            timeframe: timeframe,
+            option: option,
+          ),
+          onDirectionChanged: (value) =>
+              setState(() => _strategyDirection = value),
+          onEntryTypeChanged: (value) => setState(() => _direction = value),
         ),
         const SizedBox(height: 18),
         const JournalSectionTitle(title: 'Price & Risk Plan'),
@@ -464,9 +464,9 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           ),
         ),
         const SizedBox(height: 18),
-        JournalPrimaryButton(
-          label: _editing ? 'Update Trade Plan' : 'Save Trade Plan',
-          onPressed: _save,
+        SaveTradeButton(
+          label: _editing ? 'Update Trade Plan' : 'Save Trade',
+          onPressed: () => _save(meta),
           busy: _saving,
         ),
       ],
@@ -750,7 +750,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
     if (result != null) setState(() => _tradeTime = result);
   }
 
-  Future<void> _save() async {
+  Future<void> _save(TradeJournalMeta meta) async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
@@ -762,9 +762,9 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
         'session_label': _selectedSessionLabel,
         'broker': _nullText('broker'),
         'account_label': _nullText('account_label'),
-        'setup_strategy': _nullText('setup_strategy'),
-        'timeframes': _timeframes.toList(growable: false),
-        'entry_reason': _controller('entry_reason'),
+        'setup_strategy': _backendSetupStrategy,
+        'timeframes': _persistedTimeframes(meta),
+        'entry_reason': _strategyReasonPayload,
         'notes_before': _nullText('notes_before'),
         'emotion_before': _emotion?.isEmpty == true ? null : _emotion,
         'confidence_before': _int('confidence_before'),
@@ -809,6 +809,139 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   }
 
   String _controller(String name) => _controllers[name]!.text.trim();
+
+  void _setTrend({
+    required bool htf,
+    required String timeframe,
+    required String? trend,
+  }) {
+    setState(() {
+      final updated = Map<String, String>.of(htf ? _htfTrends : _ltfTrends);
+      if (trend == null) {
+        updated.remove(timeframe);
+      } else {
+        updated[timeframe] = trend;
+      }
+      if (htf) {
+        _htfTrends = Map.unmodifiable(updated);
+      } else {
+        _ltfTrends = Map.unmodifiable(updated);
+      }
+    });
+  }
+
+  void _toggleFinding({
+    required bool confirmation,
+    required String timeframe,
+    required String option,
+  }) {
+    setState(() {
+      final source = confirmation ? _confirmationFinding : _zoneFinding;
+      final updated = <String, Set<String>>{
+        for (final entry in source.entries)
+          entry.key: Set.unmodifiable(entry.value),
+      };
+      final selected = Set<String>.of(updated[timeframe] ?? const {});
+      selected.contains(option)
+          ? selected.remove(option)
+          : selected.add(option);
+      if (selected.isEmpty) {
+        updated.remove(timeframe);
+      } else {
+        updated[timeframe] = Set.unmodifiable(selected);
+      }
+      if (confirmation) {
+        _confirmationFinding = Map.unmodifiable(updated);
+      } else {
+        _zoneFinding = Map.unmodifiable(updated);
+      }
+    });
+  }
+
+  void _restoreStrategyReason(String value) {
+    if (!value.startsWith(_strategyReasonPrefix)) {
+      _legacyEntryReason = value.trim().isEmpty ? null : value;
+      return;
+    }
+    try {
+      final decoded = jsonDecode(value.substring(_strategyReasonPrefix.length));
+      if (decoded is! Map<String, dynamic>) return;
+      _htfTrends = _stringMap(decoded['htf']);
+      _ltfTrends = _stringMap(decoded['ltf']);
+      _zoneFinding = _selectionMap(decoded['zone_finding']);
+      _confirmationFinding = _selectionMap(decoded['confirmation_finding']);
+      final strategyDirection = decoded['direction']?.toString();
+      if (strategyDirection == 'PRO' || strategyDirection == 'COUNTER') {
+        _strategyDirection = strategyDirection;
+      }
+      final entryType = decoded['entry_type']?.toString();
+      if (entryType == 'buy' || entryType == 'sell') _direction = entryType!;
+      final setup = decoded['strategy_setup']?.toString();
+      if (setup?.isNotEmpty == true) _set('setup_strategy', setup);
+      final legacy = decoded['legacy_entry_reason']?.toString();
+      _legacyEntryReason = legacy?.trim().isEmpty == false ? legacy : null;
+    } catch (_) {
+      _legacyEntryReason = value;
+    }
+  }
+
+  Map<String, String> _stringMap(Object? value) {
+    if (value is! Map) return const {};
+    return Map.unmodifiable({
+      for (final entry in value.entries)
+        if (entry.key is String && entry.value is String)
+          entry.key as String: entry.value as String,
+    });
+  }
+
+  Map<String, Set<String>> _selectionMap(Object? value) {
+    if (value is! Map) return const {};
+    return Map.unmodifiable({
+      for (final entry in value.entries)
+        if (entry.key is String && entry.value is List)
+          entry.key as String: Set.unmodifiable(
+            (entry.value as List).map((item) => item.toString()),
+          ),
+    });
+  }
+
+  List<String> _persistedTimeframes(TradeJournalMeta meta) {
+    final selected = <String>{..._timeframes};
+    selected.addAll(_htfTrends.keys);
+    selected.addAll(_ltfTrends.keys);
+    selected.addAll(
+      _zoneFinding.entries
+          .where((entry) => entry.value.isNotEmpty)
+          .map((entry) => entry.key),
+    );
+    selected.addAll(
+      _confirmationFinding.entries
+          .where((entry) => entry.value.isNotEmpty)
+          .map((entry) => entry.key),
+    );
+    return selected
+        .where(meta.timeframes.contains)
+        .take(8)
+        .toList(growable: false);
+  }
+
+  String? get _backendSetupStrategy {
+    final value = _controller('setup_strategy');
+    if (value.isEmpty) return null;
+    return value.length <= 160 ? value : value.substring(0, 160);
+  }
+
+  String get _strategyReasonPayload =>
+      '$_strategyReasonPrefix${jsonEncode({
+        'htf': _htfTrends,
+        'ltf': _ltfTrends,
+        'zone_finding': {for (final entry in _zoneFinding.entries) entry.key: entry.value.toList(growable: false)},
+        'confirmation_finding': {for (final entry in _confirmationFinding.entries) entry.key: entry.value.toList(growable: false)},
+        'direction': _strategyDirection,
+        'entry_type': _direction,
+        'strategy_setup': _controller('setup_strategy'),
+        if (_legacyEntryReason != null) 'legacy_entry_reason': _legacyEntryReason,
+      })}';
 
   String _sessionChoice(String label) {
     final normalized = label.trim().toLowerCase().replaceAll(' ', '_');
