@@ -109,6 +109,70 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('plan trade suggests market symbols and aligns trade choices', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final api = _JournalApiClient(store, DeviceIdentity(store));
+    final repository = TradeJournalRepository(api, 'UTC');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalPlanScreen(repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final direction = tester.getTopLeft(
+      find.byKey(const ValueKey('trade-direction-selector')),
+    );
+    final status = tester.getTopLeft(
+      find.byKey(const ValueKey('trade-status-selector')),
+    );
+    expect(direction.dy, status.dy);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('trade-symbol-field')),
+      'btc',
+    );
+    await tester.pump(const Duration(milliseconds: 301));
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('trade-symbol-suggestions')),
+      findsOneWidget,
+    );
+    expect(find.text('BTCUSDT'), findsOneWidget);
+    expect(find.text('Bitcoin / Tether'), findsOneWidget);
+    expect(
+      api.paths.any(
+        (path) =>
+            path.startsWith('/api/v1/screener/symbols?') &&
+            path.contains('market=CRYPTO') &&
+            path.contains('search=BTC'),
+      ),
+      isTrue,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('trade-symbol-BTCUSDT')));
+    await tester.pump();
+    final symbolField = tester.widget<TextFormField>(
+      find.byKey(const ValueKey('trade-symbol-field')),
+    );
+    expect(symbolField.controller?.text, 'BTCUSDT');
+    expect(
+      find.byKey(const ValueKey('trade-symbol-suggestions')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class _JournalApiClient extends TradeXApiClient {
@@ -132,6 +196,21 @@ class _JournalApiClient extends TradeXApiClient {
           'emotions_after': ['calm', 'satisfied', 'disappointed'],
           'followed_plan_after': ['yes', 'partially', 'no'],
           'mistake_tags': ['early_entry', 'fomo', 'overtrading'],
+        },
+      };
+    }
+    if (path.startsWith('/api/v1/screener/symbols?')) {
+      return {
+        'data': {
+          'market': 'CRYPTO',
+          'symbols': [
+            {
+              'symbol': 'BTCUSDT',
+              'name': 'Bitcoin / Tether',
+              'logo_url': 'https://example.test/btc.png',
+            },
+            {'symbol': 'BTTCUSDT', 'name': 'BitTorrent / Tether'},
+          ],
         },
       };
     }

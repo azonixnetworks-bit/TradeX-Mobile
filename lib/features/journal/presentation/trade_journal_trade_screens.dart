@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -44,6 +45,12 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   };
   DateTime _tradeDate = DateTime.now();
   TimeOfDay _tradeTime = TimeOfDay.now();
+  Timer? _symbolDebounce;
+  List<TradeJournalSymbolSuggestion> _symbolSuggestions = const [];
+  var _symbolLoading = false;
+  var _symbolLookupFailed = false;
+  var _selectingSymbol = false;
+  var _symbolRequestId = 0;
   var _saving = false;
 
   static const _fields = [
@@ -117,6 +124,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       _set('confidence_before', entry.psychologyBefore['confidence']);
       _set('mental_state_note', entry.psychologyBefore['note']);
     }
+    _controllers['symbol']!.addListener(_onSymbolChanged);
   }
 
   void _set(String name, Object? value) {
@@ -125,6 +133,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
 
   @override
   void dispose() {
+    _symbolDebounce?.cancel();
     for (final controller in _controllers.values) {
       controller.dispose();
     }
@@ -175,6 +184,14 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
                 onChanged: (value) => setState(() {
                   _market = value;
                   if (value != 'stocks') _stockRegion = null;
+                  _symbolDebounce?.cancel();
+                  _symbolRequestId++;
+                  _selectingSymbol = true;
+                  _controllers['symbol']!.clear();
+                  _selectingSymbol = false;
+                  _symbolSuggestions = const [];
+                  _symbolLoading = false;
+                  _symbolLookupFailed = false;
                 }),
               ),
               if (_market == 'stocks') ...[
@@ -187,39 +204,42 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
                 ),
               ],
               const SizedBox(height: 12),
-              _textField('symbol', 'Symbol', required: true),
+              _symbolField(),
               const SizedBox(height: 12),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(
-                    value: 'buy',
-                    label: Text('BUY'),
-                    icon: Icon(Icons.trending_up_rounded),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _CompactChoiceGroup(
+                      key: const ValueKey('trade-direction-selector'),
+                      value: _direction,
+                      choices: const [
+                        _CompactChoice('buy', 'BUY', journalGreen),
+                        _CompactChoice('sell', 'SELL', journalRed),
+                      ],
+                      onChanged: (value) => setState(() => _direction = value),
+                    ),
                   ),
-                  ButtonSegment(
-                    value: 'sell',
-                    label: Text('SELL'),
-                    icon: Icon(Icons.trending_down_rounded),
-                  ),
-                ],
-                selected: {_direction},
-                onSelectionChanged: (value) =>
-                    setState(() => _direction = value.first),
-                showSelectedIcon: false,
-              ),
-              if (!_editing) ...[
-                const SizedBox(height: 12),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'planned', label: Text('PLAN')),
-                    ButtonSegment(value: 'open', label: Text('OPEN NOW')),
+                  if (!_editing) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _CompactChoiceGroup(
+                        key: const ValueKey('trade-status-selector'),
+                        value: _status,
+                        choices: const [
+                          _CompactChoice(
+                            'planned',
+                            'PLAN',
+                            TradeXColors.goldBright,
+                          ),
+                          _CompactChoice('open', 'OPEN NOW', journalBlue),
+                        ],
+                        onChanged: (value) => setState(() => _status = value),
+                      ),
+                    ),
                   ],
-                  selected: {_status},
-                  onSelectionChanged: (value) =>
-                      setState(() => _status = value.first),
-                  showSelectedIcon: false,
-                ),
-              ],
+                ],
+              ),
             ],
           ),
         ),
@@ -433,6 +453,215 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
     ),
   );
 
+  void _onSymbolChanged() {
+    if (_selectingSymbol) return;
+    _symbolDebounce?.cancel();
+    final query = _controllers['symbol']!.text.trim();
+    final requestId = ++_symbolRequestId;
+    if (query.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _symbolSuggestions = const [];
+          _symbolLoading = false;
+          _symbolLookupFailed = false;
+        });
+      }
+      return;
+    }
+    setState(() {
+      _symbolSuggestions = const [];
+      _symbolLoading = true;
+      _symbolLookupFailed = false;
+    });
+    _symbolDebounce = Timer(const Duration(milliseconds: 300), () async {
+      try {
+        final suggestions = await widget.repository.symbolSuggestions(
+          market: _market,
+          search: query,
+          stockRegion: _stockRegion,
+        );
+        if (!mounted || requestId != _symbolRequestId) return;
+        setState(() {
+          _symbolSuggestions = suggestions.take(6).toList(growable: false);
+          _symbolLoading = false;
+        });
+      } catch (_) {
+        if (!mounted || requestId != _symbolRequestId) return;
+        setState(() {
+          _symbolSuggestions = const [];
+          _symbolLoading = false;
+          _symbolLookupFailed = true;
+        });
+      }
+    });
+  }
+
+  Widget _symbolField() {
+    final query = _controllers['symbol']!.text.trim();
+    final showEmpty =
+        query.isNotEmpty &&
+        !_symbolLoading &&
+        !_symbolLookupFailed &&
+        _symbolSuggestions.isEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          key: const ValueKey('trade-symbol-field'),
+          controller: _controllers['symbol'],
+          textCapitalization: TextCapitalization.characters,
+          autocorrect: false,
+          enableSuggestions: false,
+          decoration: InputDecoration(
+            labelText: 'Symbol',
+            hintText: _symbolHint,
+            prefixIcon: const Icon(Icons.search_rounded),
+            suffixIcon: _symbolLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(14),
+                    child: SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : null,
+          ),
+          validator: (value) =>
+              value?.trim().isEmpty == true ? 'Symbol is required.' : null,
+        ),
+        if (_symbolSuggestions.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Container(
+            key: const ValueKey('trade-symbol-suggestions'),
+            decoration: BoxDecoration(
+              color: journalPanelRaised,
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: Colors.white.withValues(alpha: .1)),
+            ),
+            child: Column(
+              children: [
+                for (
+                  var index = 0;
+                  index < _symbolSuggestions.length;
+                  index++
+                ) ...[
+                  _symbolSuggestionTile(_symbolSuggestions[index]),
+                  if (index < _symbolSuggestions.length - 1)
+                    Divider(
+                      height: 1,
+                      color: Colors.white.withValues(alpha: .07),
+                    ),
+                ],
+              ],
+            ),
+          ),
+        ] else if (_symbolLookupFailed || showEmpty) ...[
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              _symbolLookupFailed
+                  ? 'Suggestions unavailable. You can enter the symbol manually.'
+                  : 'No matching symbol found. You can still enter it manually.',
+              style: const TextStyle(
+                color: TradeXColors.secondaryText,
+                fontSize: 11,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  String get _symbolHint => switch (_market) {
+    'forex' => 'Search EURUSD, GBPUSD…',
+    'crypto' => 'Search BTCUSDT, ETHUSDT…',
+    'deriv' => 'Search Volatility, Boom, Crash…',
+    'stocks' => 'Search stock name or symbol…',
+    _ => 'Search symbol…',
+  };
+
+  Widget _symbolSuggestionTile(TradeJournalSymbolSuggestion suggestion) =>
+      InkWell(
+        key: ValueKey('trade-symbol-${suggestion.symbol}'),
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          _symbolDebounce?.cancel();
+          _symbolRequestId++;
+          _selectingSymbol = true;
+          _controllers['symbol']!.value = TextEditingValue(
+            text: suggestion.symbol,
+            selection: TextSelection.collapsed(
+              offset: suggestion.symbol.length,
+            ),
+          );
+          _selectingSymbol = false;
+          FocusScope.of(context).unfocus();
+          setState(() {
+            _symbolSuggestions = const [];
+            _symbolLoading = false;
+            _symbolLookupFailed = false;
+          });
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: TradeXColors.goldBright.withValues(alpha: .12),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: TradeXColors.goldBright.withValues(alpha: .32),
+                  ),
+                ),
+                child: Text(
+                  suggestion.symbol.length > 3
+                      ? suggestion.symbol.substring(0, 3)
+                      : suggestion.symbol,
+                  style: const TextStyle(
+                    color: TradeXColors.goldBright,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      suggestion.symbol,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    if (suggestion.name.isNotEmpty)
+                      Text(
+                        suggestion.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: TradeXColors.secondaryText,
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.north_west_rounded,
+                color: TradeXColors.secondaryText,
+                size: 17,
+              ),
+            ],
+          ),
+        ),
+      );
+
   Widget _textField(
     String name,
     String label, {
@@ -572,6 +801,80 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           .showSnackBar(SnackBar(content: Text(value)));
     }
   }
+}
+
+class _CompactChoice {
+  const _CompactChoice(this.value, this.label, this.color);
+
+  final String value;
+  final String label;
+  final Color color;
+}
+
+class _CompactChoiceGroup extends StatelessWidget {
+  const _CompactChoiceGroup({
+    super.key,
+    required this.value,
+    required this.choices,
+    required this.onChanged,
+  });
+
+  final String value;
+  final List<_CompactChoice> choices;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 42,
+    padding: const EdgeInsets.all(3),
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: .2),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.white.withValues(alpha: .09)),
+    ),
+    child: Row(
+      children: [
+        for (final choice in choices)
+          Expanded(
+            child: Semantics(
+              selected: value == choice.value,
+              button: true,
+              child: InkWell(
+                onTap: () => onChanged(choice.value),
+                borderRadius: BorderRadius.circular(9),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: value == choice.value
+                        ? choice.color.withValues(alpha: .2)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(
+                      color: value == choice.value
+                          ? choice.color.withValues(alpha: .72)
+                          : Colors.transparent,
+                    ),
+                  ),
+                  child: Text(
+                    choice.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: value == choice.value
+                          ? choice.color
+                          : TradeXColors.secondaryText,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 class TradeJournalOpenScreen extends StatefulWidget {

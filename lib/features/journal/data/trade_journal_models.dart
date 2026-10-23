@@ -161,6 +161,26 @@ class TradeJournalPage {
 }
 
 @immutable
+class TradeJournalSymbolSuggestion {
+  const TradeJournalSymbolSuggestion({
+    required this.symbol,
+    required this.name,
+    this.logoUrl,
+  });
+
+  factory TradeJournalSymbolSuggestion.fromJson(Map<String, dynamic> json) =>
+      TradeJournalSymbolSuggestion(
+        symbol: _text(json['symbol']).toUpperCase(),
+        name: _text(json['name']),
+        logoUrl: _nullableText(json['logo_url']),
+      );
+
+  final String symbol;
+  final String name;
+  final String? logoUrl;
+}
+
+@immutable
 class TradeJournalMeta {
   const TradeJournalMeta({
     required this.markets,

@@ -35,6 +35,33 @@ class TradeJournalRepository {
     return TradeJournalMeta.fromJson(journalData(response));
   }
 
+  Future<List<TradeJournalSymbolSuggestion>> symbolSuggestions({
+    required String market,
+    required String search,
+    String? stockRegion,
+  }) async {
+    final query = search.trim();
+    if (query.isEmpty) return const [];
+    final parameters = <String, String>{
+      'market': market.trim().toUpperCase(),
+      'search': query.toUpperCase(),
+      'page': '1',
+      'per_page': '10',
+      if (market.toLowerCase() == 'stocks' &&
+          stockRegion?.trim().isNotEmpty == true)
+        'region': stockRegion!.trim().toUpperCase(),
+    };
+    final uri = Uri(
+      path: '/api/v1/screener/symbols',
+      queryParameters: parameters,
+    );
+    final data = journalData(await _apiClient.getJson(uri.toString()));
+    return journalMaps(data['symbols'])
+        .map(TradeJournalSymbolSuggestion.fromJson)
+        .where((item) => item.symbol.isNotEmpty)
+        .toList(growable: false);
+  }
+
   Future<TradeJournalPage> entries({
     Map<String, String> filters = const {},
     int page = 1,
