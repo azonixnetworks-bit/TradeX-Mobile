@@ -192,7 +192,11 @@ void main() {
     expect(find.text('Other'), findsOneWidget);
     await tester.tap(find.text('Other'));
     await tester.pumpAndSettle();
-    expect(find.text('Other Session'), findsOneWidget);
+    expect(find.text('Other Session (Optional)'), findsOneWidget);
+    final otherSessionField = tester.widget<TextFormField>(
+      find.widgetWithText(TextFormField, 'Other Session (Optional)'),
+    );
+    expect(otherSessionField.validator, isNull);
 
     final useCurrentTime = tester.widget<TextButton>(
       find.byKey(const ValueKey('trade-time-now')),

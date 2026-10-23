@@ -310,7 +310,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
               ),
               if (_session == 'other') ...[
                 const SizedBox(height: 12),
-                _textField('session_label', 'Other Session', required: true),
+                _textField('session_label', 'Other Session (Optional)'),
               ],
             ],
           ),
