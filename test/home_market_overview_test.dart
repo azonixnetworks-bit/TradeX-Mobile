@@ -10,6 +10,7 @@ import 'package:tradex_mobile/features/auth/data/auth_repository.dart';
 import 'package:tradex_mobile/features/home/data/learning_repository.dart';
 import 'package:tradex_mobile/features/home/data/trade_ideas_repository.dart';
 import 'package:tradex_mobile/features/home/presentation/home_dashboard_screen.dart';
+import 'package:tradex_mobile/features/journal/presentation/trade_journal_home_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +47,12 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 200));
 
+    expect(find.byKey(const ValueKey('home-services-grid')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('home-service-trade-journal')),
+      findsOneWidget,
+    );
+    expect(find.text('Trade Journal'), findsOneWidget);
     expect(find.byKey(const ValueKey('world-market-sessions')), findsOneWidget);
     expect(find.byKey(const ValueKey('market-24h-clock')), findsOneWidget);
     final marketClockSize = tester.getSize(
@@ -63,6 +70,11 @@ void main() {
       findsOneWidget,
     );
     await tester.drag(
+      find.byType(CustomScrollView).first,
+      const Offset(0, -260),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
       find.byKey(const ValueKey('market-session-scroll')),
       const Offset(-500, 0),
     );
@@ -73,9 +85,10 @@ void main() {
       find.byKey(const ValueKey('market-session-art-Sydney')),
       findsOneWidget,
     );
-    await tester.drag(
-      find.byType(CustomScrollView).first,
-      const Offset(0, -420),
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('economic-news-title')),
+      300,
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('market-news-section')), findsOneWidget);
@@ -92,6 +105,44 @@ void main() {
     expect(find.text('Actual'), findsWidgets);
     expect(find.text('5.25%'), findsWidgets);
     expect(find.text('5.50%'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('home trade journal service card opens the journal', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({
+      'tradex.dashboard.selected_tab': 0,
+    });
+    await AppPreferences.instance.load();
+    final store = SecureSessionStore();
+    final device = DeviceIdentity(store);
+    final api = _HomeMarketApiClient(store, device);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: HomeDashboardScreen(
+          onLogout: () async {},
+          onForgetDevice: () async {},
+          onLogoutAll: () async {},
+          apiClient: api,
+          tradeIdeasRepository: TradeIdeasRepository(api),
+          learningRepository: LearningRepository(api),
+          authRepository: AuthRepository(api, store, device),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(find.byKey(const ValueKey('home-service-trade-journal')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(TradeJournalHomeScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

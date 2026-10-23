@@ -146,10 +146,9 @@ void main() {
       ),
     );
 
-    await tester.drag(
-      find.byKey(const PageStorageKey('home-tab')),
-      const Offset(-220, 0),
-    );
+    // Start outside horizontally scrollable home carousels so this gesture
+    // represents the dashboard-level page swipe.
+    await tester.dragFrom(const Offset(350, 350), const Offset(-220, 0));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byKey(const PageStorageKey('learn-tab')), findsOneWidget);
     expect(find.byKey(const ValueKey('dashboard-nav-label-1')), findsOneWidget);
