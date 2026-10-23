@@ -61,9 +61,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
     expect(find.text('Live Gainers Map'), findsOneWidget);
-    expect(find.text('Gainers'), findsOneWidget);
-    expect(find.text('Losers'), findsOneWidget);
-    await tester.tap(find.text('Losers'));
+    expect(find.text('Gainers'), findsWidgets);
+    expect(find.text('Losers'), findsWidgets);
+    await tester.tap(find.text('Losers').last);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
     expect(find.text('Live Losers Map'), findsOneWidget);
@@ -139,7 +139,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('crypto market ends with filtered crypto trade idea cards', (
+  testWidgets('crypto market starts with five swipeable crypto signals', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -154,20 +154,25 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
-    await tester.scrollUntilVisible(
-      find.text('Crypto Trade Ideas'),
-      500,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 250));
-
     expect(find.text('Crypto Trade Ideas'), findsOneWidget);
+    expect(find.text('RECENT SIGNAL'), findsOneWidget);
+    expect(find.text('1 / 5'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('crypto-trade-idea-crypto-idea-1')),
       findsOneWidget,
     );
     expect(find.text('Open TradingView chart'), findsOneWidget);
+
+    final carousel = find.byKey(const ValueKey('crypto-trade-ideas-carousel'));
+    await tester.ensureVisible(carousel);
+    await tester.fling(carousel, const Offset(-500, 0), 1200);
+    await tester.pumpAndSettle();
+    expect(find.text('PREVIOUS 2 / 5'), findsOneWidget);
+    expect(find.text('2 / 5'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('crypto-trade-idea-crypto-idea-2')),
+      findsOneWidget,
+    );
     expect(api.cryptoTradeIdeasRequestCount, 1);
     expect(tester.takeException(), isNull);
   });
@@ -510,20 +515,27 @@ class _CryptoApiClient extends TradeXApiClient {
       if (path.contains('category=CRYPTO')) cryptoTradeIdeasRequestCount++;
       return {
         'data': {
-          'trade_ideas': [
-            {'uuid': 'crypto-idea-1', 'category': 'CRYPTO'},
-          ],
+          'trade_ideas': List.generate(
+            5,
+            (index) => {
+              'uuid': 'crypto-idea-${index + 1}',
+              'category': 'CRYPTO',
+            },
+          ),
         },
       };
     }
-    if (path == '/api/v1/trade-ideas/crypto-idea-1') {
+    if (path.startsWith('/api/v1/trade-ideas/crypto-idea-')) {
+      final ideaNumber = int.tryParse(path.split('-').last) ?? 1;
       return {
         'data': {
           'trade_idea': {
-            'uuid': 'crypto-idea-1',
+            'uuid': 'crypto-idea-$ideaNumber',
             'category': 'CRYPTO',
-            'symbol': 'BTCUSDT',
-            'instrument_name': 'Bitcoin / Tether',
+            'symbol': ideaNumber == 1 ? 'BTCUSDT' : 'ETHUSDT',
+            'instrument_name': ideaNumber == 1
+                ? 'Bitcoin / Tether'
+                : 'Ethereum / Tether',
             'direction': 'BUY',
             'timeframe': 'H1',
             'entry': {'low': '68000', 'high': '68200'},

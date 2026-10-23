@@ -225,6 +225,8 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
               ),
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
               children: [
+                _CryptoTradeIdeasSection(repository: _tradeIdeasRepository),
+                const SizedBox(height: 24),
                 Row(
                   children: [
                     Expanded(
@@ -357,8 +359,6 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
                     ),
                   ),
                 ),
-                const SizedBox(height: 26),
-                _CryptoTradeIdeasSection(repository: _tradeIdeasRepository),
               ],
             ),
           );
@@ -721,6 +721,8 @@ class _CryptoTradeIdeasSection extends StatefulWidget {
 
 class _CryptoTradeIdeasSectionState extends State<_CryptoTradeIdeasSection> {
   late Future<List<DashboardTradeIdea>> _request;
+  final PageController _pageController = PageController();
+  var _currentPage = 0;
 
   @override
   void initState() {
@@ -729,9 +731,17 @@ class _CryptoTradeIdeasSectionState extends State<_CryptoTradeIdeasSection> {
   }
 
   void _retry() {
+    if (_pageController.hasClients) _pageController.jumpToPage(0);
     setState(() {
+      _currentPage = 0;
       _request = widget.repository.latestCrypto(limit: 5);
     });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -743,7 +753,7 @@ class _CryptoTradeIdeasSectionState extends State<_CryptoTradeIdeasSection> {
           const Expanded(
             child: _SectionHeading(
               title: 'Crypto Trade Ideas',
-              subtitle: 'Latest TradeX crypto setups',
+              subtitle: 'Recent signal · swipe for the previous 4',
             ),
           ),
           IconButton(
@@ -790,16 +800,53 @@ class _CryptoTradeIdeasSectionState extends State<_CryptoTradeIdeasSection> {
             );
           }
 
-          return SizedBox(
-            height: 222,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: ideas.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 11),
-              itemBuilder: (context, index) =>
-                  _CryptoTradeIdeaCard(idea: ideas[index]),
-            ),
+          return Column(
+            children: [
+              SizedBox(
+                height: 222,
+                child: PageView.builder(
+                  key: const ValueKey('crypto-trade-ideas-carousel'),
+                  controller: _pageController,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: ideas.length,
+                  onPageChanged: (page) => setState(() => _currentPage = page),
+                  itemBuilder: (context, index) => _CryptoTradeIdeaCard(
+                    idea: ideas[index],
+                    position: index,
+                    total: ideas.length,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var index = 0; index < ideas.length; index++) ...[
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: index == _currentPage ? 18 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: index == _currentPage
+                            ? TradeXColors.goldBright
+                            : Colors.white.withValues(alpha: .22),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                    if (index < ideas.length - 1) const SizedBox(width: 5),
+                  ],
+                  const SizedBox(width: 10),
+                  Text(
+                    '${_currentPage + 1} / ${ideas.length}',
+                    style: const TextStyle(
+                      color: TradeXColors.secondaryText,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           );
         },
       ),
@@ -850,9 +897,15 @@ class _CryptoTradeIdeasMessage extends StatelessWidget {
 }
 
 class _CryptoTradeIdeaCard extends StatelessWidget {
-  const _CryptoTradeIdeaCard({required this.idea});
+  const _CryptoTradeIdeaCard({
+    required this.idea,
+    required this.position,
+    required this.total,
+  });
 
   final DashboardTradeIdea idea;
+  final int position;
+  final int total;
 
   @override
   Widget build(BuildContext context) {
@@ -867,10 +920,7 @@ class _CryptoTradeIdeaCard extends StatelessWidget {
     final segment = idea.symbol.trim().toUpperCase().endsWith('.P')
         ? 'FUTURES'
         : 'SPOT';
-    final width = math.min(340.0, MediaQuery.sizeOf(context).width - 44);
-
-    return SizedBox(
-      width: width,
+    return SizedBox.expand(
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -920,6 +970,24 @@ class _CryptoTradeIdeaCard extends StatelessWidget {
                           color: directionColor,
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        position == 0
+                            ? 'RECENT SIGNAL'
+                            : 'PREVIOUS ${position + 1} / $total',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: position == 0
+                              ? TradeXColors.goldBright
+                              : TradeXColors.secondaryText,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: .5,
                         ),
                       ),
                     ),
