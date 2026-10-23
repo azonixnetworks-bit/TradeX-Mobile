@@ -665,7 +665,7 @@ class _BubbleSectionHeader extends StatelessWidget {
       const Expanded(
         child: _SectionHeading(
           title: 'Top Gainers Bubble Screener',
-          subtitle: 'Live 24h gainers · refreshes every 15 seconds',
+          subtitle: 'Top 50 live 24h gainers · refreshes every 15 seconds',
         ),
       ),
       TextButton.icon(
@@ -769,7 +769,7 @@ class _CryptoTradeIdeasSectionState extends State<_CryptoTradeIdeasSection> {
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const SizedBox(
-              height: 222,
+              height: 184,
               child: Center(
                 child: CircularProgressIndicator(
                   color: TradeXColors.goldBright,
@@ -803,7 +803,7 @@ class _CryptoTradeIdeasSectionState extends State<_CryptoTradeIdeasSection> {
           return Column(
             children: [
               SizedBox(
-                height: 222,
+                height: 184,
                 child: PageView.builder(
                   key: const ValueKey('crypto-trade-ideas-carousel'),
                   controller: _pageController,
@@ -937,7 +937,7 @@ class _CryptoTradeIdeaCard extends StatelessWidget {
                 ),
           borderRadius: BorderRadius.circular(18),
           child: Ink(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
@@ -1002,14 +1002,14 @@ class _CryptoTradeIdeaCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 7),
                 Text(
                   idea.symbol,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -1046,7 +1046,7 @@ class _CryptoTradeIdeaCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     const Icon(
