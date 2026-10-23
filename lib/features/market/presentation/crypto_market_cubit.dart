@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../data/binance_live_ticker_service.dart';
 import '../data/crypto_market_repository.dart';
 import '../data/crypto_watchlist_store.dart';
 
@@ -308,10 +311,12 @@ class CryptoBubbleMapCubit extends Cubit<CryptoBubbleMapState> {
     this._repository, {
     required this.segment,
     List<CryptoAsset> initialGainers = const <CryptoAsset>[],
+    BinanceLiveTickerService? liveTickerService,
   }) : _cache = {
          if (initialGainers.isNotEmpty)
            CryptoBubbleMode.gainers: List.unmodifiable(initialGainers),
        },
+       _liveTickerService = liveTickerService ?? BinanceLiveTickerService(),
        super(
          CryptoBubbleMapState(
            assets: List.unmodifiable(initialGainers),
@@ -320,11 +325,51 @@ class CryptoBubbleMapCubit extends Cubit<CryptoBubbleMapState> {
        );
 
   final CryptoMarketRepository _repository;
+  final BinanceLiveTickerService _liveTickerService;
   final String segment;
   final Map<CryptoBubbleMode, List<CryptoAsset>> _cache;
+  StreamSubscription<Map<String, BinanceLiveTicker>>? _liveTickerSubscription;
   var _requestVersion = 0;
 
   Future<void> initialize() => refresh();
+
+  Future<void> setLivePricesEnabled(bool enabled) async {
+    final previous = _liveTickerSubscription;
+    _liveTickerSubscription = null;
+    await previous?.cancel();
+    if (!enabled || isClosed) return;
+
+    _liveTickerSubscription = _liveTickerService
+        .watch(segment)
+        .listen(
+          _applyLiveTickers,
+          onError: (_) {
+            // The service reconnects automatically; Laravel refresh is fallback.
+          },
+        );
+  }
+
+  void _applyLiveTickers(Map<String, BinanceLiveTicker> tickers) {
+    if (isClosed || state.assets.isEmpty) return;
+    var changed = false;
+    final updated = state.assets
+        .map((asset) {
+          final ticker = tickers[asset.symbol];
+          if (ticker == null) return asset;
+          changed = true;
+          return asset.withLiveTicker(
+            price: ticker.price,
+            changePercent: ticker.changePercent,
+            quoteVolume: ticker.quoteVolume,
+          );
+        })
+        .toList(growable: false);
+    if (!changed) return;
+
+    final immutable = List<CryptoAsset>.unmodifiable(updated);
+    _cache[state.mode] = immutable;
+    emit(state.copyWith(assets: immutable));
+  }
 
   Future<void> selectMode(CryptoBubbleMode mode) async {
     if (mode == state.mode) return;
@@ -378,5 +423,11 @@ class CryptoBubbleMapCubit extends Cubit<CryptoBubbleMapState> {
         ),
       );
     }
+  }
+
+  @override
+  Future<void> close() async {
+    await _liveTickerSubscription?.cancel();
+    return super.close();
   }
 }

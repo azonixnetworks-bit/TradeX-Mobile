@@ -17,9 +17,14 @@ import 'crypto_watchlist_screen.dart';
 import 'trading_view_chart_screen.dart';
 
 class CryptoMarketScreen extends StatefulWidget {
-  const CryptoMarketScreen({super.key, required this.apiClient});
+  const CryptoMarketScreen({
+    super.key,
+    required this.apiClient,
+    this.enableDirectBubbleStream = true,
+  });
 
   final TradeXApiClient apiClient;
+  final bool enableDirectBubbleStream;
 
   @override
   State<CryptoMarketScreen> createState() => _CryptoMarketScreenState();
@@ -329,6 +334,7 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
                           assets: market.bubbleAssets,
                           repository: _cryptoRepository,
                           segment: state.segment,
+                          enableDirectStream: widget.enableDirectBubbleStream,
                         ),
                       ),
                     ),
@@ -345,6 +351,7 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
                           assets: market.bubbleAssets,
                           repository: _cryptoRepository,
                           segment: state.segment,
+                          enableDirectStream: widget.enableDirectBubbleStream,
                         ),
                       ),
                     ),
