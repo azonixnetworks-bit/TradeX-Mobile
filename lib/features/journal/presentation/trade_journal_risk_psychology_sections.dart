@@ -705,28 +705,131 @@ class PremiumEmotionField extends StatelessWidget {
       label: 'Emotion Before',
       icon: Icons.sentiment_satisfied_alt_rounded,
       accent: _planPurple,
-      child: DropdownButtonFormField<String>(
-        key: ValueKey('psychology-emotion-${value ?? 'none'}'),
-        initialValue: value?.isNotEmpty == true ? value : null,
-        isExpanded: true,
-        dropdownColor: _planSurfaceRaised,
-        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: _planText),
-        style: const TextStyle(
-          color: _planText,
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-        ),
-        decoration: _inputDecoration('Select emotion'),
-        items: [
-          const DropdownMenuItem(value: '', child: Text('Not selected')),
-          for (final emotion in values)
-            DropdownMenuItem(value: emotion, child: Text(_titleCase(emotion))),
-        ],
-        onChanged: onChanged,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 500
+              ? 6
+              : constraints.maxWidth >= 280
+              ? 4
+              : 3;
+          return GridView.builder(
+            key: ValueKey('psychology-emotion-${value ?? 'none'}'),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: values.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              crossAxisSpacing: 7,
+              mainAxisSpacing: 7,
+              mainAxisExtent: 72,
+            ),
+            itemBuilder: (context, index) {
+              final emotion = values.elementAt(index);
+              final selected = value == emotion;
+              return Semantics(
+                button: true,
+                selected: selected,
+                label: '${_titleCase(emotion)} emotion',
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    key: ValueKey('emotion-option-$emotion'),
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      onChanged(selected ? null : emotion);
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 170),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: selected
+                            ? LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  _planPurple.withValues(alpha: .34),
+                                  const Color(0xFF7624FF)
+                                      .withValues(alpha: .18),
+                                ],
+                              )
+                            : null,
+                        color: selected
+                            ? null
+                            : _planBackground.withValues(alpha: .72),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selected
+                              ? const Color(0xFFE186FF)
+                              : _planBorder.withValues(alpha: .95),
+                          width: selected ? 1.3 : 1,
+                        ),
+                        boxShadow: selected
+                            ? [
+                                BoxShadow(
+                                  color: _planPurple.withValues(alpha: .2),
+                                  blurRadius: 12,
+                                  spreadRadius: -3,
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _emotionEmoji(emotion),
+                            style: const TextStyle(fontSize: 26, height: 1),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            _titleCase(emotion),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: selected ? _planText : _planMuted,
+                              fontSize: 9.5,
+                              height: 1,
+                              fontWeight: selected
+                                  ? FontWeight.w900
+                                  : FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
 }
+
+const _emotionEmojis = <String, String>{
+  'calm': '😌',
+  'confident': '😎',
+  'fear': '😨',
+  'fomo': '😬',
+  'greed': '🤑',
+  'revenge': '😡',
+  'overconfidence': '😏',
+  'hesitant': '🤔',
+  'frustrated': '😤',
+  'tired': '😴',
+  'distracted': '🤯',
+  'other': '🙂',
+};
+
+String _emotionEmoji(String emotion) =>
+    _emotionEmojis[emotion.toLowerCase()] ?? '🙂';
 
 class ConfidenceSelector extends StatelessWidget {
   const ConfidenceSelector({

@@ -671,6 +671,32 @@ void main() {
     await jumpUntilBuilt(
       find.byKey(const ValueKey('psychology-checklist-section')),
     );
+    final emotionField = find.byKey(const ValueKey('psychology-emotion'));
+    expect(
+      find.descendant(
+        of: emotionField,
+        matching: find.byType(DropdownButtonFormField<String>),
+      ),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('emotion-option-calm')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('emotion-option-confident')),
+      findsOneWidget,
+    );
+    expect(find.text('😌'), findsOneWidget);
+    expect(find.text('Calm'), findsOneWidget);
+    tester
+        .widget<InkWell>(find.byKey(const ValueKey('emotion-option-confident')))
+        .onTap!();
+    await tester.pump();
+    expect(
+      tester
+          .widget<PremiumEmotionField>(find.byType(PremiumEmotionField))
+          .value,
+      'confident',
+    );
+
     final confidence = tester.widget<ConfidenceSelector>(
       find.byType(ConfidenceSelector),
     );
