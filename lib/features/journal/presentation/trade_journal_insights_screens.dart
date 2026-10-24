@@ -27,10 +27,13 @@ class _TradeJournalAnalyticsScreenState
     _request = widget.repository.analytics(period: _period);
   }
 
-  void _select(String period) {
+  void _select(String period, {bool forceRefresh = false}) {
     setState(() {
       _period = period;
-      _request = widget.repository.analytics(period: period);
+      _request = widget.repository.analytics(
+        period: period,
+        forceRefresh: forceRefresh,
+      );
     });
   }
 
@@ -41,7 +44,7 @@ class _TradeJournalAnalyticsScreenState
     actions: [
       IconButton(
         tooltip: 'Refresh analytics',
-        onPressed: () => _select(_period),
+        onPressed: () => _select(_period, forceRefresh: true),
         icon: const Icon(Icons.refresh_rounded),
       ),
     ],
@@ -54,7 +57,7 @@ class _TradeJournalAnalyticsScreenState
         if (snapshot.hasError || snapshot.data == null) {
           return JournalError(
             error: snapshot.error,
-            onRetry: () => _select(_period),
+            onRetry: () => _select(_period, forceRefresh: true),
           );
         }
         return _content(snapshot.data!);
@@ -80,7 +83,7 @@ class _TradeJournalAnalyticsScreenState
     final currency = overview['pnl_currency']?.toString();
     return RefreshIndicator(
       color: TradeXColors.goldBright,
-      onRefresh: () async => _select(_period),
+      onRefresh: () async => _select(_period, forceRefresh: true),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
         children: [
@@ -329,8 +332,12 @@ class _TradeJournalReviewScreenState extends State<TradeJournalReviewScreen> {
     _load();
   }
 
-  void _load() {
-    _request = widget.repository.review(widget.type, date: _anchor);
+  void _load({bool forceRefresh = false}) {
+    _request = widget.repository.review(
+      widget.type,
+      date: _anchor,
+      forceRefresh: forceRefresh,
+    );
   }
 
   @override
@@ -361,7 +368,7 @@ class _TradeJournalReviewScreenState extends State<TradeJournalReviewScreen> {
         if (snapshot.hasError || snapshot.data == null) {
           return JournalError(
             error: snapshot.error,
-            onRetry: () => setState(_load),
+            onRetry: () => setState(() => _load(forceRefresh: true)),
           );
         }
         _seed(snapshot.data!);

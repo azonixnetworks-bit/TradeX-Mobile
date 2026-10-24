@@ -9,6 +9,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../data/trade_journal_models.dart';
 import '../data/trade_journal_repository.dart';
+import 'trade_journal_close_sections.dart';
 import 'trade_journal_risk_psychology_sections.dart';
 import 'trade_journal_strategy_section.dart';
 import 'trade_journal_ui.dart';
@@ -67,6 +68,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   var _symbolLoading = false;
   var _symbolLookupFailed = false;
   var _selectingSymbol = false;
+  var _updatingPricePlan = false;
   var _symbolRequestId = 0;
   var _saving = false;
 
@@ -142,6 +144,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       _set('mental_state_note', entry.psychologyBefore['note']);
     }
     _controllers['symbol']!.addListener(_onSymbolChanged);
+    _controllers['planned_entry']!.addListener(_onPlannedEntryChanged);
     if (_controllers['symbol']!.text.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _startLivePriceTracking();
@@ -178,8 +181,9 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
         if (snapshot.hasError || snapshot.data == null) {
           return JournalError(
             error: snapshot.error,
-            onRetry: () =>
-                setState(() => _metaRequest = widget.repository.meta()),
+            onRetry: () => setState(
+              () => _metaRequest = widget.repository.meta(forceRefresh: true),
+            ),
           );
         }
         return _buildForm(snapshot.data!);
@@ -287,7 +291,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           ),
           onDirectionChanged: (value) =>
               setState(() => _strategyDirection = value),
-          onEntryTypeChanged: (value) => setState(() => _direction = value),
+          onEntryTypeChanged: _changeEntryType,
           onEntryStatusChanged: (value) => setState(() => _status = value),
         ),
         const SizedBox(height: 18),
@@ -669,20 +673,44 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   void _applyLivePricePlan() {
     final entry = _selectedSymbolPrice;
     if (entry == null || entry <= 0) return;
+    _applyDefaultRiskPlan(entry, includeEntry: true);
+  }
+
+  void _onPlannedEntryChanged() {
+    if (_updatingPricePlan || !mounted) return;
+    final entry = double.tryParse(_controller('planned_entry'));
+    if (entry == null || entry <= 0) return;
+    _applyDefaultRiskPlan(entry);
+  }
+
+  void _changeEntryType(String value) {
+    setState(() => _direction = value);
+    final entry = double.tryParse(_controller('planned_entry'));
+    if (entry != null && entry > 0) _applyDefaultRiskPlan(entry);
+  }
+
+  void _applyDefaultRiskPlan(double entry, {bool includeEntry = false}) {
     final pipSize = _defaultPipSize(entry);
     final riskDistance = pipSize * 10;
     final rewardDistance = riskDistance * 5;
-    final buy = _direction != 'sell';
+    final buy = _direction.toLowerCase() != 'sell';
     final stopLoss = buy ? entry - riskDistance : entry + riskDistance;
     final takeProfit = buy ? entry + rewardDistance : entry - rewardDistance;
     if (stopLoss <= 0 || takeProfit <= 0) return;
     final decimals = _pipDecimals(pipSize);
 
-    setState(() {
-      _setPriceController('planned_entry', entry, decimals);
-      _setPriceController('planned_sl', stopLoss, decimals);
-      _setPriceController('planned_tp', takeProfit, decimals);
-    });
+    _updatingPricePlan = true;
+    try {
+      setState(() {
+        if (includeEntry) {
+          _setPriceController('planned_entry', entry, decimals);
+        }
+        _setPriceController('planned_sl', stopLoss, decimals);
+        _setPriceController('planned_tp', takeProfit, decimals);
+      });
+    } finally {
+      _updatingPricePlan = false;
+    }
   }
 
   double _defaultPipSize(double price) {
@@ -1176,7 +1204,8 @@ class TradeJournalCloseScreen extends StatefulWidget {
 
 class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
   final _formKey = GlobalKey<FormState>();
-  late Future<TradeJournalMeta> _metaRequest;
+  late Future<({TradeJournalMeta meta, TradeJournalEntry entry})> _request;
+  late TradeJournalEntry _entry;
   final _controllers = <String, TextEditingController>{};
   var _result = 'win';
   var _followed = 'yes';
@@ -1184,32 +1213,41 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
   final _mistakes = <String>{};
   var _date = DateTime.now();
   var _time = TimeOfDay.now();
-  var _rating = 4;
+  var _rating = 0;
   var _saving = false;
+  var _hydrated = false;
+  Timer? _livePriceTimer;
+  double? _liveExitPrice;
+  var _liveExitPriceLoading = false;
+  var _livePriceTrackingStarted = false;
+  var _exitPriceManuallyEdited = false;
+
+  static const _currencies = ['USD', 'USDT', 'EUR', 'GBP', 'LKR'];
 
   static const _fields = [
     'exit_price',
     'gross_pnl',
-    'fees',
     'pnl_currency',
-    'pnl_percent',
     'went_well',
     'went_wrong',
     'lesson_learned',
     'improvement_next_trade',
+    'emotion_after_other',
   ];
 
   @override
   void initState() {
     super.initState();
-    _metaRequest = widget.repository.meta();
+    _entry = widget.entry;
     for (final item in _fields) {
       _controllers[item] = TextEditingController();
     }
+    _request = _load();
   }
 
   @override
   void dispose() {
+    _livePriceTimer?.cancel();
     for (final controller in _controllers.values) {
       controller.dispose();
     }
@@ -1220,204 +1258,145 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
   Widget build(BuildContext context) => JournalScaffold(
     title: 'Close Trade',
     subtitle: 'Complete execution and record your review',
-    body: FutureBuilder<TradeJournalMeta>(
-      future: _metaRequest,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const JournalLoading();
-        }
-        if (snapshot.hasError || snapshot.data == null) {
-          return JournalError(
-            error: snapshot.error,
-            onRetry: () =>
-                setState(() => _metaRequest = widget.repository.meta()),
-          );
-        }
-        return _form(snapshot.data!);
-      },
+    body: DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF020B1B), Color(0xFF031222)],
+        ),
+      ),
+      child: FutureBuilder<({TradeJournalMeta meta, TradeJournalEntry entry})>(
+        future: _request,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const JournalLoading();
+          }
+          if (snapshot.hasError || snapshot.data == null) {
+            return JournalError(
+              error: snapshot.error,
+              onRetry: () => setState(() {
+                _livePriceTimer?.cancel();
+                _livePriceTrackingStarted = false;
+                _liveExitPrice = null;
+                _liveExitPriceLoading = false;
+                _hydrated = false;
+                _request = _load(forceRefresh: true);
+              }),
+            );
+          }
+          final data = snapshot.data!;
+          if (!_hydrated) {
+            _hydrate(data.entry);
+            _hydrated = true;
+          }
+          if (!_livePriceTrackingStarted) {
+            _livePriceTrackingStarted = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _startLivePriceTracking();
+            });
+          }
+          return _form(data.meta);
+        },
+      ),
     ),
   );
 
   Widget _form(TradeJournalMeta meta) => Form(
     key: _formKey,
     child: ListView(
-      padding: const EdgeInsets.all(16),
+      key: const ValueKey('close-trade-scroll'),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
       children: [
-        _TradeHeader(entry: widget.entry),
-        const SizedBox(height: 12),
-        JournalPanel(
-          child: Column(
-            children: [
-              _number('exit_price', 'Exit Price', required: true),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _PickerTile(
-                      icon: Icons.calendar_today_rounded,
-                      label: 'Exit Date',
-                      value: _dateText(_date),
-                      onTap: _pickDate,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _PickerTile(
-                      icon: Icons.schedule_rounded,
-                      label: 'Exit Time',
-                      value: _timeText(_time),
-                      onTap: _pickTime,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'win', label: Text('WIN')),
-                  ButtonSegment(value: 'loss', label: Text('LOSS')),
-                  ButtonSegment(value: 'breakeven', label: Text('BE')),
-                  ButtonSegment(value: 'partial', label: Text('PARTIAL')),
-                ],
-                selected: {_result},
-                onSelectionChanged: (value) =>
-                    setState(() => _result = value.first),
-                showSelectedIcon: false,
-              ),
-            ],
-          ),
+        CloseTradeSummaryCard(entry: _entry),
+        const SizedBox(height: 13),
+        CloseTradeExitDetailsCard(
+          exitPriceController: _controllers['exit_price']!,
+          exitPriceValidator: _validateExitPrice,
+          date: _dateText(_date),
+          time: _timeText(_time),
+          onPickDate: _pickDate,
+          onPickTime: _pickTime,
+          result: _result,
+          onResultChanged: (value) => setState(() => _result = value),
+          livePrice: _liveExitPrice,
+          livePriceLoading: _liveExitPriceLoading,
+          onRefreshLivePrice: () =>
+              unawaited(_refreshLiveExitPrice(showLoading: true)),
+          onUseLivePrice: _liveExitPrice == null ? null : _applyLiveExitPrice,
+          onExitPriceChanged: (_) => _exitPriceManuallyEdited = true,
         ),
-        const SizedBox(height: 14),
-        JournalPanel(
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(child: _number('gross_pnl', 'Gross P&L')),
-                  const SizedBox(width: 10),
-                  Expanded(child: _number('fees', 'Fees')),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(child: _text('pnl_currency', 'P&L Currency')),
-                  const SizedBox(width: 10),
-                  Expanded(child: _number('pnl_percent', 'P&L %')),
-                ],
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _emotion,
-                decoration: const InputDecoration(labelText: 'Emotion After'),
-                items: [
-                  for (final item in meta.emotionsAfter)
-                    DropdownMenuItem(value: item, child: Text(titleCase(item))),
-                ],
-                onChanged: (value) => setState(() => _emotion = value),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _followed,
-                decoration: const InputDecoration(labelText: 'Followed Plan?'),
-                items: [
-                  for (final item in meta.followedPlanAfter)
-                    DropdownMenuItem(value: item, child: Text(titleCase(item))),
-                ],
-                onChanged: (value) =>
-                    setState(() => _followed = value ?? 'yes'),
-              ),
-            ],
+        const SizedBox(height: 13),
+        CloseTradeProfitLossCard(
+          grossController: _controllers['gross_pnl']!,
+          currency: _value('pnl_currency'),
+          currencies: _currencyOptions,
+          onCurrencyChanged: (value) => setState(
+            () => _controllers['pnl_currency']!.text = value ?? 'USD',
           ),
+          numberValidator: _validateOptionalNumber,
         ),
-        const SizedBox(height: 14),
-        const JournalSectionTitle(title: 'Mistakes & Lessons'),
-        const SizedBox(height: 8),
-        JournalPanel(
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 5,
-                  children: [
-                    for (final item in meta.mistakeTags)
-                      FilterChip(
-                        label: Text(titleCase(item)),
-                        selected: _mistakes.contains(item),
-                        onSelected: (value) => setState(() {
-                          value ? _mistakes.add(item) : _mistakes.remove(item);
-                        }),
-                      ),
-                  ],
+        const SizedBox(height: 13),
+        CloseTradeAdditionalInfoCard(
+          emotion: _emotion,
+          emotions: meta.emotionsAfter,
+          onEmotionChanged: (value) => setState(() => _emotion = value),
+          followedPlan: _followed,
+          followedPlanOptions: meta.followedPlanAfter,
+          onFollowedPlanChanged: (value) =>
+              setState(() => _followed = value ?? 'yes'),
+          otherEmotionController: _controllers['emotion_after_other']!,
+        ),
+        const SizedBox(height: 13),
+        CloseTradeMistakesLessonsCard(
+          options: meta.mistakeTags,
+          selected: _mistakes,
+          onToggle: (item) => setState(() {
+            _mistakes.contains(item)
+                ? _mistakes.remove(item)
+                : _mistakes.add(item);
+          }),
+          wentWellController: _controllers['went_well']!,
+          wentWrongController: _controllers['went_wrong']!,
+          lessonController: _controllers['lesson_learned']!,
+          improvementController: _controllers['improvement_next_trade']!,
+          rating: _rating,
+          onRatingChanged: (value) => setState(() => _rating = value),
+        ),
+        if (!_canClose) ...[
+          const SizedBox(height: 13),
+          Container(
+            key: const ValueKey('close-trade-ineligible'),
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: closeTradeGold.withValues(alpha: .08),
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: closeTradeGold.withValues(alpha: .45)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline_rounded, color: closeTradeGold),
+                SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    'This trade is not currently eligible to be closed.',
+                    style: TextStyle(color: closeTradeMuted, fontSize: 12),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              _text('went_well', 'What went well?', lines: 3),
-              const SizedBox(height: 12),
-              _text('went_wrong', 'What went wrong?', lines: 3),
-              const SizedBox(height: 12),
-              _text('lesson_learned', 'Lesson learned', lines: 3),
-              const SizedBox(height: 12),
-              _text(
-                'improvement_next_trade',
-                'Improvement for next trade',
-                lines: 3,
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Text('Trade Rating'),
-                  const Spacer(),
-                  for (var index = 1; index <= 5; index++)
-                    GestureDetector(
-                      onTap: () => setState(() => _rating = index),
-                      child: Padding(
-                        padding: const EdgeInsets.all(3),
-                        child: Icon(
-                          index <= _rating
-                              ? Icons.star_rounded
-                              : Icons.star_border_rounded,
-                          color: TradeXColors.goldBright,
-                          size: 25,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
         const SizedBox(height: 18),
-        JournalPrimaryButton(
-          label: 'Close & Save Review',
+        CloseTradeSaveButton(
           busy: _saving,
+          enabled: _canClose,
           onPressed: _submit,
         ),
       ],
     ),
   );
-
-  Widget _text(String name, String label, {int lines = 1}) => TextFormField(
-    controller: _controllers[name],
-    maxLines: lines,
-    decoration: InputDecoration(labelText: label),
-  );
-
-  Widget _number(String name, String label, {bool required = false}) =>
-      TextFormField(
-        controller: _controllers[name],
-        keyboardType: const TextInputType.numberWithOptions(
-          decimal: true,
-          signed: true,
-        ),
-        decoration: InputDecoration(labelText: label),
-        validator: required
-            ? (value) =>
-                  value?.trim().isEmpty == true ? '$label is required.' : null
-            : null,
-      );
 
   Future<void> _pickDate() async {
     final result = await showDatePicker(
@@ -1435,7 +1414,32 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
   }
 
   Future<void> _submit() async {
+    if (_saving) return;
+    if (_entry.uuid.trim().isEmpty) {
+      _message('The selected trade is invalid. Please reopen the trade.');
+      return;
+    }
+    if (!_canClose) {
+      _message('This trade can no longer be closed. Refresh and try again.');
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
+    final exitAt = DateTime(
+      _date.year,
+      _date.month,
+      _date.day,
+      _time.hour,
+      _time.minute,
+    );
+    final openedAt = (_entry.openedAt ?? _entry.tradeAt)?.toLocal();
+    if (exitAt.isAfter(DateTime.now())) {
+      _message('Exit time cannot be in the future.');
+      return;
+    }
+    if (openedAt != null && exitAt.isBefore(openedAt)) {
+      _message('Exit time must be after the trade entry time.');
+      return;
+    }
     setState(() => _saving = true);
     try {
       final body = <String, dynamic>{
@@ -1445,14 +1449,14 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
         'timezone': await widget.repository.timezone(),
         'result': _result,
         'followed_plan_after': _followed,
-        'mistake_tags': _mistakes.toList(growable: false),
-        'rating': _rating,
+        'mistake_tags': _mistakes.toList(growable: false)..sort(),
+        if (_rating > 0) 'rating': _rating,
         if (_emotion != null) 'emotion_after': _emotion,
+        if (_emotion == 'other')
+          'emotion_after_other': _value('emotion_after_other'),
       };
-      for (final item in const ['gross_pnl', 'fees', 'pnl_percent']) {
-        final parsed = double.tryParse(_value(item));
-        if (parsed != null) body[item] = parsed;
-      }
+      final grossPnl = double.tryParse(_value('gross_pnl'));
+      if (grossPnl != null) body['gross_pnl'] = grossPnl;
       for (final item in const [
         'pnl_currency',
         'went_well',
@@ -1462,7 +1466,7 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
       ]) {
         if (_value(item).isNotEmpty) body[item] = _value(item);
       }
-      final result = await widget.repository.close(widget.entry.uuid, body);
+      final result = await widget.repository.close(_entry.uuid, body);
       if (mounted) Navigator.pop(context, result);
     } on ApiException catch (error) {
       _message(error.message);
@@ -1472,6 +1476,150 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
   }
 
   String _value(String name) => _controllers[name]!.text.trim();
+
+  bool get _canClose =>
+      _entry.uuid.trim().isNotEmpty &&
+      _entry.status.toLowerCase() == 'open' &&
+      _entry.canClose;
+
+  List<String> get _currencyOptions {
+    final current = _value('pnl_currency').toUpperCase();
+    return current.isEmpty || _currencies.contains(current)
+        ? _currencies
+        : [current, ..._currencies];
+  }
+
+  Future<({TradeJournalMeta meta, TradeJournalEntry entry})> _load({
+    bool forceRefresh = false,
+  }) async {
+    if (widget.entry.uuid.trim().isEmpty) {
+      throw const ApiException(message: 'The selected trade is invalid.');
+    }
+    final values = await Future.wait<Object>([
+      widget.repository.meta(forceRefresh: forceRefresh),
+      widget.repository.entry(widget.entry.uuid, forceRefresh: forceRefresh),
+    ]);
+    return (
+      meta: values[0] as TradeJournalMeta,
+      entry: values[1] as TradeJournalEntry,
+    );
+  }
+
+  void _hydrate(TradeJournalEntry entry) {
+    _entry = entry;
+    final review = entry.review;
+    final pnl = entry.pnl;
+    _setText('exit_price', entry.prices['exit_price']);
+    _exitPriceManuallyEdited = _value('exit_price').isNotEmpty;
+    _setText('gross_pnl', pnl['gross']);
+    _setText('pnl_currency', pnl['currency'] ?? 'USD');
+    _setText('emotion_after_other', review['emotion_after_other']);
+    _setText('went_well', review['went_well']);
+    _setText('went_wrong', review['went_wrong']);
+    _setText('lesson_learned', review['lesson_learned']);
+    _setText('improvement_next_trade', review['improvement_next_trade']);
+
+    final restoredResult = entry.result?.trim();
+    if (const {
+      'win',
+      'loss',
+      'breakeven',
+      'partial',
+    }.contains(restoredResult)) {
+      _result = restoredResult!;
+    }
+    final restoredFollowed = review['followed_plan']?.toString();
+    if (const {'yes', 'partially', 'no'}.contains(restoredFollowed)) {
+      _followed = restoredFollowed!;
+    }
+    final restoredEmotion = review['emotion_after']?.toString().trim();
+    _emotion = restoredEmotion?.isNotEmpty == true ? restoredEmotion : null;
+    _mistakes
+      ..clear()
+      ..addAll(journalStrings(review['mistake_tags']));
+    final restoredRating = journalNumber(review['rating'])?.round();
+    _rating =
+        restoredRating != null && restoredRating >= 1 && restoredRating <= 5
+        ? restoredRating
+        : 0;
+
+    final exitAt = entry.exitAt?.toLocal();
+    if (exitAt != null) {
+      _date = DateTime(exitAt.year, exitAt.month, exitAt.day);
+      _time = TimeOfDay.fromDateTime(exitAt);
+    }
+  }
+
+  void _setText(String name, Object? value) {
+    final text = value?.toString().trim() ?? '';
+    _controllers[name]!.text = text;
+  }
+
+  void _startLivePriceTracking() {
+    _livePriceTimer?.cancel();
+    unawaited(_refreshLiveExitPrice(showLoading: true));
+    _livePriceTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => unawaited(_refreshLiveExitPrice()),
+    );
+  }
+
+  Future<void> _refreshLiveExitPrice({bool showLoading = false}) async {
+    final symbol = _entry.symbol.trim().toUpperCase();
+    if (symbol.isEmpty) return;
+    if (showLoading && mounted && _liveExitPrice == null) {
+      setState(() => _liveExitPriceLoading = true);
+    }
+    try {
+      final price = await widget.repository.livePrice(
+        market: _entry.market,
+        symbol: symbol,
+        stockRegion: _entry.stockRegion,
+      );
+      if (!mounted || _entry.symbol.trim().toUpperCase() != symbol) return;
+      setState(() {
+        _liveExitPrice = price;
+        _liveExitPriceLoading = false;
+        if (price != null && price > 0 && !_exitPriceManuallyEdited) {
+          _setLiveExitPrice(price);
+        }
+      });
+    } catch (_) {
+      if (!mounted || _entry.symbol.trim().toUpperCase() != symbol) return;
+      setState(() => _liveExitPriceLoading = false);
+    }
+  }
+
+  void _applyLiveExitPrice() {
+    final price = _liveExitPrice;
+    if (price == null || price <= 0) return;
+    setState(() {
+      _exitPriceManuallyEdited = false;
+      _setLiveExitPrice(price);
+    });
+  }
+
+  void _setLiveExitPrice(double price) {
+    final controller = _controllers['exit_price']!;
+    controller.text = formatCloseTradePrice(price);
+    controller.selection = TextSelection.collapsed(
+      offset: controller.text.length,
+    );
+  }
+
+  String? _validateExitPrice(String? value) {
+    final number = double.tryParse(value?.trim() ?? '');
+    if (number == null) return 'Exit Price is required.';
+    if (!number.isFinite || number <= 0) return 'Enter a valid price above 0.';
+    return null;
+  }
+
+  String? _validateOptionalNumber(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return null;
+    final number = double.tryParse(text);
+    return number == null || !number.isFinite ? 'Enter a valid number.' : null;
+  }
 
   void _message(String value) {
     if (mounted) {

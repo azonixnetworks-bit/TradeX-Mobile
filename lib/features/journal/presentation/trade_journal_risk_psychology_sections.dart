@@ -111,28 +111,30 @@ class PriceRiskPlanSection extends StatelessWidget {
               _positivePrice(value, 'Entry Price', required: entryRequired),
         ),
         const SizedBox(height: 9),
+        PremiumRiskField(
+          key: const ValueKey('risk-stop-loss'),
+          label: 'Stop Loss',
+          hint: _buy ? 'Below Entry Price' : 'Above Entry Price',
+          icon: Icons.shield_rounded,
+          accent: _planRed,
+          controller: stopLossController,
+          step: .0001,
+          validator: _stopLossValidator,
+        ),
+        const SizedBox(height: 9),
+        PremiumRiskField(
+          key: const ValueKey('risk-take-profit'),
+          label: 'Take Profit',
+          hint: _buy ? 'Above Entry Price' : 'Below Entry Price',
+          icon: Icons.track_changes_rounded,
+          accent: _planGreen,
+          controller: takeProfitController,
+          step: .0001,
+          validator: _takeProfitValidator,
+        ),
+        const SizedBox(height: 9),
         _ResponsivePlanGrid(
           children: [
-            PremiumRiskField(
-              key: const ValueKey('risk-stop-loss'),
-              label: 'Stop Loss',
-              hint: 'e.g. 1.2300',
-              icon: Icons.shield_rounded,
-              accent: _planRed,
-              controller: stopLossController,
-              step: .0001,
-              validator: _stopLossValidator,
-            ),
-            PremiumRiskField(
-              key: const ValueKey('risk-take-profit'),
-              label: 'Take Profit',
-              hint: 'e.g. 1.2400',
-              icon: Icons.track_changes_rounded,
-              accent: _planGreen,
-              controller: takeProfitController,
-              step: .0001,
-              validator: _takeProfitValidator,
-            ),
             PremiumRiskField(
               key: const ValueKey('risk-amount'),
               label: 'Risk in Amount',
@@ -690,19 +692,25 @@ class PremiumEmotionField extends StatelessWidget {
     required this.value,
     required this.emotions,
     required this.onChanged,
+    this.label = 'Emotion Before',
+    this.fieldKey = const ValueKey('psychology-emotion'),
+    this.optionKeyPrefix = 'emotion-option',
   });
 
   final String? value;
   final List<String> emotions;
   final ValueChanged<String?> onChanged;
+  final String label;
+  final Key fieldKey;
+  final String optionKeyPrefix;
 
   @override
   Widget build(BuildContext context) {
     final values = <String>{...emotions};
     if (value?.isNotEmpty == true) values.add(value!);
     return _FieldCard(
-      key: const ValueKey('psychology-emotion'),
-      label: 'Emotion Before',
+      key: fieldKey,
+      label: label,
       icon: Icons.sentiment_satisfied_alt_rounded,
       accent: _planPurple,
       child: LayoutBuilder(
@@ -721,7 +729,7 @@ class PremiumEmotionField extends StatelessWidget {
               crossAxisCount: columns,
               crossAxisSpacing: 7,
               mainAxisSpacing: 7,
-              mainAxisExtent: 72,
+              mainAxisExtent: 82,
             ),
             itemBuilder: (context, index) {
               final emotion = values.elementAt(index);
@@ -733,7 +741,7 @@ class PremiumEmotionField extends StatelessWidget {
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    key: ValueKey('emotion-option-$emotion'),
+                    key: ValueKey('$optionKeyPrefix-$emotion'),
                     onTap: () {
                       HapticFeedback.selectionClick();
                       onChanged(selected ? null : emotion);
@@ -816,11 +824,18 @@ class PremiumEmotionField extends StatelessWidget {
 const _emotionEmojis = <String, String>{
   'calm': '😌',
   'confident': '😎',
+  'satisfied': '😊',
+  'relieved': '😮‍💨',
+  'disappointed': '😞',
   'fear': '😨',
   'fomo': '😬',
   'greed': '🤑',
+  'angry': '😡',
   'revenge': '😡',
+  'revenge_feeling': '😠',
   'overconfidence': '😏',
+  'overconfident': '😏',
+  'neutral': '😐',
   'hesitant': '🤔',
   'frustrated': '😤',
   'tired': '😴',

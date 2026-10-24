@@ -8,6 +8,7 @@ import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../data/trade_journal_models.dart';
 import '../data/trade_journal_repository.dart';
+import 'trade_journal_dashboard_widgets.dart';
 import 'trade_journal_insights_screens.dart';
 import 'trade_journal_trade_screens.dart';
 import 'trade_journal_ui.dart';
@@ -28,7 +29,9 @@ class TradeJournalHomeScreen extends StatefulWidget {
 
 class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
   late final TradeJournalRepository _repository;
-  late Future<TradeJournalHome> _request;
+  late Future<({TradeJournalHome home, Map<String, dynamic> analytics})>
+  _request;
+  var _period = 'month';
 
   @override
   void initState() {
@@ -37,195 +40,294 @@ class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
     _reload();
   }
 
-  void _reload() => _request = _repository.home();
+  void _reload({bool forceRefresh = false}) {
+    _request = _load(forceRefresh: forceRefresh);
+  }
+
+  Future<({TradeJournalHome home, Map<String, dynamic> analytics})> _load({
+    bool forceRefresh = false,
+  }) async {
+    final values = await Future.wait<Object>([
+      _repository.home(forceRefresh: forceRefresh),
+      _repository.analytics(period: _period, forceRefresh: forceRefresh),
+    ]);
+    return (
+      home: values[0] as TradeJournalHome,
+      analytics: values[1] as Map<String, dynamic>,
+    );
+  }
 
   @override
   Widget build(BuildContext context) => JournalScaffold(
     title: 'Trade Journal',
     subtitle: 'Track. Learn. Improve.',
+    accentLastTitleWord: true,
     actions: [
-      IconButton(
+      _headerAction(
+        key: const ValueKey('journal-add-trade'),
         tooltip: 'Create trade plan',
         onPressed: _create,
-        icon: const Icon(
-          Icons.add_circle_rounded,
-          color: TradeXColors.goldBright,
-        ),
+        icon: Icons.add_rounded,
+        gold: true,
       ),
-      IconButton(
+      _headerAction(
+        key: const ValueKey('journal-refresh'),
         tooltip: 'Refresh journal',
-        onPressed: () => setState(_reload),
-        icon: const Icon(Icons.refresh_rounded),
+        onPressed: () => setState(() => _reload(forceRefresh: true)),
+        icon: Icons.refresh_rounded,
       ),
+      const SizedBox(width: 7),
     ],
-    body: FutureBuilder<TradeJournalHome>(
-      future: _request,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const JournalLoading();
-        }
-        if (snapshot.hasError || snapshot.data == null) {
-          return JournalError(
-            error: snapshot.error,
-            onRetry: () => setState(_reload),
-          );
-        }
-        return _content(snapshot.data!);
-      },
-    ),
+    body:
+        FutureBuilder<
+          ({TradeJournalHome home, Map<String, dynamic> analytics})
+        >(
+          future: _request,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const JournalLoading();
+            }
+            if (snapshot.hasError || snapshot.data == null) {
+              return JournalError(
+                error: snapshot.error,
+                onRetry: () => setState(() => _reload(forceRefresh: true)),
+              );
+            }
+            return _content(snapshot.data!.home, snapshot.data!.analytics);
+          },
+        ),
   );
 
-  Widget _content(TradeJournalHome home) {
-    final month = home.month;
-    final pnl = journalNumber(month['net_pnl']);
-    final currency = month['pnl_currency']?.toString();
-    final curve = <double>[];
-    var running = 0.0;
-    for (final entry in home.recent.reversed) {
-      final net = entry.netPnl;
-      if (net != null) {
-        running += net;
-        curve.add(running);
-      }
-    }
+  Widget _content(TradeJournalHome home, Map<String, dynamic> analytics) {
+    final analyticsOverview = journalMap(analytics['overview']);
+    final summary = analyticsOverview.isEmpty
+        ? _homeSummary(home)
+        : analyticsOverview;
+    final discipline = <String, dynamic>{
+      'plan_followed_percent': summary['plan_followed_percent'],
+      ...journalMap(analytics['discipline']),
+    };
+    final curveData = _equityCurve(analytics, home);
+    final reviewed = _reviewedEntries(home.recent);
+    final recent =
+        home.recent
+            .where(
+              (entry) => const {
+                'planned',
+                'open',
+                'closed',
+              }.contains(entry.status.toLowerCase()),
+            )
+            .toList(growable: false)
+          ..sort((a, b) => _entryTime(b).compareTo(_entryTime(a)));
     return RefreshIndicator(
       color: TradeXColors.goldBright,
-      onRefresh: () async => setState(_reload),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-        children: [
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 1.48,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            children: [
-              JournalMetricCard(
-                label: 'Net P&L',
-                value: formatMoney(pnl, currency),
-                icon: Icons.candlestick_chart_rounded,
-                accent: (pnl ?? 0) >= 0 ? journalGreen : journalRed,
-                caption: 'This month',
-              ),
-              JournalMetricCard(
-                label: 'Win Rate',
-                value: formatPercent(month['win_rate']),
-                icon: Icons.track_changes_rounded,
-                accent: journalGreen,
-                caption:
-                    '${month['wins'] ?? 0} wins · ${month['losses'] ?? 0} losses',
-              ),
-              JournalMetricCard(
-                label: 'Open Trades',
-                value: '${month['open'] ?? 0}',
-                icon: Icons.receipt_long_rounded,
-                accent: journalBlue,
-                caption: '${month['total_executed'] ?? 0} executed',
-              ),
-              JournalMetricCard(
-                label: 'Plan Followed',
-                value: formatPercent(month['plan_followed_percent']),
-                icon: Icons.verified_user_outlined,
-                caption: 'Discipline score',
-              ),
-            ],
+      onRefresh: () async => setState(() => _reload(forceRefresh: true)),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF020B1B), Color(0xFF031326)],
           ),
-          const SizedBox(height: 14),
-          JournalPanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Recent Equity Curve',
-                  style: TextStyle(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 10),
-                JournalMiniChart(values: curve, height: 125),
-              ],
+        ),
+        child: ListView(
+          key: const ValueKey('journal-dashboard-scroll'),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+          children: [
+            JournalDashboardMetricGrid(
+              summary: summary,
+              discipline: discipline,
+              curve: curveData.values,
+              period: _period,
+              onPeriodChanged: _selectPeriod,
+              reviewedCount: reviewed.length,
+              followedCount: reviewed
+                  .where(
+                    (entry) =>
+                        entry.review['followed_plan']?.toString() == 'yes',
+                  )
+                  .length,
             ),
-          ),
-          const SizedBox(height: 14),
-          _quickActions(),
-          const SizedBox(height: 20),
-          JournalSectionTitle(
-            title: 'Recent Trades',
-            subtitle: 'Latest journal activity',
-            action: 'View all',
-            onAction: _allTrades,
-          ),
-          const SizedBox(height: 9),
-          if (home.recent.isEmpty)
-            JournalPanel(
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.menu_book_outlined,
-                    color: TradeXColors.secondaryText,
-                    size: 34,
-                  ),
-                  const SizedBox(height: 9),
-                  const Text('Your first trade plan starts here.'),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: _create,
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text('Plan a Trade'),
-                  ),
-                ],
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 235,
+              child: EquityCurveCard(
+                values: curveData.values,
+                currency: curveData.currency,
+                period: _period,
+                onPeriodChanged: _selectPeriod,
               ),
-            )
-          else
-            for (final entry in home.recent.take(5)) ...[
-              JournalEntryCard(entry: entry, onTap: () => _details(entry)),
-              const SizedBox(height: 9),
-            ],
-        ],
+            ),
+            const SizedBox(height: 12),
+            _quickActions(),
+            const SizedBox(height: 20),
+            RecentTradesSection(
+              entries: recent.take(5).toList(growable: false),
+              onViewAll: _allTrades,
+              onCreate: _create,
+              onEntryTap: _details,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _quickActions() => Row(
-    children: [
-      Expanded(
-        child: _QuickAction(
-          icon: Icons.list_alt_rounded,
-          label: 'All Trades',
-          onTap: _allTrades,
+  Widget _quickActions() => JournalQuickActions(
+    actions: [
+      JournalQuickActionData(
+        icon: Icons.list_alt_rounded,
+        label: 'All Trades',
+        subtitle: 'View your trading history',
+        onTap: _allTrades,
+      ),
+      JournalQuickActionData(
+        icon: Icons.analytics_outlined,
+        label: 'Analytics',
+        subtitle: 'Detailed performance',
+        onTap: () =>
+            _push(TradeJournalAnalyticsScreen(repository: _repository)),
+      ),
+      JournalQuickActionData(
+        icon: Icons.fact_check_outlined,
+        label: 'Review',
+        subtitle: 'Lessons & insights',
+        onTap: () => _push(
+          TradeJournalReviewScreen(repository: _repository, type: 'weekly'),
         ),
       ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: _QuickAction(
-          icon: Icons.analytics_outlined,
-          label: 'Analytics',
-          onTap: () =>
-              _push(TradeJournalAnalyticsScreen(repository: _repository)),
-        ),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: _QuickAction(
-          icon: Icons.fact_check_outlined,
-          label: 'Weekly',
-          onTap: () => _push(
-            TradeJournalReviewScreen(repository: _repository, type: 'weekly'),
-          ),
-        ),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: _QuickAction(
-          icon: Icons.calendar_month_outlined,
-          label: 'Monthly',
-          onTap: () => _push(
-            TradeJournalReviewScreen(repository: _repository, type: 'monthly'),
-          ),
-        ),
+      JournalQuickActionData(
+        icon: Icons.calendar_month_outlined,
+        label: 'Calendar',
+        subtitle: 'Current month activity',
+        onTap: _calendar,
       ),
     ],
   );
+
+  Widget _headerAction({
+    required Key key,
+    required String tooltip,
+    required VoidCallback onPressed,
+    required IconData icon,
+    bool gold = false,
+  }) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 7),
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        color: gold ? TradeXColors.goldBright : const Color(0xFF09213D),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: gold ? TradeXColors.goldBright : const Color(0xFF225186),
+        ),
+        boxShadow: gold
+            ? [
+                BoxShadow(
+                  color: TradeXColors.goldBright.withValues(alpha: .22),
+                  blurRadius: 12,
+                ),
+              ]
+            : null,
+      ),
+      child: IconButton(
+        key: key,
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon, color: gold ? Colors.black : Colors.white, size: 22),
+      ),
+    ),
+  );
+
+  void _selectPeriod(String value) {
+    if (_period == value) return;
+    setState(() {
+      _period = value;
+      _reload();
+    });
+  }
+
+  Map<String, dynamic> _homeSummary(TradeJournalHome home) => switch (_period) {
+    'today' => home.today,
+    'week' => home.week,
+    _ => home.month,
+  };
+
+  ({List<double> values, String? currency}) _equityCurve(
+    Map<String, dynamic> analytics,
+    TradeJournalHome home,
+  ) {
+    final performance = journalMap(analytics['performance']);
+    final curves = journalMaps(performance['equity_curves']);
+    if (curves.isNotEmpty) {
+      final overviewCurrency = journalMap(
+        analytics['overview'],
+      )['pnl_currency']?.toString();
+      final selected = curves.firstWhere(
+        (curve) => curve['currency']?.toString() == overviewCurrency,
+        orElse: () => curves.first,
+      );
+      final values = journalMaps(selected['points'])
+          .map((point) => journalNumber(point['cumulative_pnl']))
+          .whereType<double>()
+          .toList(growable: false);
+      return (values: values, currency: selected['currency']?.toString());
+    }
+
+    final eligible =
+        _periodEntries(home.recent)
+            .where((entry) => entry.status.toLowerCase() == 'closed')
+            .where((entry) => entry.netPnl != null)
+            .toList(growable: false)
+          ..sort((a, b) => _entryTime(a).compareTo(_entryTime(b)));
+    final currencies = eligible
+        .map((entry) => entry.pnlCurrency)
+        .whereType<String>()
+        .toList(growable: false);
+    final currency = currencies.isEmpty ? null : currencies.first;
+    var running = 0.0;
+    final values = <double>[];
+    for (final entry in eligible.where(
+      (entry) => currency == null || entry.pnlCurrency == currency,
+    )) {
+      running += entry.netPnl!;
+      values.add(running);
+    }
+    return (values: values, currency: currency);
+  }
+
+  List<TradeJournalEntry> _reviewedEntries(List<TradeJournalEntry> entries) =>
+      _periodEntries(entries)
+          .where((entry) => entry.status.toLowerCase() == 'closed')
+          .where((entry) {
+            final value = entry.review['followed_plan']?.toString();
+            return const {'yes', 'no', 'partially'}.contains(value);
+          })
+          .toList(growable: false);
+
+  Iterable<TradeJournalEntry> _periodEntries(List<TradeJournalEntry> entries) {
+    final now = DateTime.now();
+    return entries.where((entry) {
+      final time = _entryTime(entry).toLocal();
+      return switch (_period) {
+        'today' =>
+          time.year == now.year &&
+              time.month == now.month &&
+              time.day == now.day,
+        'week' => !time.isBefore(
+          DateTime(
+            now.year,
+            now.month,
+            now.day,
+          ).subtract(Duration(days: now.weekday - 1)),
+        ),
+        _ => time.year == now.year && time.month == now.month,
+      };
+    });
+  }
+
+  DateTime _entryTime(TradeJournalEntry entry) =>
+      entry.openedAt ?? entry.tradeAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 
   Future<void> _create() async {
     final value = await Navigator.of(context).push<TradeJournalEntry>(
@@ -241,6 +343,16 @@ class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
     if (mounted) setState(_reload);
   }
 
+  Future<void> _calendar() => _push(
+    TradeJournalEntriesScreen(
+      repository: _repository,
+      initialFilters: {
+        'from': _date(DateTime(DateTime.now().year, DateTime.now().month)),
+        'to': _date(DateTime.now()),
+      },
+    ),
+  );
+
   Future<void> _details(TradeJournalEntry entry) async {
     await _push(
       TradeJournalDetailsScreen(repository: _repository, entry: entry),
@@ -251,6 +363,11 @@ class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
   Future<void> _push(Widget screen) =>
       Navigator.of(context)
           .push(MaterialPageRoute<void>(builder: (_) => screen));
+
+  String _date(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-'
+      '${value.month.toString().padLeft(2, '0')}-'
+      '${value.day.toString().padLeft(2, '0')}';
 }
 
 class TradeJournalEntriesScreen extends StatefulWidget {
@@ -289,7 +406,8 @@ class _TradeJournalEntriesScreenState extends State<TradeJournalEntriesScreen> {
     super.dispose();
   }
 
-  void _reload() => _request = widget.repository.entries(filters: _filters);
+  void _reload({bool forceRefresh = false}) => _request = widget.repository
+      .entries(filters: _filters, forceRefresh: forceRefresh);
 
   @override
   Widget build(BuildContext context) => JournalScaffold(
@@ -336,7 +454,7 @@ class _TradeJournalEntriesScreenState extends State<TradeJournalEntriesScreen> {
               if (snapshot.hasError || snapshot.data == null) {
                 return JournalError(
                   error: snapshot.error,
-                  onRetry: () => setState(_reload),
+                  onRetry: () => setState(() => _reload(forceRefresh: true)),
                 );
               }
               return _list(snapshot.data!);
@@ -380,7 +498,7 @@ class _TradeJournalEntriesScreenState extends State<TradeJournalEntriesScreen> {
 
   Widget _list(TradeJournalPage page) => RefreshIndicator(
     color: TradeXColors.goldBright,
-    onRefresh: () async => setState(_reload),
+    onRefresh: () async => setState(() => _reload(forceRefresh: true)),
     child: page.entries.isEmpty
         ? ListView(
             children: const [
@@ -525,7 +643,9 @@ class _TradeJournalFiltersScreenState extends State<TradeJournalFiltersScreen> {
         if (snapshot.hasError || snapshot.data == null) {
           return JournalError(
             error: snapshot.error,
-            onRetry: () => setState(() => _meta = widget.repository.meta()),
+            onRetry: () => setState(
+              () => _meta = widget.repository.meta(forceRefresh: true),
+            ),
           );
         }
         return _form(snapshot.data!);
@@ -732,7 +852,8 @@ class _TradeJournalDetailsScreenState extends State<TradeJournalDetailsScreen> {
     _reload();
   }
 
-  void _reload() => _request = widget.repository.entry(_currentEntry.uuid);
+  void _reload({bool forceRefresh = false}) => _request = widget.repository
+      .entry(_currentEntry.uuid, forceRefresh: forceRefresh);
 
   void _showSavedEntry(TradeJournalEntry entry) {
     setState(() {
@@ -764,7 +885,7 @@ class _TradeJournalDetailsScreenState extends State<TradeJournalDetailsScreen> {
         if (snapshot.hasError || snapshot.data == null) {
           return JournalError(
             error: snapshot.error,
-            onRetry: () => setState(_reload),
+            onRetry: () => setState(() => _reload(forceRefresh: true)),
           );
         }
         return _content(snapshot.data!);
@@ -1247,45 +1368,4 @@ class _TradePlanSummary extends StatelessWidget {
         final entryType? => titleCase(entryType),
         null => null,
       };
-}
-
-class _QuickAction extends StatelessWidget {
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Ink(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-        decoration: BoxDecoration(
-          color: journalPanel,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: .07)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: TradeXColors.goldBright, size: 21),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }

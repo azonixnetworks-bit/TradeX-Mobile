@@ -19,6 +19,10 @@ class TradeJournalRepository {
   final TradeXApiClient _apiClient;
   final TradeJournalLivePriceLoader _livePriceLoader;
   String? _timezone;
+  var _homeNeedsRefresh = false;
+  var _entriesNeedRefresh = false;
+  var _analyticsNeedsRefresh = false;
+  final _entriesNeedingRefresh = <String>{};
 
   Future<String> timezone() async {
     final cached = _timezone;
@@ -31,16 +35,22 @@ class TradeJournalRepository {
     return _timezone!;
   }
 
-  Future<TradeJournalHome> home() async {
+  Future<TradeJournalHome> home({bool forceRefresh = false}) async {
     final zone = Uri.encodeQueryComponent(await timezone());
-    final response = await _apiClient.getJson(
-      '/api/v1/trade-journal/home?timezone=$zone',
-    );
+    final path = '/api/v1/trade-journal/home?timezone=$zone';
+    final shouldRefresh = forceRefresh || _homeNeedsRefresh;
+    final response = await _journalGet(path, forceRefresh: shouldRefresh);
+    if (shouldRefresh && !_isOfflineResponse(response)) {
+      _homeNeedsRefresh = false;
+    }
     return TradeJournalHome.fromJson(journalData(response));
   }
 
-  Future<TradeJournalMeta> meta() async {
-    final response = await _apiClient.getJson('/api/v1/trade-journal/meta');
+  Future<TradeJournalMeta> meta({bool forceRefresh = false}) async {
+    final response = await _journalGet(
+      '/api/v1/trade-journal/meta',
+      forceRefresh: forceRefresh,
+    );
     return TradeJournalMeta.fromJson(journalData(response));
   }
 
@@ -111,6 +121,7 @@ class TradeJournalRepository {
   Future<TradeJournalPage> entries({
     Map<String, String> filters = const {},
     int page = 1,
+    bool forceRefresh = false,
   }) async {
     final query = <String, String>{
       'timezone': await timezone(),
@@ -120,21 +131,37 @@ class TradeJournalRepository {
         if (entry.value.trim().isNotEmpty) entry.key: entry.value.trim(),
     };
     final uri = Uri(path: '/api/v1/trade-journal', queryParameters: query);
-    final response = await _apiClient.getJson(uri.toString());
+    final shouldRefresh = forceRefresh || _entriesNeedRefresh;
+    final response = await _journalGet(
+      uri.toString(),
+      forceRefresh: shouldRefresh,
+    );
+    if (shouldRefresh && !_isOfflineResponse(response)) {
+      _entriesNeedRefresh = false;
+    }
     return TradeJournalPage.fromJson(journalData(response));
   }
 
-  Future<TradeJournalEntry> entry(String uuid) async {
+  Future<TradeJournalEntry> entry(
+    String uuid, {
+    bool forceRefresh = false,
+  }) async {
     final zone = Uri.encodeQueryComponent(await timezone());
-    final response = await _apiClient.getJson(
-      '/api/v1/trade-journal/$uuid?timezone=$zone',
-    );
+    final path = '/api/v1/trade-journal/$uuid?timezone=$zone';
+    final shouldRefresh = forceRefresh || _entriesNeedingRefresh.contains(uuid);
+    final response = await _journalGet(path, forceRefresh: shouldRefresh);
+    if (shouldRefresh && !_isOfflineResponse(response)) {
+      _entriesNeedingRefresh.remove(uuid);
+    }
     return TradeJournalEntry.fromJson(journalData(response));
   }
 
   Future<TradeJournalEntry> create(Map<String, dynamic> body) async {
     final response = await _apiClient.postJson('/api/v1/trade-journal', body);
-    return TradeJournalEntry.fromJson(journalData(response));
+    final entry = TradeJournalEntry.fromJson(journalData(response));
+    await _cacheSavedEntry(response, entry.uuid);
+    _markAggregatesDirty();
+    return entry;
   }
 
   Future<TradeJournalEntry> update(
@@ -145,7 +172,10 @@ class TradeJournalRepository {
       '/api/v1/trade-journal/$uuid',
       body,
     );
-    return TradeJournalEntry.fromJson(journalData(response));
+    final entry = TradeJournalEntry.fromJson(journalData(response));
+    await _cacheSavedEntry(response, entry.uuid);
+    _markAggregatesDirty();
+    return entry;
   }
 
   Future<TradeJournalEntry> open(String uuid, Map<String, dynamic> body) async {
@@ -153,7 +183,10 @@ class TradeJournalRepository {
       '/api/v1/trade-journal/$uuid/open',
       body,
     );
-    return TradeJournalEntry.fromJson(journalData(response));
+    final entry = TradeJournalEntry.fromJson(journalData(response));
+    await _cacheSavedEntry(response, entry.uuid);
+    _markAggregatesDirty();
+    return entry;
   }
 
   Future<TradeJournalEntry> close(
@@ -164,22 +197,31 @@ class TradeJournalRepository {
       '/api/v1/trade-journal/$uuid/close',
       body,
     );
-    return TradeJournalEntry.fromJson(journalData(response));
+    final entry = TradeJournalEntry.fromJson(journalData(response));
+    await _cacheSavedEntry(response, entry.uuid);
+    _markAggregatesDirty();
+    return entry;
   }
 
   Future<void> cancel(String uuid, {String? reason}) async {
     await _apiClient.postJson('/api/v1/trade-journal/$uuid/cancel', {
       if (reason?.trim().isNotEmpty == true) 'reason': reason!.trim(),
     });
+    _entriesNeedingRefresh.add(uuid);
+    _markAggregatesDirty();
   }
 
-  Future<void> delete(String uuid) =>
-      _apiClient.deleteJson('/api/v1/trade-journal/$uuid');
+  Future<void> delete(String uuid) async {
+    await _apiClient.deleteJson('/api/v1/trade-journal/$uuid');
+    _entriesNeedingRefresh.add(uuid);
+    _markAggregatesDirty();
+  }
 
   Future<Map<String, dynamic>> analytics({
     String period = 'month',
     DateTime? from,
     DateTime? to,
+    bool forceRefresh = false,
   }) async {
     final query = <String, String>{
       'timezone': await timezone(),
@@ -191,10 +233,22 @@ class TradeJournalRepository {
       path: '/api/v1/trade-journal/analytics',
       queryParameters: query,
     );
-    return journalData(await _apiClient.getJson(uri.toString()));
+    final shouldRefresh = forceRefresh || _analyticsNeedsRefresh;
+    final response = await _journalGet(
+      uri.toString(),
+      forceRefresh: shouldRefresh,
+    );
+    if (shouldRefresh && !_isOfflineResponse(response)) {
+      _analyticsNeedsRefresh = false;
+    }
+    return journalData(response);
   }
 
-  Future<Map<String, dynamic>> review(String type, {DateTime? date}) async {
+  Future<Map<String, dynamic>> review(
+    String type, {
+    DateTime? date,
+    bool forceRefresh = false,
+  }) async {
     final query = <String, String>{
       'timezone': await timezone(),
       if (date != null) 'date': _date(date),
@@ -203,7 +257,9 @@ class TradeJournalRepository {
       path: '/api/v1/trade-journal/reviews/$type',
       queryParameters: query,
     );
-    return journalData(await _apiClient.getJson(uri.toString()));
+    return journalData(
+      await _journalGet(uri.toString(), forceRefresh: forceRefresh),
+    );
   }
 
   Future<Map<String, dynamic>> saveReview(
@@ -219,7 +275,9 @@ class TradeJournalRepository {
       path: '/api/v1/trade-journal/reviews/$type',
       queryParameters: query,
     );
-    return journalData(await _apiClient.putJson(uri.toString(), body));
+    final response = await _apiClient.putJson(uri.toString(), body);
+    await _apiClient.cacheJson(uri.toString(), response);
+    return journalData(response);
   }
 
   Future<void> uploadScreenshot(
@@ -232,13 +290,47 @@ class TradeJournalRepository {
       const {},
       {'image': filePath},
     );
+    _entriesNeedingRefresh.add(uuid);
   }
 
   Future<Uint8List> screenshot(String uuid, String type) =>
       _apiClient.getBytes('/api/v1/trade-journal/$uuid/screenshots/$type');
 
-  Future<void> deleteScreenshot(String uuid, String type) =>
-      _apiClient.deleteJson('/api/v1/trade-journal/$uuid/screenshots/$type');
+  Future<void> deleteScreenshot(String uuid, String type) async {
+    await _apiClient.deleteJson(
+      '/api/v1/trade-journal/$uuid/screenshots/$type',
+    );
+    _entriesNeedingRefresh.add(uuid);
+  }
+
+  Future<Map<String, dynamic>> _journalGet(
+    String path, {
+    bool forceRefresh = false,
+  }) => forceRefresh
+      ? _apiClient.getJson(path)
+      : _apiClient.getJsonCacheFirst(path);
+
+  bool _isOfflineResponse(Map<String, dynamic> response) =>
+      response['_offline_cache'] is Map;
+
+  Future<void> _cacheSavedEntry(
+    Map<String, dynamic> response,
+    String uuid,
+  ) async {
+    if (uuid.trim().isEmpty) return;
+    final zone = Uri.encodeQueryComponent(await timezone());
+    await _apiClient.cacheJson(
+      '/api/v1/trade-journal/$uuid?timezone=$zone',
+      response,
+    );
+    _entriesNeedingRefresh.remove(uuid);
+  }
+
+  void _markAggregatesDirty() {
+    _homeNeedsRefresh = true;
+    _entriesNeedRefresh = true;
+    _analyticsNeedsRefresh = true;
+  }
 
   String _date(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-'

@@ -1,16 +1,20 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tradex_mobile/core/auth/secure_session_store.dart';
 import 'package:tradex_mobile/core/device/device_identity.dart';
+import 'package:tradex_mobile/core/network/api_exception.dart';
 import 'package:tradex_mobile/core/network/tradex_api_client.dart';
 import 'package:tradex_mobile/core/theme/tradex_theme.dart';
 import 'package:tradex_mobile/features/journal/data/trade_journal_models.dart';
 import 'package:tradex_mobile/features/journal/data/trade_journal_repository.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_home_screen.dart';
+import 'package:tradex_mobile/features/journal/presentation/trade_journal_close_sections.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_insights_screens.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_risk_psychology_sections.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_strategy_section.dart';
@@ -18,6 +22,8 @@ import 'package:tradex_mobile/features/journal/presentation/trade_journal_trade_
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
   test(
     'selected crypto live price falls back from Laravel to Binance',
@@ -122,7 +128,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Net P&L'), findsOneWidget);
-    expect(find.text('Win Rate'), findsOneWidget);
+    expect(find.text('Win Rate'), findsWidgets);
     await tester.scrollUntilVisible(
       find.text('All Trades'),
       180,
@@ -137,6 +143,134 @@ void main() {
       isTrue,
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('trade journal dashboard binds API data and opens exact trade', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final api = _JournalApiClient(store, DeviceIdentity(store));
+    final repository = TradeJournalRepository(api, 'UTC');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalHomeScreen(apiClient: api, repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('journal-net-pnl')), findsOneWidget);
+    expect(find.text('+1284.50 USD'), findsOneWidget);
+    expect(find.byKey(const ValueKey('journal-win-rate')), findsOneWidget);
+    expect(find.text('66.7%'), findsWidgets);
+    expect(find.byKey(const ValueKey('journal-open-trades')), findsOneWidget);
+    expect(find.byKey(const ValueKey('journal-equity-curve')), findsOneWidget);
+
+    final recent = find.byKey(const ValueKey('journal-recent-entry-1'));
+    await tester.scrollUntilVisible(
+      recent,
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('BTCUSDT'), findsOneWidget);
+    expect(find.text('68000'), findsOneWidget);
+    expect(find.text('+200.00 USD'), findsOneWidget);
+    tester
+        .widget<InkWell>(
+          find.descendant(of: recent, matching: find.byType(InkWell)),
+        )
+        .onTap!();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Trade Details'), findsOneWidget);
+    expect(
+      api.paths.any((path) => path.startsWith('/api/v1/trade-journal/entry-1')),
+      isTrue,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('trade journal period filter refreshes analytics', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final api = _JournalApiClient(store, DeviceIdentity(store));
+    final repository = TradeJournalRepository(api, 'UTC');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalHomeScreen(apiClient: api, repository: repository),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byKey(const ValueKey('journal-net-pnl')), findsOneWidget);
+    expect(
+      api.paths.any(
+        (path) =>
+            path.contains('/trade-journal/analytics?') &&
+            path.contains('period=month'),
+      ),
+      isTrue,
+    );
+
+    await tester.tap(find.byType(DropdownButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('This Week').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      api.paths.any(
+        (path) =>
+            path.contains('/trade-journal/analytics?') &&
+            path.contains('period=week'),
+      ),
+      isTrue,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('trade journal dashboard remains responsive at 320 pixels', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final api = _JournalApiClient(store, DeviceIdentity(store));
+    final repository = TradeJournalRepository(api, 'UTC');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalHomeScreen(apiClient: api, repository: repository),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byKey(const ValueKey('journal-net-pnl')), findsOneWidget);
+    final scrollable = tester.state<ScrollableState>(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('journal-dashboard-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    final position = scrollable.position;
+    for (final fraction in <double>[.25, .5, .75, 1]) {
+      position.jumpTo(position.maxScrollExtent * fraction);
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('trade details decodes the structured strategy plan', (
@@ -391,11 +525,69 @@ void main() {
       tester.widget<TextFormField>(takeProfit).controller?.text,
       '67420.50',
     );
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('risk-planned-entry'))).dy,
+      lessThan(
+        tester.getTopLeft(find.byKey(const ValueKey('risk-stop-loss'))).dy,
+      ),
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('risk-stop-loss'))).dy,
+      lessThan(
+        tester.getTopLeft(find.byKey(const ValueKey('risk-take-profit'))).dy,
+      ),
+    );
     expect(find.text('1 : 5.00'), findsOneWidget);
 
     await tester.enterText(takeProfit, '67420.30');
     await tester.pump();
     expect(find.text('1 : 3.00'), findsOneWidget);
+
+    final sellEntryType = find.byKey(const ValueKey('strategy-entry-sell'));
+    for (
+      var attempt = 0;
+      attempt < 30 && sellEntryType.evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.drag(scrollable, const Offset(0, 500));
+      await tester.pumpAndSettle();
+    }
+    expect(sellEntryType, findsOneWidget);
+    final planPosition = tester.state<ScrollableState>(scrollable).position;
+    planPosition.jumpTo(
+      (planPosition.pixels - 180)
+          .clamp(planPosition.minScrollExtent, planPosition.maxScrollExtent)
+          .toDouble(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(sellEntryType);
+    await tester.pump();
+    for (
+      var attempt = 0;
+      attempt < 30 && priceRisk.evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.drag(scrollable, const Offset(0, -500));
+      await tester.pumpAndSettle();
+    }
+    expect(priceRisk, findsOneWidget);
+    final sellStopLoss = find.descendant(
+      of: find.byKey(const ValueKey('risk-stop-loss')),
+      matching: find.byType(TextFormField),
+    );
+    final sellTakeProfit = find.descendant(
+      of: find.byKey(const ValueKey('risk-take-profit')),
+      matching: find.byType(TextFormField),
+    );
+    expect(
+      tester.widget<TextFormField>(sellStopLoss).controller?.text,
+      '67420.10',
+    );
+    expect(
+      tester.widget<TextFormField>(sellTakeProfit).controller?.text,
+      '67419.50',
+    );
+    expect(find.text('1 : 5.00'), findsOneWidget);
 
     expect(tester.takeException(), isNull);
   });
@@ -959,6 +1151,317 @@ void main() {
     await tester.pump();
     expect(find.text('1 : 5.00'), findsOneWidget);
   });
+
+  testWidgets('close trade renders the exact selected trade and premium form', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final api = _CloseJournalApiClient(
+      store,
+      DeviceIdentity(store),
+      symbol: 'XAUUSD',
+      market: 'commodities',
+      direction: 'sell',
+    );
+    final repository = TradeJournalRepository(api, 'UTC');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalCloseScreen(
+          repository: repository,
+          entry: TradeJournalEntry.fromJson(api.openEntry),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('XAUUSD'), findsOneWidget);
+    expect(find.text('XAU'), findsOneWidget);
+    expect(find.text('Commodities'), findsOneWidget);
+    expect(find.text('Sell'), findsOneWidget);
+    expect(find.text('OPEN'), findsOneWidget);
+    expect(
+      api.paths.any(
+        (path) => path.startsWith('/api/v1/trade-journal/entry-1?'),
+      ),
+      isTrue,
+    );
+
+    final scrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('close-trade-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('close-save-button')),
+      500,
+      scrollable: scrollable,
+    );
+
+    expect(find.byType(MistakeSelectionChip), findsNWidgets(19));
+    expect(find.byType(CloseTradeReflectionField), findsNWidgets(4));
+    expect(find.byType(CloseTradeStarRating), findsOneWidget);
+    expect(find.text('Close & Save Review'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'close trade fills live exit price and uses compact P&L and emoji fields',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      SharedPreferences.setMockInitialValues({});
+      final store = SecureSessionStore();
+      final api = _CloseJournalApiClient(store, DeviceIdentity(store));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: TradeXTheme.dark,
+          home: TradeJournalCloseScreen(
+            repository: TradeJournalRepository(api, 'UTC'),
+            entry: TradeJournalEntry.fromJson(api.openEntry),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final exitPrice = tester.widget<TextFormField>(
+        find.descendant(
+          of: find.byKey(const ValueKey('close-exit-price')),
+          matching: find.byType(TextFormField),
+        ),
+      );
+      expect(exitPrice.controller?.text, '67420.00');
+      expect(find.text('Live price · 67420.00'), findsOneWidget);
+      expect(find.byKey(const ValueKey('close-gross-pnl')), findsOneWidget);
+      expect(find.byKey(const ValueKey('close-pnl-currency')), findsOneWidget);
+      expect(find.byKey(const ValueKey('close-fees')), findsNothing);
+      expect(find.byKey(const ValueKey('close-pnl-percent')), findsNothing);
+
+      final scrollable = find
+          .descendant(
+            of: find.byKey(const ValueKey('close-trade-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('close-emotion-after-option-satisfied')),
+        420,
+        scrollable: scrollable,
+      );
+      expect(find.text('Emotion After'), findsOneWidget);
+      expect(find.text('😊'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'close review preserves multi-select values and posts real UUID',
+    (tester) async {
+      tester.view.physicalSize = const Size(600, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      SharedPreferences.setMockInitialValues({});
+      final store = SecureSessionStore();
+      final api = _CloseJournalApiClient(store, DeviceIdentity(store));
+      final repository = TradeJournalRepository(api, 'UTC');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: TradeXTheme.dark,
+          home: TradeJournalCloseScreen(
+            repository: repository,
+            entry: TradeJournalEntry.fromJson(api.openEntry),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey('close-exit-price')),
+          matching: find.byType(TextFormField),
+        ),
+        '2415.125',
+      );
+      await tester.tap(find.byKey(const ValueKey('close-result-loss')));
+      await tester.pump();
+
+      final scrollable = find
+          .descendant(
+            of: find.byKey(const ValueKey('close-trade-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('close-emotion-after-option-satisfied')),
+        420,
+        scrollable: scrollable,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('close-emotion-after-option-satisfied')),
+      );
+      await tester.pump();
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('close-mistake-early_entry')),
+        420,
+        scrollable: scrollable,
+      );
+      await tester.tap(find.byKey(const ValueKey('close-mistake-early_entry')));
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('close-mistake-overtrading')),
+      );
+      await tester.tap(find.byKey(const ValueKey('close-mistake-overtrading')));
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('close-mistake-early_entry')),
+      );
+      await tester.tap(find.byKey(const ValueKey('close-mistake-early_entry')));
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('close-went-wrong')),
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey('close-went-wrong')),
+          matching: find.byType(TextFormField),
+        ),
+        'x' * 301,
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('close-rating-4')));
+      await tester.tap(find.byKey(const ValueKey('close-rating-4')));
+      await tester.pump();
+
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('close-save-button')),
+        420,
+        scrollable: scrollable,
+      );
+      await tester.tap(find.byKey(const ValueKey('close-save-button')));
+      await tester.pumpAndSettle();
+
+      expect(api.closeCalls, 1);
+      expect(api.lastPostedPath, '/api/v1/trade-journal/entry-1/close');
+      expect(api.lastPostedBody?['exit_price'], 2415.125);
+      expect(api.lastPostedBody?['result'], 'loss');
+      expect(api.lastPostedBody?['emotion_after'], 'satisfied');
+      expect(api.lastPostedBody?['mistake_tags'], ['overtrading']);
+      expect((api.lastPostedBody?['went_wrong'] as String).length, 300);
+      expect(api.lastPostedBody?['rating'], 4);
+      expect(api.lastPostedBody?.containsKey('fees'), isFalse);
+      expect(api.lastPostedBody?.containsKey('pnl_percent'), isFalse);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('close trade blocks duplicate submissions and shows API errors', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(600, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final api = _CloseJournalApiClient(
+      store,
+      DeviceIdentity(store),
+      holdClose: true,
+    );
+    final repository = TradeJournalRepository(api, 'UTC');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalCloseScreen(
+          repository: repository,
+          entry: TradeJournalEntry.fromJson(api.openEntry),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('close-exit-price')),
+        matching: find.byType(TextFormField),
+      ),
+      '100',
+    );
+    final scrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('close-trade-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('close-save-button')),
+      420,
+      scrollable: scrollable,
+    );
+
+    final save = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('close-save-button')),
+    );
+    save.onPressed!();
+    save.onPressed!();
+    await tester.pump();
+    expect(api.closeCalls, 1);
+
+    api.closeCompleter!.completeError(
+      const ApiException(message: 'Unable to close this trade.'),
+    );
+    await tester.pumpAndSettle();
+    expect(api.closeCalls, 1);
+    expect(find.text('Unable to close this trade.'), findsOneWidget);
+  });
+
+  testWidgets('premium close trade screen does not overflow at 320 pixels', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final api = _CloseJournalApiClient(store, DeviceIdentity(store));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalCloseScreen(
+          repository: TradeJournalRepository(api, 'UTC'),
+          entry: TradeJournalEntry.fromJson(api.openEntry),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final scrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('close-trade-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    final position = tester.state<ScrollableState>(scrollable).position;
+    for (final offset in <double>[
+      position.maxScrollExtent * .25,
+      position.maxScrollExtent * .5,
+      position.maxScrollExtent * .75,
+      position.maxScrollExtent,
+    ]) {
+      position.jumpTo(offset);
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    }
+  });
 }
 
 class _JournalApiClient extends TradeXApiClient {
@@ -981,9 +1484,40 @@ class _JournalApiClient extends TradeXApiClient {
           'results': ['win', 'loss', 'breakeven', 'partial'],
           'timeframes': ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'W1'],
           'emotions_before': ['calm', 'confident', 'fear'],
-          'emotions_after': ['calm', 'satisfied', 'disappointed'],
+          'emotions_after': [
+            'calm',
+            'satisfied',
+            'relieved',
+            'disappointed',
+            'frustrated',
+            'angry',
+            'revenge_feeling',
+            'overconfident',
+            'neutral',
+            'other',
+          ],
           'followed_plan_after': ['yes', 'partially', 'no'],
-          'mistake_tags': ['early_entry', 'fomo', 'overtrading'],
+          'mistake_tags': [
+            'early_entry',
+            'late_entry',
+            'wrong_entry',
+            'moved_stop_loss',
+            'removed_stop_loss',
+            'early_exit',
+            'late_exit',
+            'overtrading',
+            'fomo',
+            'revenge_trade',
+            'oversized_position',
+            'ignored_plan',
+            'ignored_news',
+            'poor_risk_management',
+            'wrong_session',
+            'no_confirmation',
+            'emotional_entry',
+            'emotional_exit',
+            'other',
+          ],
         },
       };
     }
@@ -1177,6 +1711,107 @@ class _JournalApiClient extends TradeXApiClient {
       'can_cancel': true,
     },
   };
+}
+
+class _CloseJournalApiClient extends _JournalApiClient {
+  _CloseJournalApiClient(
+    super.sessionStore,
+    super.deviceIdentity, {
+    this.symbol = 'BTCUSDT',
+    this.market = 'crypto',
+    this.direction = 'buy',
+    this.holdClose = false,
+  });
+
+  final String symbol;
+  final String market;
+  final String direction;
+  final bool holdClose;
+  int closeCalls = 0;
+  Completer<Map<String, dynamic>>? closeCompleter;
+
+  Map<String, dynamic> get openEntry {
+    final value = Map<String, dynamic>.from(_JournalApiClient.entry());
+    value
+      ..['symbol'] = symbol
+      ..['market'] = market
+      ..['direction'] = direction
+      ..['status'] = 'open'
+      ..['opened_at'] = '2026-10-23T10:05:00+05:30'
+      ..['actions'] = {
+        'can_edit': true,
+        'can_open': false,
+        'can_close': true,
+        'can_cancel': false,
+      };
+    return value;
+  }
+
+  Map<String, dynamic> closedEntry([Map<String, dynamic>? body]) {
+    final submitted = body ?? lastPostedBody ?? const <String, dynamic>{};
+    final value = openEntry;
+    value
+      ..['status'] = 'closed'
+      ..['exit_at'] = '2026-10-24T12:00:00+05:30'
+      ..['result'] = submitted['result'] ?? 'win'
+      ..['prices'] = {
+        ...Map<String, dynamic>.from(value['prices'] as Map),
+        'exit_price': submitted['exit_price'],
+      }
+      ..['pnl'] = {
+        'gross': submitted['gross_pnl'],
+        'fees': submitted['fees'],
+        'net': submitted['gross_pnl'],
+        'currency': submitted['pnl_currency'],
+        'percent': submitted['pnl_percent'],
+      }
+      ..['review'] = {
+        'emotion_after': submitted['emotion_after'],
+        'emotion_after_other': submitted['emotion_after_other'],
+        'followed_plan': submitted['followed_plan_after'],
+        'mistake_tags': submitted['mistake_tags'] ?? const <String>[],
+        'went_well': submitted['went_well'],
+        'went_wrong': submitted['went_wrong'],
+        'lesson_learned': submitted['lesson_learned'],
+        'improvement_next_trade': submitted['improvement_next_trade'],
+        'rating': submitted['rating'],
+      }
+      ..['actions'] = {
+        'can_edit': false,
+        'can_open': false,
+        'can_close': false,
+        'can_cancel': false,
+      };
+    return value;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async {
+    if (RegExp(r'^/api/v1/trade-journal/entry-1\?').hasMatch(path)) {
+      paths.add(path);
+      return {'data': openEntry};
+    }
+    return super.getJson(path);
+  }
+
+  @override
+  Future<Map<String, dynamic>> postJson(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    if (path == '/api/v1/trade-journal/entry-1/close') {
+      paths.add(path);
+      lastPostedPath = path;
+      lastPostedBody = Map<String, dynamic>.from(body);
+      closeCalls++;
+      if (holdClose) {
+        closeCompleter ??= Completer<Map<String, dynamic>>();
+        return closeCompleter!.future;
+      }
+      return {'data': closedEntry(body)};
+    }
+    return super.postJson(path, body);
+  }
 }
 
 class _StructuredJournalApiClient extends _JournalApiClient {

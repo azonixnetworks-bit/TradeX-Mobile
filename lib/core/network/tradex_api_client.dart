@@ -120,6 +120,54 @@ class TradeXApiClient {
     retryAfterRefresh: true,
   );
 
+  /// Returns an account-scoped disk copy immediately when one exists.
+  ///
+  /// This is intentionally different from the normal network-first GET. It is
+  /// used by data-heavy screens that must open instantly and remain available
+  /// offline. A manual refresh can still call [getJson] to fetch the server.
+  Future<Map<String, dynamic>> getJsonCacheFirst(String path) async {
+    final session = await _sessionStore.readSession();
+    if (session != null && _isCacheable(path)) {
+      final entry = await _offlineStore.get(
+        accountKey: _accountKey(session),
+        requestKey: path,
+      );
+      if (entry != null) {
+        return <String, dynamic>{
+          ...entry.payload,
+          '_offline_cache': <String, dynamic>{
+            'cached_at': entry.cachedAt.toIso8601String(),
+            'expires_at': entry.expiresAt.toIso8601String(),
+            'is_stale': entry.isExpired,
+            'cache_first': true,
+          },
+        };
+      }
+    }
+
+    final response = await getJson(path);
+    if (session != null && _isCacheable(path)) {
+      await _offlineStore.put(
+        accountKey: _accountKey(session),
+        requestKey: path,
+        payload: response,
+        maxAge: _cacheDuration(path),
+      );
+    }
+    return response;
+  }
+
+  Future<void> cacheJson(String path, Map<String, dynamic> payload) async {
+    final session = await _sessionStore.readSession();
+    if (session == null || !_isCacheable(path)) return;
+    await _offlineStore.put(
+      accountKey: _accountKey(session),
+      requestKey: path,
+      payload: payload,
+      maxAge: _cacheDuration(path),
+    );
+  }
+
   Future<Uint8List> getBytes(String path) async {
     AuthSession? session = await _sessionStore.readSession();
     if (session == null) {
