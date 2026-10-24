@@ -187,7 +187,9 @@ void main() {
         (path) =>
             path.startsWith('/api/v1/screener/symbols?') &&
             path.contains('market=CRYPTO') &&
-            path.contains('search=BTC'),
+            path.contains('search=BTC') &&
+            path.contains('segment=SPOT') &&
+            path.contains('sort=VOLUME'),
       ),
       isTrue,
     );
@@ -203,11 +205,6 @@ void main() {
       findsNothing,
     );
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('trade-session-dropdown')),
-      180,
-      scrollable: find.byType(Scrollable).first,
-    );
     expect(find.byKey(const ValueKey('trade-time-picker')), findsOneWidget);
     expect(find.byKey(const ValueKey('trade-time-now')), findsOneWidget);
     expect(find.text('Broker'), findsNothing);
@@ -232,6 +229,38 @@ void main() {
     );
     useCurrentTime.onPressed!();
     await tester.pump();
+
+    final scrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('trade-plan-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    final priceRisk = find.byKey(const ValueKey('price-risk-plan-section'));
+    for (
+      var attempt = 0;
+      attempt < 30 && priceRisk.evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.drag(scrollable, const Offset(0, -500));
+      await tester.pumpAndSettle();
+    }
+    expect(priceRisk, findsOneWidget);
+    expect(find.text('Live Price · 67420.00'), findsOneWidget);
+    final useLivePrice = find.byKey(const ValueKey('risk-use-live-price'));
+    await tester.ensureVisible(useLivePrice);
+    await tester.pumpAndSettle();
+    await tester.tap(useLivePrice);
+    await tester.pumpAndSettle();
+    final liveEntry = find.descendant(
+      of: find.byKey(const ValueKey('risk-planned-entry')),
+      matching: find.byType(TextFormField),
+    );
+    expect(
+      tester.widget<TextFormField>(liveEntry).controller?.text,
+      '67420.00',
+    );
+
     expect(tester.takeException(), isNull);
   });
 
@@ -568,26 +597,32 @@ void main() {
     expect(find.byType(PriceRiskPlanSection), findsOneWidget);
     expect(find.byKey(const ValueKey('risk-stop-loss')), findsOneWidget);
     expect(find.byKey(const ValueKey('risk-take-profit')), findsOneWidget);
-    expect(find.byKey(const ValueKey('risk-position-size')), findsOneWidget);
-    expect(find.byKey(const ValueKey('risk-percent')), findsOneWidget);
     expect(find.byKey(const ValueKey('risk-amount')), findsOneWidget);
+    expect(find.byKey(const ValueKey('risk-position-size')), findsNothing);
+    expect(find.byKey(const ValueKey('risk-percent')), findsNothing);
+    expect(find.byKey(const ValueKey('risk-currency')), findsNothing);
+    expect(find.text('BUY Entry Price'), findsOneWidget);
 
     final plannedEntry = find.descendant(
       of: find.byKey(const ValueKey('risk-planned-entry')),
       matching: find.byType(TextFormField),
     );
-    await tester.enterText(plannedEntry, '1.2345');
-    expect(
-      tester.widget<TextFormField>(plannedEntry).controller?.text,
-      '1.2345',
-    );
-    final currency = tester.widget<DropdownButtonFormField<String>>(
+    await tester.enterText(plannedEntry, '100');
+    expect(tester.widget<TextFormField>(plannedEntry).controller?.text, '100');
+    final stopLoss = tester.widget<TextFormField>(
       find.descendant(
-        of: find.byKey(const ValueKey('risk-currency')),
-        matching: find.byType(DropdownButtonFormField<String>),
+        of: find.byKey(const ValueKey('risk-stop-loss')),
+        matching: find.byType(TextFormField),
       ),
     );
-    expect(currency.initialValue, 'USD');
+    final takeProfit = tester.widget<TextFormField>(
+      find.descendant(
+        of: find.byKey(const ValueKey('risk-take-profit')),
+        matching: find.byType(TextFormField),
+      ),
+    );
+    expect(stopLoss.validator?.call('110'), contains('BUY Stop Loss'));
+    expect(takeProfit.validator?.call('90'), contains('BUY Take Profit'));
 
     await jumpUntilBuilt(
       find.byKey(const ValueKey('psychology-checklist-section')),
@@ -678,6 +713,80 @@ void main() {
     expect(find.byType(PsychologyChecklistSection), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('price risk validation follows the selected entry direction', (
+    tester,
+  ) async {
+    final entry = TextEditingController(text: '100');
+    final stopLoss = TextEditingController();
+    final takeProfit = TextEditingController();
+    final riskAmount = TextEditingController();
+    addTearDown(entry.dispose);
+    addTearDown(stopLoss.dispose);
+    addTearDown(takeProfit.dispose);
+    addTearDown(riskAmount.dispose);
+
+    Widget subject(String direction) => MaterialApp(
+      theme: TradeXTheme.dark,
+      home: Scaffold(
+        body: Form(
+          child: SingleChildScrollView(
+            child: PriceRiskPlanSection(
+              plannedEntryController: entry,
+              stopLossController: stopLoss,
+              takeProfitController: takeProfit,
+              riskAmountController: riskAmount,
+              direction: direction,
+              symbol: 'BTCUSDT',
+              livePrice: 100,
+              livePriceLoading: false,
+              entryRequired: false,
+              onUseLivePrice: null,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(subject('buy'));
+    var stopLossField = tester.widget<TextFormField>(
+      find.descendant(
+        of: find.byKey(const ValueKey('risk-stop-loss')),
+        matching: find.byType(TextFormField),
+      ),
+    );
+    var takeProfitField = tester.widget<TextFormField>(
+      find.descendant(
+        of: find.byKey(const ValueKey('risk-take-profit')),
+        matching: find.byType(TextFormField),
+      ),
+    );
+    expect(stopLossField.validator?.call('110'), contains('BUY Stop Loss'));
+    expect(takeProfitField.validator?.call('90'), contains('BUY Take Profit'));
+    expect(stopLossField.validator?.call('90'), isNull);
+    expect(takeProfitField.validator?.call('110'), isNull);
+
+    await tester.pumpWidget(subject('sell'));
+    stopLossField = tester.widget<TextFormField>(
+      find.descendant(
+        of: find.byKey(const ValueKey('risk-stop-loss')),
+        matching: find.byType(TextFormField),
+      ),
+    );
+    takeProfitField = tester.widget<TextFormField>(
+      find.descendant(
+        of: find.byKey(const ValueKey('risk-take-profit')),
+        matching: find.byType(TextFormField),
+      ),
+    );
+    expect(stopLossField.validator?.call('90'), contains('SELL Stop Loss'));
+    expect(
+      takeProfitField.validator?.call('110'),
+      contains('SELL Take Profit'),
+    );
+    expect(stopLossField.validator?.call('110'), isNull);
+    expect(takeProfitField.validator?.call('90'), isNull);
+  });
 }
 
 class _JournalApiClient extends TradeXApiClient {
@@ -715,6 +824,7 @@ class _JournalApiClient extends TradeXApiClient {
               'symbol': 'BTCUSDT',
               'name': 'Bitcoin / Tether',
               'logo_url': 'https://example.test/btc.png',
+              'price': 67420,
             },
             {'symbol': 'BTTCUSDT', 'name': 'BitTorrent / Tether'},
           ],

@@ -18,61 +18,98 @@ class PriceRiskPlanSection extends StatelessWidget {
   const PriceRiskPlanSection({
     super.key,
     required this.plannedEntryController,
-    required this.actualEntryController,
     required this.stopLossController,
     required this.takeProfitController,
-    required this.positionSizeController,
-    required this.riskPercentController,
     required this.riskAmountController,
-    required this.riskCurrencyController,
-    required this.showActualEntry,
-    required this.actualEntryRequired,
-    required this.onCurrencyChanged,
+    required this.direction,
+    required this.symbol,
+    required this.livePrice,
+    required this.livePriceLoading,
+    required this.entryRequired,
+    required this.onUseLivePrice,
   });
 
   final TextEditingController plannedEntryController;
-  final TextEditingController actualEntryController;
   final TextEditingController stopLossController;
   final TextEditingController takeProfitController;
-  final TextEditingController positionSizeController;
-  final TextEditingController riskPercentController;
   final TextEditingController riskAmountController;
-  final TextEditingController riskCurrencyController;
-  final bool showActualEntry;
-  final bool actualEntryRequired;
-  final ValueChanged<String> onCurrencyChanged;
+  final String direction;
+  final String symbol;
+  final double? livePrice;
+  final bool livePriceLoading;
+  final bool entryRequired;
+  final VoidCallback? onUseLivePrice;
+
+  bool get _buy => direction.toLowerCase() != 'sell';
+
+  String? _positivePrice(String? value, String label, {bool required = false}) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return required ? '$label is required.' : null;
+    final price = double.tryParse(text);
+    if (price == null || price <= 0) return '$label must be greater than 0.';
+    return null;
+  }
+
+  String? _stopLossValidator(String? value) {
+    if (value?.trim().isEmpty ?? true) return null;
+    final basic = _positivePrice(value, 'Stop Loss');
+    if (basic != null) return basic;
+    final entry = double.tryParse(plannedEntryController.text.trim());
+    if (entry == null || entry <= 0) return 'Enter a valid Entry Price first.';
+    final stopLoss = double.parse(value!.trim());
+    if (_buy && stopLoss >= entry) {
+      return 'BUY Stop Loss must be below Entry Price.';
+    }
+    if (!_buy && stopLoss <= entry) {
+      return 'SELL Stop Loss must be above Entry Price.';
+    }
+    return null;
+  }
+
+  String? _takeProfitValidator(String? value) {
+    if (value?.trim().isEmpty ?? true) return null;
+    final basic = _positivePrice(value, 'Take Profit');
+    if (basic != null) return basic;
+    final entry = double.tryParse(plannedEntryController.text.trim());
+    if (entry == null || entry <= 0) return 'Enter a valid Entry Price first.';
+    final takeProfit = double.parse(value!.trim());
+    if (_buy && takeProfit <= entry) {
+      return 'BUY Take Profit must be above Entry Price.';
+    }
+    if (!_buy && takeProfit >= entry) {
+      return 'SELL Take Profit must be below Entry Price.';
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) => PremiumPlanSection(
     key: const ValueKey('price-risk-plan-section'),
     title: 'Price & Risk Plan',
-    subtitle: 'Plan your entry, stop loss, take profit and position size',
+    subtitle: 'Set a valid entry, stop loss, take profit and risk amount',
     icon: Icons.monetization_on_outlined,
     accent: _planGold,
     child: Column(
       children: [
+        _LiveEntryContext(
+          direction: direction,
+          symbol: symbol,
+          livePrice: livePrice,
+          loading: livePriceLoading,
+          onUseLivePrice: onUseLivePrice,
+        ),
+        const SizedBox(height: 9),
         PremiumRiskField(
           key: const ValueKey('risk-planned-entry'),
-          label: 'Planned Entry',
+          label: '${_buy ? 'BUY' : 'SELL'} Entry Price',
           hint: 'e.g. 1.2345',
           icon: Icons.gps_fixed_rounded,
           accent: _planBlue,
           controller: plannedEntryController,
           step: .0001,
+          validator: (value) =>
+              _positivePrice(value, 'Entry Price', required: entryRequired),
         ),
-        if (showActualEntry) ...[
-          const SizedBox(height: 9),
-          PremiumRiskField(
-            key: const ValueKey('risk-actual-entry'),
-            label: 'Actual Entry',
-            hint: 'e.g. 1.2345',
-            icon: Icons.my_location_rounded,
-            accent: _planBlue,
-            controller: actualEntryController,
-            required: actualEntryRequired,
-            step: .0001,
-          ),
-        ],
         const SizedBox(height: 9),
         _ResponsivePlanGrid(
           children: [
@@ -84,6 +121,7 @@ class PriceRiskPlanSection extends StatelessWidget {
               accent: _planRed,
               controller: stopLossController,
               step: .0001,
+              validator: _stopLossValidator,
             ),
             PremiumRiskField(
               key: const ValueKey('risk-take-profit'),
@@ -93,41 +131,128 @@ class PriceRiskPlanSection extends StatelessWidget {
               accent: _planGreen,
               controller: takeProfitController,
               step: .0001,
-            ),
-            PremiumRiskField(
-              key: const ValueKey('risk-position-size'),
-              label: 'Position Size',
-              hint: 'e.g. 0.10',
-              icon: Icons.bar_chart_rounded,
-              accent: _planPurple,
-              controller: positionSizeController,
-              step: .01,
-            ),
-            PremiumRiskField(
-              key: const ValueKey('risk-percent'),
-              label: 'Risk %',
-              hint: 'e.g. 1',
-              icon: Icons.percent_rounded,
-              accent: _planGold,
-              controller: riskPercentController,
+              validator: _takeProfitValidator,
             ),
             PremiumRiskField(
               key: const ValueKey('risk-amount'),
-              label: 'Risk Amount',
+              label: 'Risk in Amount',
               hint: 'e.g. 10',
               icon: Icons.savings_rounded,
               accent: _planOrange,
               controller: riskAmountController,
-            ),
-            PremiumCurrencyField(
-              controller: riskCurrencyController,
-              onChanged: onCurrencyChanged,
+              validator: (value) => _positivePrice(value, 'Risk Amount'),
             ),
           ],
         ),
       ],
     ),
   );
+}
+
+class _LiveEntryContext extends StatelessWidget {
+  const _LiveEntryContext({
+    required this.direction,
+    required this.symbol,
+    required this.livePrice,
+    required this.loading,
+    required this.onUseLivePrice,
+  });
+
+  final String direction;
+  final String symbol;
+  final double? livePrice;
+  final bool loading;
+  final VoidCallback? onUseLivePrice;
+
+  @override
+  Widget build(BuildContext context) {
+    final buy = direction.toLowerCase() != 'sell';
+    final accent = buy ? _planGreen : _planRed;
+    final normalizedSymbol = symbol.trim().toUpperCase();
+    return Container(
+      key: const ValueKey('risk-live-price-context'),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: _planBlue.withValues(alpha: .075),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _planBlue.withValues(alpha: .42)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: .15),
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: accent.withValues(alpha: .62)),
+            ),
+            child: Text(
+              buy ? 'BUY' : 'SELL',
+              key: const ValueKey('risk-selected-direction'),
+              style: TextStyle(
+                color: accent,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  normalizedSymbol.isEmpty
+                      ? 'Select a symbol'
+                      : normalizedSymbol,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _planText,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                if (loading)
+                  const Text(
+                    'Loading live price…',
+                    style: TextStyle(color: _planMuted, fontSize: 10.5),
+                  )
+                else
+                  Text(
+                    livePrice == null || livePrice! <= 0
+                        ? 'Live price unavailable'
+                        : 'Live Price · ${_formatLivePrice(livePrice!)}',
+                    key: const ValueKey('risk-live-price'),
+                    style: TextStyle(
+                      color: livePrice == null ? _planMuted : _planBlue,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (livePrice != null && livePrice! > 0)
+            TextButton(
+              key: const ValueKey('risk-use-live-price'),
+              onPressed: onUseLivePrice,
+              child: const Text('Use price'),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatLivePrice(double value) {
+  final decimals = value >= 1000
+      ? 2
+      : value >= 1
+      ? 4
+      : 8;
+  return value.toStringAsFixed(decimals);
 }
 
 class PsychologyChecklistSection extends StatelessWidget {
@@ -324,6 +449,7 @@ class PremiumRiskField extends StatelessWidget {
     required this.controller,
     this.required = false,
     this.step,
+    this.validator,
   });
 
   final String label;
@@ -333,6 +459,7 @@ class PremiumRiskField extends StatelessWidget {
   final TextEditingController controller;
   final bool required;
   final double? step;
+  final FormFieldValidator<String>? validator;
 
   @override
   Widget build(BuildContext context) => _FieldCard(
@@ -348,10 +475,12 @@ class PremiumRiskField extends StatelessWidget {
       inputFormatters: [
         FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
       ],
-      validator: required
-          ? (value) =>
-                value?.trim().isEmpty == true ? '$label is required.' : null
-          : null,
+      validator:
+          validator ??
+          (required
+              ? (value) =>
+                    value?.trim().isEmpty == true ? '$label is required.' : null
+              : null),
       style: const TextStyle(
         color: _planText,
         fontSize: 16,

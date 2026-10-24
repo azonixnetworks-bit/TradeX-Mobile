@@ -60,7 +60,10 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   DateTime _tradeDate = DateTime.now();
   TimeOfDay _tradeTime = TimeOfDay.now();
   Timer? _symbolDebounce;
+  Timer? _livePriceTimer;
   List<TradeJournalSymbolSuggestion> _symbolSuggestions = const [];
+  double? _selectedSymbolPrice;
+  var _livePriceLoading = false;
   var _symbolLoading = false;
   var _symbolLookupFailed = false;
   var _selectingSymbol = false;
@@ -139,6 +142,11 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       _set('mental_state_note', entry.psychologyBefore['note']);
     }
     _controllers['symbol']!.addListener(_onSymbolChanged);
+    if (_controllers['symbol']!.text.trim().isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _startLivePriceTracking();
+      });
+    }
   }
 
   void _set(String name, Object? value) {
@@ -148,6 +156,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   @override
   void dispose() {
     _symbolDebounce?.cancel();
+    _livePriceTimer?.cancel();
     for (final controller in _controllers.values) {
       controller.dispose();
     }
@@ -284,16 +293,21 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
         const SizedBox(height: 18),
         PriceRiskPlanSection(
           plannedEntryController: _controllers['planned_entry']!,
-          actualEntryController: _controllers['actual_entry']!,
           stopLossController: _controllers['planned_sl']!,
           takeProfitController: _controllers['planned_tp']!,
-          positionSizeController: _controllers['position_size']!,
-          riskPercentController: _controllers['risk_percent']!,
           riskAmountController: _controllers['risk_amount']!,
-          riskCurrencyController: _controllers['risk_currency']!,
-          showActualEntry: _status == 'open' && !_editing,
-          actualEntryRequired: _status == 'open' && !_editing,
-          onCurrencyChanged: (_) => setState(() {}),
+          direction: _direction,
+          symbol: _controller('symbol'),
+          livePrice: _selectedSymbolPrice,
+          livePriceLoading: _livePriceLoading,
+          entryRequired: _status == 'open',
+          onUseLivePrice: _selectedSymbolPrice == null
+              ? null
+              : () => setState(() {
+                  _controllers['planned_entry']!.text = _priceInput(
+                    _selectedSymbolPrice!,
+                  );
+                }),
         ),
         const SizedBox(height: 18),
         PsychologyChecklistSection(
@@ -336,6 +350,9 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           _symbolSuggestions = const [];
           _symbolLoading = false;
           _symbolLookupFailed = false;
+          _selectedSymbolPrice = null;
+          _livePriceLoading = false;
+          _livePriceTimer?.cancel();
         }),
       ),
       if (_market == 'stocks') ...[
@@ -355,6 +372,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   void _onSymbolChanged() {
     if (_selectingSymbol) return;
     _symbolDebounce?.cancel();
+    _livePriceTimer?.cancel();
     final query = _controllers['symbol']!.text.trim();
     final requestId = ++_symbolRequestId;
     if (query.isEmpty) {
@@ -363,6 +381,8 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           _symbolSuggestions = const [];
           _symbolLoading = false;
           _symbolLookupFailed = false;
+          _selectedSymbolPrice = null;
+          _livePriceLoading = false;
         });
       }
       return;
@@ -371,6 +391,8 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       _symbolSuggestions = const [];
       _symbolLoading = true;
       _symbolLookupFailed = false;
+      _selectedSymbolPrice = null;
+      _livePriceLoading = false;
     });
     _symbolDebounce = Timer(const Duration(milliseconds: 300), () async {
       try {
@@ -501,7 +523,10 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
             _symbolSuggestions = const [];
             _symbolLoading = false;
             _symbolLookupFailed = false;
+            _selectedSymbolPrice = suggestion.price;
+            _livePriceLoading = suggestion.price == null;
           });
+          _startLivePriceTracking();
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
@@ -611,6 +636,51 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
     );
   }
 
+  void _startLivePriceTracking() {
+    _livePriceTimer?.cancel();
+    final symbol = _controller('symbol').toUpperCase();
+    if (symbol.isEmpty) return;
+    unawaited(_refreshSelectedSymbolPrice(showLoading: true));
+    _livePriceTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => unawaited(_refreshSelectedSymbolPrice()),
+    );
+  }
+
+  Future<void> _refreshSelectedSymbolPrice({bool showLoading = false}) async {
+    final symbol = _controller('symbol').toUpperCase();
+    if (symbol.isEmpty) return;
+    if (showLoading && mounted && _selectedSymbolPrice == null) {
+      setState(() => _livePriceLoading = true);
+    }
+    try {
+      final suggestions = await widget.repository.symbolSuggestions(
+        market: _market,
+        search: symbol,
+        stockRegion: _stockRegion,
+      );
+      final exact = suggestions.where((item) => item.symbol == symbol);
+      final price = exact.isEmpty ? null : exact.first.price;
+      if (!mounted || _controller('symbol').toUpperCase() != symbol) return;
+      setState(() {
+        _selectedSymbolPrice = price;
+        _livePriceLoading = false;
+      });
+    } catch (_) {
+      if (!mounted || _controller('symbol').toUpperCase() != symbol) return;
+      setState(() => _livePriceLoading = false);
+    }
+  }
+
+  String _priceInput(double value) {
+    final decimals = value >= 1000
+        ? 2
+        : value >= 1
+        ? 4
+        : 8;
+    return value.toStringAsFixed(decimals);
+  }
+
   Future<void> _pickDate() async {
     final result = await showDatePicker(
       context: context,
@@ -672,7 +742,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           'trade_date': _date(_tradeDate),
           'trade_time': _time(_tradeTime),
           'timezone': await widget.repository.timezone(),
-          if (_status == 'open') 'actual_entry': _number('actual_entry'),
+          if (_status == 'open') 'actual_entry': _number('planned_entry'),
         });
         saved = await widget.repository.create(payload);
       }

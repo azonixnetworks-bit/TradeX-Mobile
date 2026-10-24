@@ -166,6 +166,7 @@ class TradeJournalSymbolSuggestion {
     required this.symbol,
     required this.name,
     this.logoUrl,
+    this.price,
   });
 
   factory TradeJournalSymbolSuggestion.fromJson(Map<String, dynamic> json) =>
@@ -173,11 +174,18 @@ class TradeJournalSymbolSuggestion {
         symbol: _text(json['symbol']).toUpperCase(),
         name: _text(json['name']),
         logoUrl: _nullableText(json['logo_url']),
+        price: journalNumber(
+          json['price'] ??
+              json['last_price'] ??
+              json['current_price'] ??
+              json['close'],
+        ),
       );
 
   final String symbol;
   final String name;
   final String? logoUrl;
+  final double? price;
 }
 
 @immutable

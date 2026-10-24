@@ -47,6 +47,10 @@ class TradeJournalRepository {
       'search': query.toUpperCase(),
       'page': '1',
       'per_page': '10',
+      if (market.toLowerCase() == 'crypto') ...{
+        'segment': 'SPOT',
+        'sort': 'VOLUME',
+      },
       if (market.toLowerCase() == 'stocks' &&
           stockRegion?.trim().isNotEmpty == true)
         'region': stockRegion!.trim().toUpperCase(),
