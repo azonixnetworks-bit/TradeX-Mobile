@@ -173,6 +173,64 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('trade details updates immediately after editing a plan', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final api = _EditableJournalApiClient(store, DeviceIdentity(store));
+    final repository = TradeJournalRepository(api, 'UTC');
+    final entry = TradeJournalEntry.fromJson(api.currentEntry);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalDetailsScreen(repository: repository, entry: entry),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Edit Plan'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Edit Plan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Planned Trade'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('trade-symbol-field')),
+      'ETHUSDT',
+    );
+    final save = find.byKey(const ValueKey('save-trade-button'));
+    final planScrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('trade-plan-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    for (var attempt = 0; attempt < 12 && save.evaluate().isEmpty; attempt++) {
+      final position = tester.state<ScrollableState>(planScrollable).position;
+      position.jumpTo(position.maxScrollExtent);
+      await tester.pumpAndSettle();
+    }
+    expect(save, findsOneWidget);
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+
+    expect(api.patchCalls, 1);
+    expect(find.text('Trade Details'), findsOneWidget);
+    expect(find.text('ETHUSDT'), findsWidgets);
+    expect(find.text('BTCUSDT'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('plan trade suggests market symbols and aligns trade choices', (
     tester,
   ) async {
@@ -1151,5 +1209,41 @@ class _StructuredJournalApiClient extends _JournalApiClient {
           'strategy_setup': 'Liquidity sweep and retest',
         })}';
     return value;
+  }
+}
+
+class _EditableJournalApiClient extends _JournalApiClient {
+  _EditableJournalApiClient(super.sessionStore, super.deviceIdentity)
+    : currentEntry = Map<String, dynamic>.from(_JournalApiClient.entry());
+
+  Map<String, dynamic> currentEntry;
+  int patchCalls = 0;
+
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async {
+    if (RegExp(r'^/api/v1/trade-journal/entry-1').hasMatch(path)) {
+      return {'data': currentEntry};
+    }
+    return super.getJson(path);
+  }
+
+  @override
+  Future<Map<String, dynamic>> patchJson(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    patchCalls++;
+    currentEntry = {
+      ...currentEntry,
+      if (body['market'] != null) 'market': body['market'],
+      if (body['symbol'] != null) 'symbol': body['symbol'],
+      if (body['direction'] != null) 'direction': body['direction'],
+      if (body['setup_strategy'] != null)
+        'setup_strategy': body['setup_strategy'],
+      if (body['entry_reason'] != null) 'entry_reason': body['entry_reason'],
+      if (body['notes_before'] != null) 'notes_before': body['notes_before'],
+      if (body['checklist'] != null) 'checklist': body['checklist'],
+    };
+    return {'data': currentEntry};
   }
 }

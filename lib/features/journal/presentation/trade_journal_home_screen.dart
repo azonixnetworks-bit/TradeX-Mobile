@@ -722,20 +722,29 @@ class TradeJournalDetailsScreen extends StatefulWidget {
 
 class _TradeJournalDetailsScreenState extends State<TradeJournalDetailsScreen> {
   late Future<TradeJournalEntry> _request;
+  late TradeJournalEntry _currentEntry;
   var _working = false;
 
   @override
   void initState() {
     super.initState();
+    _currentEntry = widget.entry;
     _reload();
   }
 
-  void _reload() => _request = widget.repository.entry(widget.entry.uuid);
+  void _reload() => _request = widget.repository.entry(_currentEntry.uuid);
+
+  void _showSavedEntry(TradeJournalEntry entry) {
+    setState(() {
+      _currentEntry = entry;
+      _request = Future.value(entry);
+    });
+  }
 
   @override
   Widget build(BuildContext context) => JournalScaffold(
     title: 'Trade Details',
-    subtitle: widget.entry.symbol,
+    subtitle: _currentEntry.symbol,
     actions: [
       PopupMenuButton<String>(
         onSelected: _menu,
@@ -992,7 +1001,7 @@ class _TradeJournalDetailsScreenState extends State<TradeJournalDetailsScreen> {
             TradeJournalPlanScreen(repository: widget.repository, entry: entry),
       ),
     );
-    if (value != null && mounted) setState(_reload);
+    if (value != null && mounted) _showSavedEntry(value);
   }
 
   Future<void> _open(TradeJournalEntry entry) async {
@@ -1002,7 +1011,7 @@ class _TradeJournalDetailsScreenState extends State<TradeJournalDetailsScreen> {
             TradeJournalOpenScreen(repository: widget.repository, entry: entry),
       ),
     );
-    if (value != null && mounted) setState(_reload);
+    if (value != null && mounted) _showSavedEntry(value);
   }
 
   Future<void> _close(TradeJournalEntry entry) async {
@@ -1014,7 +1023,7 @@ class _TradeJournalDetailsScreenState extends State<TradeJournalDetailsScreen> {
         ),
       ),
     );
-    if (value != null && mounted) setState(_reload);
+    if (value != null && mounted) _showSavedEntry(value);
   }
 
   Future<void> _screenshots(TradeJournalEntry entry) async {
