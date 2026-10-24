@@ -182,81 +182,6 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       key: const ValueKey('trade-plan-scroll'),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
       children: [
-        const JournalSectionTitle(
-          title: 'Trade Setup',
-          subtitle: 'Market, instrument and execution direction',
-        ),
-        const SizedBox(height: 10),
-        JournalPanel(
-          child: Column(
-            children: [
-              _dropdown(
-                label: 'Market',
-                value: _market,
-                values: meta.markets,
-                onChanged: (value) => setState(() {
-                  _market = value;
-                  if (value != 'stocks') _stockRegion = null;
-                  _symbolDebounce?.cancel();
-                  _symbolRequestId++;
-                  _selectingSymbol = true;
-                  _controllers['symbol']!.clear();
-                  _selectingSymbol = false;
-                  _symbolSuggestions = const [];
-                  _symbolLoading = false;
-                  _symbolLookupFailed = false;
-                }),
-              ),
-              if (_market == 'stocks') ...[
-                const SizedBox(height: 12),
-                _dropdown(
-                  label: 'Stock Region',
-                  value: _stockRegion,
-                  values: meta.stockRegions,
-                  onChanged: (value) => setState(() => _stockRegion = value),
-                ),
-              ],
-              const SizedBox(height: 12),
-              _symbolField(),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _CompactChoiceGroup(
-                      key: const ValueKey('trade-direction-selector'),
-                      value: _direction,
-                      choices: const [
-                        _CompactChoice('buy', 'BUY', journalGreen),
-                        _CompactChoice('sell', 'SELL', journalRed),
-                      ],
-                      onChanged: (value) => setState(() => _direction = value),
-                    ),
-                  ),
-                  if (!_editing) ...[
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _CompactChoiceGroup(
-                        key: const ValueKey('trade-status-selector'),
-                        value: _status,
-                        choices: const [
-                          _CompactChoice(
-                            'planned',
-                            'PLAN',
-                            TradeXColors.goldBright,
-                          ),
-                          _CompactChoice('open', 'OPEN NOW', journalBlue),
-                        ],
-                        onChanged: (value) => setState(() => _status = value),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
         const JournalSectionTitle(title: 'Timing & Session'),
         const SizedBox(height: 10),
         JournalPanel(
@@ -319,6 +244,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
         ),
         const SizedBox(height: 18),
         StrategyReasonSection(
+          tradeSetup: _tradeSetupFields(meta),
           htfTrends: _htfTrends,
           ltfTrends: _ltfTrends,
           zoneFinding: _zoneFinding,
@@ -380,6 +306,70 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
         ),
       ],
     ),
+  );
+
+  Widget _tradeSetupFields(TradeJournalMeta meta) => Column(
+    children: [
+      _dropdown(
+        label: 'Market',
+        value: _market,
+        values: meta.markets,
+        onChanged: (value) => setState(() {
+          _market = value;
+          if (value != 'stocks') _stockRegion = null;
+          _symbolDebounce?.cancel();
+          _symbolRequestId++;
+          _selectingSymbol = true;
+          _controllers['symbol']!.clear();
+          _selectingSymbol = false;
+          _symbolSuggestions = const [];
+          _symbolLoading = false;
+          _symbolLookupFailed = false;
+        }),
+      ),
+      if (_market == 'stocks') ...[
+        const SizedBox(height: 12),
+        _dropdown(
+          label: 'Stock Region',
+          value: _stockRegion,
+          values: meta.stockRegions,
+          onChanged: (value) => setState(() => _stockRegion = value),
+        ),
+      ],
+      const SizedBox(height: 12),
+      _symbolField(),
+      const SizedBox(height: 12),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _CompactChoiceGroup(
+              key: const ValueKey('trade-direction-selector'),
+              value: _direction,
+              choices: const [
+                _CompactChoice('buy', 'BUY', journalGreen),
+                _CompactChoice('sell', 'SELL', journalRed),
+              ],
+              onChanged: (value) => setState(() => _direction = value),
+            ),
+          ),
+          if (!_editing) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: _CompactChoiceGroup(
+                key: const ValueKey('trade-status-selector'),
+                value: _status,
+                choices: const [
+                  _CompactChoice('planned', 'PLAN', TradeXColors.goldBright),
+                  _CompactChoice('open', 'OPEN NOW', journalBlue),
+                ],
+                onChanged: (value) => setState(() => _status = value),
+              ),
+            ),
+          ],
+        ],
+      ),
+    ],
   );
 
   void _onSymbolChanged() {

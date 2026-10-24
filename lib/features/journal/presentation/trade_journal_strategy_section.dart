@@ -17,6 +17,7 @@ const _strategyMuted = Color(0xFFA8B9D3);
 class StrategyReasonSection extends StatelessWidget {
   const StrategyReasonSection({
     super.key,
+    required this.tradeSetup,
     required this.htfTrends,
     required this.ltfTrends,
     required this.zoneFinding,
@@ -32,6 +33,7 @@ class StrategyReasonSection extends StatelessWidget {
     required this.onEntryTypeChanged,
   });
 
+  final Widget tradeSetup;
   final Map<String, String> htfTrends;
   final Map<String, String> ltfTrends;
   final Map<String, Set<String>> zoneFinding;
@@ -85,6 +87,15 @@ class StrategyReasonSection extends StatelessWidget {
       children: [
         const _StrategyHeader(),
         const SizedBox(height: 14),
+        TradeSectionCard(
+          key: const ValueKey('strategy-trade-setup-card'),
+          title: 'Trade Setup',
+          subtitle: 'Market, symbol and execution',
+          icon: Icons.tune_rounded,
+          accent: _strategyGold,
+          child: tradeSetup,
+        ),
+        const SizedBox(height: 10),
         TradeSectionCard(
           title: 'HTF Trend',
           subtitle: 'Main Trend',

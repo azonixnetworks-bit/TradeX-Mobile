@@ -133,6 +133,33 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final strategySection = find.byKey(
+      const ValueKey('strategy-reason-section'),
+    );
+    final tradeSetupCard = find.byKey(
+      const ValueKey('strategy-trade-setup-card'),
+    );
+    expect(
+      find.ancestor(
+        of: find.byKey(const ValueKey('trade-symbol-field')),
+        matching: strategySection,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.ancestor(
+        of: find.byKey(const ValueKey('trade-direction-selector')),
+        matching: strategySection,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester.getTopLeft(tradeSetupCard).dy,
+      lessThan(
+        tester.getTopLeft(find.byKey(const ValueKey('strategy-htf-MN'))).dy,
+      ),
+    );
+
     final direction = tester.getTopLeft(
       find.byKey(const ValueKey('trade-direction-selector')),
     );
