@@ -19,6 +19,32 @@ import 'package:tradex_mobile/features/journal/presentation/trade_journal_trade_
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test(
+    'selected crypto live price falls back from Laravel to Binance',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final store = SecureSessionStore();
+      final api = _JournalApiClient(store, DeviceIdentity(store));
+      final requestedSymbols = <String>[];
+      final repository = TradeJournalRepository(api, 'UTC', (symbol) async {
+        requestedSymbols.add(symbol);
+        return symbol == 'SOLUSDT' ? 182.45 : null;
+      });
+
+      expect(
+        await repository.livePrice(market: 'crypto', symbol: 'BTCUSDT'),
+        67420,
+      );
+      expect(requestedSymbols, isEmpty);
+
+      expect(
+        await repository.livePrice(market: 'crypto', symbol: 'SOLUSDT'),
+        182.45,
+      );
+      expect(requestedSymbols, ['SOLUSDT']);
+    },
+  );
+
   testWidgets('all twelve trade journal screens render without bottom nav', (
     tester,
   ) async {

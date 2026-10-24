@@ -654,13 +654,11 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       setState(() => _livePriceLoading = true);
     }
     try {
-      final suggestions = await widget.repository.symbolSuggestions(
+      final price = await widget.repository.livePrice(
         market: _market,
-        search: symbol,
+        symbol: symbol,
         stockRegion: _stockRegion,
       );
-      final exact = suggestions.where((item) => item.symbol == symbol);
-      final price = exact.isEmpty ? null : exact.first.price;
       if (!mounted || _controller('symbol').toUpperCase() != symbol) return;
       setState(() {
         _selectedSymbolPrice = price;

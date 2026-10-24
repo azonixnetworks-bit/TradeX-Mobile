@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -5,10 +7,17 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import '../../../core/network/tradex_api_client.dart';
 import 'trade_journal_models.dart';
 
+typedef TradeJournalLivePriceLoader = Future<double?> Function(String symbol);
+
 class TradeJournalRepository {
-  TradeJournalRepository(this._apiClient, [this._timezone]);
+  TradeJournalRepository(
+    this._apiClient, [
+    this._timezone,
+    TradeJournalLivePriceLoader? livePriceLoader,
+  ]) : _livePriceLoader = livePriceLoader ?? _loadBinanceSpotPrice;
 
   final TradeXApiClient _apiClient;
+  final TradeJournalLivePriceLoader _livePriceLoader;
   String? _timezone;
 
   Future<String> timezone() async {
@@ -64,6 +73,39 @@ class TradeJournalRepository {
         .map(TradeJournalSymbolSuggestion.fromJson)
         .where((item) => item.symbol.isNotEmpty)
         .toList(growable: false);
+  }
+
+  Future<double?> livePrice({
+    required String market,
+    required String symbol,
+    String? stockRegion,
+  }) async {
+    final normalizedSymbol = symbol.trim().toUpperCase();
+    if (normalizedSymbol.isEmpty) return null;
+
+    try {
+      final suggestions = await symbolSuggestions(
+        market: market,
+        search: normalizedSymbol,
+        stockRegion: stockRegion,
+      );
+      for (final suggestion in suggestions) {
+        if (suggestion.symbol == normalizedSymbol &&
+            suggestion.price != null &&
+            suggestion.price! > 0) {
+          return suggestion.price;
+        }
+      }
+    } catch (_) {
+      // Binance remains available as the selected crypto quote fallback.
+    }
+
+    if (market.trim().toLowerCase() != 'crypto') return null;
+    try {
+      return await _livePriceLoader(normalizedSymbol);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<TradeJournalPage> entries({
@@ -202,4 +244,40 @@ class TradeJournalRepository {
       '${value.year.toString().padLeft(4, '0')}-'
       '${value.month.toString().padLeft(2, '0')}-'
       '${value.day.toString().padLeft(2, '0')}';
+}
+
+Future<double?> _loadBinanceSpotPrice(String symbol) async {
+  final normalizedSymbol = symbol.trim().toUpperCase();
+  if (normalizedSymbol.isEmpty) return null;
+  for (final host in const ['data-api.binance.vision', 'api.binance.com']) {
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 6);
+    try {
+      final request = await client
+          .getUrl(
+            Uri.https(host, '/api/v3/ticker/price', {
+              'symbol': normalizedSymbol,
+            }),
+          )
+          .timeout(const Duration(seconds: 7));
+      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+      final response = await request.close().timeout(
+        const Duration(seconds: 7),
+      );
+      if (response.statusCode != HttpStatus.ok) continue;
+      final payload = jsonDecode(
+        await utf8.decoder
+            .bind(response)
+            .join()
+            .timeout(const Duration(seconds: 7)),
+      );
+      if (payload is! Map) continue;
+      final price = double.tryParse(payload['price']?.toString() ?? '');
+      if (price != null && price > 0) return price;
+    } catch (_) {
+      // Try the next Binance public host.
+    } finally {
+      client.close(force: true);
+    }
+  }
+  return null;
 }
