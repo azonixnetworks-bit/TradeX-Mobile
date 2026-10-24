@@ -142,11 +142,109 @@ class PriceRiskPlanSection extends StatelessWidget {
               controller: riskAmountController,
               validator: (value) => _positivePrice(value, 'Risk Amount'),
             ),
+            RiskRewardDisplay(
+              entryController: plannedEntryController,
+              stopLossController: stopLossController,
+              takeProfitController: takeProfitController,
+              direction: direction,
+            ),
           ],
         ),
       ],
     ),
   );
+}
+
+class RiskRewardDisplay extends StatelessWidget {
+  const RiskRewardDisplay({
+    super.key,
+    required this.entryController,
+    required this.stopLossController,
+    required this.takeProfitController,
+    required this.direction,
+  });
+
+  final TextEditingController entryController;
+  final TextEditingController stopLossController;
+  final TextEditingController takeProfitController;
+  final String direction;
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: Listenable.merge([
+      entryController,
+      stopLossController,
+      takeProfitController,
+    ]),
+    builder: (context, _) {
+      final ratio = _ratio;
+      final hasAllLevels = [
+        entryController,
+        stopLossController,
+        takeProfitController,
+      ].every((controller) => controller.text.trim().isNotEmpty);
+      return _FieldCard(
+        key: const ValueKey('risk-reward-field'),
+        label: 'Risk Reward',
+        icon: Icons.balance_rounded,
+        accent: _planGold,
+        child: Container(
+          key: const ValueKey('risk-reward-value'),
+          constraints: const BoxConstraints(minHeight: 52),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          alignment: Alignment.centerLeft,
+          decoration: BoxDecoration(
+            color: _planBackground.withValues(alpha: .72),
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(
+              color: (ratio == null ? _planBorder : _planGold).withValues(
+                alpha: .82,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  ratio == null
+                      ? hasAllLevels
+                            ? 'Check entry, SL and TP'
+                            : 'Enter levels to calculate'
+                      : '1 : ${ratio.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    color: ratio == null ? _planMuted : _planGold,
+                    fontSize: ratio == null ? 12 : 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (ratio != null)
+                const Text(
+                  'R:R',
+                  style: TextStyle(
+                    color: _planMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+
+  double? get _ratio {
+    final entry = double.tryParse(entryController.text.trim());
+    final stopLoss = double.tryParse(stopLossController.text.trim());
+    final takeProfit = double.tryParse(takeProfitController.text.trim());
+    if (entry == null || stopLoss == null || takeProfit == null) return null;
+    final buy = direction.toLowerCase() != 'sell';
+    final risk = buy ? entry - stopLoss : stopLoss - entry;
+    final reward = buy ? takeProfit - entry : entry - takeProfit;
+    if (risk <= 0 || reward <= 0) return null;
+    return reward / risk;
+  }
 }
 
 class _LiveEntryContext extends StatelessWidget {

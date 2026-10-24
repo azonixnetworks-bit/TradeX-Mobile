@@ -286,6 +286,24 @@ void main() {
       tester.widget<TextFormField>(liveEntry).controller?.text,
       '67420.00',
     );
+    final stopLoss = find.descendant(
+      of: find.byKey(const ValueKey('risk-stop-loss')),
+      matching: find.byType(TextFormField),
+    );
+    final takeProfit = find.descendant(
+      of: find.byKey(const ValueKey('risk-take-profit')),
+      matching: find.byType(TextFormField),
+    );
+    expect(tester.widget<TextFormField>(stopLoss).controller?.text, '67419.90');
+    expect(
+      tester.widget<TextFormField>(takeProfit).controller?.text,
+      '67420.50',
+    );
+    expect(find.text('1 : 5.00'), findsOneWidget);
+
+    await tester.enterText(takeProfit, '67420.30');
+    await tester.pump();
+    expect(find.text('1 : 3.00'), findsOneWidget);
 
     expect(tester.takeException(), isNull);
   });
@@ -792,6 +810,11 @@ void main() {
     expect(stopLossField.validator?.call('90'), isNull);
     expect(takeProfitField.validator?.call('110'), isNull);
 
+    stopLoss.text = '90';
+    takeProfit.text = '150';
+    await tester.pump();
+    expect(find.text('1 : 5.00'), findsOneWidget);
+
     await tester.pumpWidget(subject('sell'));
     stopLossField = tester.widget<TextFormField>(
       find.descendant(
@@ -812,6 +835,11 @@ void main() {
     );
     expect(stopLossField.validator?.call('110'), isNull);
     expect(takeProfitField.validator?.call('90'), isNull);
+
+    stopLoss.text = '110';
+    takeProfit.text = '50';
+    await tester.pump();
+    expect(find.text('1 : 5.00'), findsOneWidget);
   });
 }
 

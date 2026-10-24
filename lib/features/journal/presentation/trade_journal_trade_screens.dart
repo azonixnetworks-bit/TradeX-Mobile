@@ -303,11 +303,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           entryRequired: _status == 'open',
           onUseLivePrice: _selectedSymbolPrice == null
               ? null
-              : () => setState(() {
-                  _controllers['planned_entry']!.text = _priceInput(
-                    _selectedSymbolPrice!,
-                  );
-                }),
+              : _applyLivePricePlan,
         ),
         const SizedBox(height: 18),
         PsychologyChecklistSection(
@@ -670,13 +666,50 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
     }
   }
 
-  String _priceInput(double value) {
-    final decimals = value >= 1000
-        ? 2
-        : value >= 1
-        ? 4
-        : 8;
-    return value.toStringAsFixed(decimals);
+  void _applyLivePricePlan() {
+    final entry = _selectedSymbolPrice;
+    if (entry == null || entry <= 0) return;
+    final pipSize = _defaultPipSize(entry);
+    final riskDistance = pipSize * 10;
+    final rewardDistance = riskDistance * 5;
+    final buy = _direction != 'sell';
+    final stopLoss = buy ? entry - riskDistance : entry + riskDistance;
+    final takeProfit = buy ? entry + rewardDistance : entry - rewardDistance;
+    if (stopLoss <= 0 || takeProfit <= 0) return;
+    final decimals = _pipDecimals(pipSize);
+
+    setState(() {
+      _setPriceController('planned_entry', entry, decimals);
+      _setPriceController('planned_sl', stopLoss, decimals);
+      _setPriceController('planned_tp', takeProfit, decimals);
+    });
+  }
+
+  double _defaultPipSize(double price) {
+    final symbol = _controller('symbol').toUpperCase();
+    if (_market == 'forex') return symbol.contains('JPY') ? .01 : .0001;
+    if (_market == 'crypto') {
+      if (price >= 1) return .01;
+      if (price >= .01) return .0001;
+      if (price >= .0001) return .000001;
+      return .00000001;
+    }
+    return price >= 1 ? .01 : .0001;
+  }
+
+  int _pipDecimals(double pipSize) {
+    if (pipSize >= .01) return 2;
+    if (pipSize >= .0001) return 4;
+    if (pipSize >= .000001) return 6;
+    return 8;
+  }
+
+  void _setPriceController(String name, double value, int decimals) {
+    final controller = _controllers[name]!;
+    controller.text = value.toStringAsFixed(decimals);
+    controller.selection = TextSelection.collapsed(
+      offset: controller.text.length,
+    );
   }
 
   Future<void> _pickDate() async {
