@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
@@ -882,7 +883,7 @@ class _TradeJournalDetailsScreenState extends State<TradeJournalDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(entry.entryReason),
+            _TradePlanSummary(entryReason: entry.entryReason),
             if (entry.notesBefore?.isNotEmpty == true) ...[
               const Divider(height: 22),
               Text(
@@ -1114,6 +1115,129 @@ class _TradeJournalDetailsScreenState extends State<TradeJournalDetailsScreen> {
           .showSnackBar(SnackBar(content: Text(value)));
     }
   }
+}
+
+class _TradePlanSummary extends StatelessWidget {
+  const _TradePlanSummary({required this.entryReason});
+
+  static const _prefix = 'TRADEX_STRATEGY_REASON_V1:';
+
+  final String entryReason;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!entryReason.startsWith(_prefix)) {
+      return Text(
+        entryReason.isEmpty ? 'No trade plan recorded.' : entryReason,
+      );
+    }
+
+    final plan = _decode();
+    if (plan == null) {
+      return const Text(
+        'Trade plan details could not be read.',
+        key: ValueKey('trade-plan-decode-error'),
+        style: TextStyle(color: TradeXColors.secondaryText),
+      );
+    }
+
+    final rows = <(String, String)>[];
+    _add(rows, 'HTF Trend', _mapText(plan['htf']));
+    _add(rows, 'HTF Zone', _listText(plan['htf_zones']));
+    _add(rows, 'LTF Trend', _mapText(plan['ltf']));
+    _add(rows, 'LTF Zone', _listText(plan['ltf_zones']));
+    _add(rows, 'Zone Finding', _selectionText(plan['zone_finding']));
+    _add(rows, 'Confirmation', _selectionText(plan['confirmation_finding']));
+    _add(rows, 'Direction', _directionText(plan['direction']));
+    _add(rows, 'Entry Type', _entryTypeText(plan['entry_type']));
+    _add(rows, 'Strategy / Setup', _text(plan['strategy_setup']));
+    _add(rows, 'Reason', _text(plan['legacy_entry_reason']));
+
+    if (rows.isEmpty) {
+      return const Text(
+        'No strategy selections recorded.',
+        key: ValueKey('trade-plan-empty'),
+        style: TextStyle(color: TradeXColors.secondaryText),
+      );
+    }
+
+    return Column(
+      key: const ValueKey('trade-plan-decoded'),
+      children: [
+        for (final row in rows) JournalValueRow(label: row.$1, value: row.$2),
+      ],
+    );
+  }
+
+  Map<String, dynamic>? _decode() {
+    try {
+      final value = jsonDecode(entryReason.substring(_prefix.length));
+      return value is Map ? Map<String, dynamic>.from(value) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static void _add(List<(String, String)> rows, String label, String? value) {
+    if (value?.isNotEmpty == true) rows.add((label, value!));
+  }
+
+  static String? _text(Object? value) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
+  }
+
+  static String? _mapText(Object? value) {
+    if (value is! Map || value.isEmpty) return null;
+    final items = <String>[];
+    for (final entry in value.entries) {
+      final key = _text(entry.key);
+      final item = _text(entry.value);
+      if (key != null && item != null) {
+        items.add('$key: ${titleCase(item)}');
+      }
+    }
+    return items.isEmpty ? null : items.join(' · ');
+  }
+
+  static String? _listText(Object? value) {
+    if (value is! List) return null;
+    final items = value
+        .map(_text)
+        .whereType<String>()
+        .map(titleCase)
+        .toList(growable: false);
+    return items.isEmpty ? null : items.join(' · ');
+  }
+
+  static String? _selectionText(Object? value) {
+    if (value is! Map || value.isEmpty) return null;
+    final groups = <String>[];
+    for (final entry in value.entries) {
+      final timeframe = _text(entry.key);
+      final selections = _listText(entry.value);
+      if (timeframe != null && selections != null) {
+        groups.add('$timeframe: $selections');
+      }
+    }
+    return groups.isEmpty ? null : groups.join(' · ');
+  }
+
+  static String? _directionText(Object? value) =>
+      switch (_text(value)?.toUpperCase()) {
+        'PRO' => 'Pro (With Trend)',
+        'COUNTER' => 'Counter (Against Trend)',
+        final direction? => titleCase(direction),
+        null => null,
+      };
+
+  static String? _entryTypeText(Object? value) =>
+      switch (_text(value)?.toLowerCase()) {
+        'buy' => 'Buy / Long',
+        'sell' => 'Sell / Short',
+        final entryType? => titleCase(entryType),
+        null => null,
+      };
 }
 
 class _QuickAction extends StatelessWidget {

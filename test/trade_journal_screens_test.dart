@@ -139,6 +139,40 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('trade details decodes the structured strategy plan', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final api = _StructuredJournalApiClient(store, DeviceIdentity(store));
+    final repository = TradeJournalRepository(api, 'UTC');
+    final entry = TradeJournalEntry.fromJson(
+      _StructuredJournalApiClient.structuredEntry(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: TradeJournalDetailsScreen(repository: repository, entry: entry),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('trade-plan-decoded')), findsOneWidget);
+    expect(find.text('MN: Up · D1: Range'), findsOneWidget);
+    expect(find.text('M30: Supply / Demand'), findsOneWidget);
+    expect(find.text('M5: Mss'), findsOneWidget);
+    expect(find.text('Pro (With Trend)'), findsOneWidget);
+    expect(find.text('Buy / Long'), findsOneWidget);
+    expect(find.text('Liquidity sweep and retest'), findsOneWidget);
+    expect(find.textContaining('TRADEX_STRATEGY_REASON_V1:'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('plan trade suggests market symbols and aligns trade choices', (
     tester,
   ) async {
@@ -1085,4 +1119,37 @@ class _JournalApiClient extends TradeXApiClient {
       'can_cancel': true,
     },
   };
+}
+
+class _StructuredJournalApiClient extends _JournalApiClient {
+  _StructuredJournalApiClient(super.sessionStore, super.deviceIdentity);
+
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async {
+    if (RegExp(r'^/api/v1/trade-journal/entry-1').hasMatch(path)) {
+      return {'data': structuredEntry()};
+    }
+    return super.getJson(path);
+  }
+
+  static Map<String, dynamic> structuredEntry() {
+    final value = Map<String, dynamic>.from(_JournalApiClient.entry());
+    value['entry_reason'] =
+        'TRADEX_STRATEGY_REASON_V1:${jsonEncode({
+          'htf': {'MN': 'UP', 'D1': 'RANGE'},
+          'ltf': {'H1': 'DOWN'},
+          'htf_zones': ['Supply / Demand'],
+          'ltf_zones': ['FVG'],
+          'zone_finding': {
+            'M30': ['Supply / Demand'],
+          },
+          'confirmation_finding': {
+            'M5': ['MSS'],
+          },
+          'direction': 'PRO',
+          'entry_type': 'buy',
+          'strategy_setup': 'Liquidity sweep and retest',
+        })}';
+    return value;
+  }
 }
