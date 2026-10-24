@@ -281,11 +281,43 @@ void main() {
     expect(tester.widget<TrendOptionTile>(find.byKey(mnDown)).selected, isTrue);
     expect(tester.widget<TrendOptionTile>(find.byKey(w1Down)).selected, isTrue);
 
+    const htfZoneSupply = ValueKey('strategy-htf-zone-supply_demand');
+    const htfZoneWick = ValueKey('strategy-htf-zone-wick');
+    await reveal(htfZoneSupply);
+    await tester.tap(find.byKey(htfZoneSupply));
+    await tester.tap(find.byKey(htfZoneWick));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<PremiumCheckboxTile>(find.byKey(htfZoneSupply)).selected,
+      isTrue,
+    );
+    expect(
+      tester.widget<PremiumCheckboxTile>(find.byKey(htfZoneWick)).selected,
+      isTrue,
+    );
+
+    const ltfZoneFvg = ValueKey('strategy-ltf-zone-fvg');
+    const ltfZoneBankTrap = ValueKey('strategy-ltf-zone-bank_trap_entry');
+    await reveal(ltfZoneFvg);
+    await tester.tap(find.byKey(ltfZoneFvg));
+    await tester.tap(find.byKey(ltfZoneBankTrap));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<PremiumCheckboxTile>(find.byKey(ltfZoneFvg)).selected,
+      isTrue,
+    );
+    expect(
+      tester.widget<PremiumCheckboxTile>(find.byKey(ltfZoneBankTrap)).selected,
+      isTrue,
+    );
+
     const zoneSupply = ValueKey('strategy-zone-M30-supply_demand');
     const zoneOrderFlow = ValueKey('strategy-zone-M30-orderflow');
+    const zoneBankTrap = ValueKey('strategy-zone-M30-bank_trap_entry');
     await reveal(zoneSupply);
     await tester.tap(find.byKey(zoneSupply));
     await tester.tap(find.byKey(zoneOrderFlow));
+    await tester.tap(find.byKey(zoneBankTrap));
     await tester.pumpAndSettle();
     expect(
       tester.widget<PremiumCheckboxTile>(find.byKey(zoneSupply)).selected,
@@ -293,6 +325,10 @@ void main() {
     );
     expect(
       tester.widget<PremiumCheckboxTile>(find.byKey(zoneOrderFlow)).selected,
+      isTrue,
+    );
+    expect(
+      tester.widget<PremiumCheckboxTile>(find.byKey(zoneBankTrap)).selected,
       isTrue,
     );
 
@@ -392,6 +428,8 @@ void main() {
     );
     strategy.onHtfChanged('MN', 'UP');
     strategy.onLtfChanged('H2', 'DOWN');
+    strategy.onHtfZoneChanged('OB / Hidden OB');
+    strategy.onLtfZoneChanged('Bank Trap Entry');
     strategy.onZoneChanged('M30', 'Supply / Demand');
     strategy.onConfirmationChanged('M5', 'MSS');
     strategy.onDirectionChanged('PRO');
@@ -423,6 +461,8 @@ void main() {
     final decodedStrategy = jsonDecode(encoded.split(':').skip(1).join(':'));
     expect(decodedStrategy['htf']['MN'], 'UP');
     expect(decodedStrategy['ltf']['H2'], 'DOWN');
+    expect(decodedStrategy['htf_zones'], contains('OB / Hidden OB'));
+    expect(decodedStrategy['ltf_zones'], contains('Bank Trap Entry'));
     expect(decodedStrategy['zone_finding']['M30'], contains('Supply / Demand'));
     expect(decodedStrategy['confirmation_finding']['M5'], contains('MSS'));
     expect(decodedStrategy['direction'], 'PRO');

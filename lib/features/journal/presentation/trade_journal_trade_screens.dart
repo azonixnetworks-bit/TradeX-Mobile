@@ -39,6 +39,8 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   var _session = 'asia';
   Map<String, String> _htfTrends = const {};
   Map<String, String> _ltfTrends = const {};
+  Set<String> _htfZones = const {};
+  Set<String> _ltfZones = const {};
   Map<String, Set<String>> _zoneFinding = const {};
   Map<String, Set<String>> _confirmationFinding = const {};
   String? _strategyDirection;
@@ -247,6 +249,8 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           tradeSetup: _tradeSetupFields(meta),
           htfTrends: _htfTrends,
           ltfTrends: _ltfTrends,
+          htfZones: _htfZones,
+          ltfZones: _ltfZones,
           zoneFinding: _zoneFinding,
           confirmationFinding: _confirmationFinding,
           direction: _strategyDirection,
@@ -256,6 +260,10 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
               _setTrend(htf: true, timeframe: timeframe, trend: trend),
           onLtfChanged: (timeframe, trend) =>
               _setTrend(htf: false, timeframe: timeframe, trend: trend),
+          onHtfZoneChanged: (option) =>
+              _toggleTrendZone(htf: true, option: option),
+          onLtfZoneChanged: (option) =>
+              _toggleTrendZone(htf: false, option: option),
           onZoneChanged: (timeframe, option) => _toggleFinding(
             confirmation: false,
             timeframe: timeframe,
@@ -757,6 +765,18 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
     });
   }
 
+  void _toggleTrendZone({required bool htf, required String option}) {
+    setState(() {
+      final updated = Set<String>.of(htf ? _htfZones : _ltfZones);
+      updated.contains(option) ? updated.remove(option) : updated.add(option);
+      if (htf) {
+        _htfZones = Set.unmodifiable(updated);
+      } else {
+        _ltfZones = Set.unmodifiable(updated);
+      }
+    });
+  }
+
   void _restoreStrategyReason(String value) {
     if (!value.startsWith(_strategyReasonPrefix)) {
       _legacyEntryReason = value.trim().isEmpty ? null : value;
@@ -767,6 +787,8 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       if (decoded is! Map<String, dynamic>) return;
       _htfTrends = _stringMap(decoded['htf']);
       _ltfTrends = _stringMap(decoded['ltf']);
+      _htfZones = _stringSet(decoded['htf_zones']);
+      _ltfZones = _stringSet(decoded['ltf_zones']);
       _zoneFinding = _selectionMap(decoded['zone_finding']);
       _confirmationFinding = _selectionMap(decoded['confirmation_finding']);
       final strategyDirection = decoded['direction']?.toString();
@@ -804,6 +826,11 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
     });
   }
 
+  Set<String> _stringSet(Object? value) {
+    if (value is! List) return const {};
+    return Set.unmodifiable(value.map((item) => item.toString()));
+  }
+
   List<String> _persistedTimeframes(TradeJournalMeta meta) {
     final selected = <String>{..._timeframes};
     selected.addAll(_htfTrends.keys);
@@ -834,6 +861,8 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       '$_strategyReasonPrefix${jsonEncode({
         'htf': _htfTrends,
         'ltf': _ltfTrends,
+        'htf_zones': _htfZones.toList(growable: false),
+        'ltf_zones': _ltfZones.toList(growable: false),
         'zone_finding': {for (final entry in _zoneFinding.entries) entry.key: entry.value.toList(growable: false)},
         'confirmation_finding': {for (final entry in _confirmationFinding.entries) entry.key: entry.value.toList(growable: false)},
         'direction': _strategyDirection,

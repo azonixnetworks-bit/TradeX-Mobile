@@ -20,6 +20,8 @@ class StrategyReasonSection extends StatelessWidget {
     required this.tradeSetup,
     required this.htfTrends,
     required this.ltfTrends,
+    required this.htfZones,
+    required this.ltfZones,
     required this.zoneFinding,
     required this.confirmationFinding,
     required this.direction,
@@ -27,6 +29,8 @@ class StrategyReasonSection extends StatelessWidget {
     required this.strategyController,
     required this.onHtfChanged,
     required this.onLtfChanged,
+    required this.onHtfZoneChanged,
+    required this.onLtfZoneChanged,
     required this.onZoneChanged,
     required this.onConfirmationChanged,
     required this.onDirectionChanged,
@@ -36,6 +40,8 @@ class StrategyReasonSection extends StatelessWidget {
   final Widget tradeSetup;
   final Map<String, String> htfTrends;
   final Map<String, String> ltfTrends;
+  final Set<String> htfZones;
+  final Set<String> ltfZones;
   final Map<String, Set<String>> zoneFinding;
   final Map<String, Set<String>> confirmationFinding;
   final String? direction;
@@ -43,6 +49,8 @@ class StrategyReasonSection extends StatelessWidget {
   final TextEditingController strategyController;
   final void Function(String timeframe, String? trend) onHtfChanged;
   final void Function(String timeframe, String? trend) onLtfChanged;
+  final ValueChanged<String> onHtfZoneChanged;
+  final ValueChanged<String> onLtfZoneChanged;
   final void Function(String timeframe, String option) onZoneChanged;
   final void Function(String timeframe, String option) onConfirmationChanged;
   final ValueChanged<String?> onDirectionChanged;
@@ -101,19 +109,32 @@ class StrategyReasonSection extends StatelessWidget {
           subtitle: 'Main Trend',
           icon: Icons.trending_up_rounded,
           accent: _strategyGold,
-          child: _ResponsiveCards(
-            preferredWidth: 150,
-            maxColumns: 3,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final frame in _htf)
-                TimeframeTrendCard(
-                  key: ValueKey('strategy-htf-${frame.$2}'),
-                  title: frame.$1,
-                  timeframe: frame.$2,
-                  icon: Icons.calendar_month_rounded,
-                  selected: htfTrends[frame.$2],
-                  onChanged: (trend) => onHtfChanged(frame.$2, trend),
-                ),
+              _ResponsiveCards(
+                preferredWidth: 150,
+                maxColumns: 3,
+                children: [
+                  for (final frame in _htf)
+                    TimeframeTrendCard(
+                      key: ValueKey('strategy-htf-${frame.$2}'),
+                      title: frame.$1,
+                      timeframe: frame.$2,
+                      icon: Icons.calendar_month_rounded,
+                      selected: htfTrends[frame.$2],
+                      onChanged: (trend) => onHtfChanged(frame.$2, trend),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TrendZoneSelector(
+                key: const ValueKey('strategy-htf-zone'),
+                keyPrefix: 'strategy-htf-zone',
+                options: const ['Supply / Demand', 'OB / Hidden OB', 'Wick'],
+                selected: htfZones,
+                onChanged: onHtfZoneChanged,
+              ),
             ],
           ),
         ),
@@ -123,19 +144,38 @@ class StrategyReasonSection extends StatelessWidget {
           subtitle: 'Lower Timeframe Trend',
           icon: Icons.candlestick_chart_rounded,
           accent: _strategyGold,
-          child: _ResponsiveCards(
-            preferredWidth: 150,
-            maxColumns: 4,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final frame in _ltf)
-                TimeframeTrendCard(
-                  key: ValueKey('strategy-ltf-${frame.$2}'),
-                  title: frame.$1,
-                  timeframe: frame.$2,
-                  icon: Icons.candlestick_chart_rounded,
-                  selected: ltfTrends[frame.$2],
-                  onChanged: (trend) => onLtfChanged(frame.$2, trend),
-                ),
+              _ResponsiveCards(
+                preferredWidth: 150,
+                maxColumns: 4,
+                children: [
+                  for (final frame in _ltf)
+                    TimeframeTrendCard(
+                      key: ValueKey('strategy-ltf-${frame.$2}'),
+                      title: frame.$1,
+                      timeframe: frame.$2,
+                      icon: Icons.candlestick_chart_rounded,
+                      selected: ltfTrends[frame.$2],
+                      onChanged: (trend) => onLtfChanged(frame.$2, trend),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TrendZoneSelector(
+                key: const ValueKey('strategy-ltf-zone'),
+                keyPrefix: 'strategy-ltf-zone',
+                options: const [
+                  'Supply / Demand',
+                  'OB / Hidden OB',
+                  'Wick',
+                  'FVG',
+                  'Bank Trap Entry',
+                ],
+                selected: ltfZones,
+                onChanged: onLtfZoneChanged,
+              ),
             ],
           ),
         ),
@@ -581,10 +621,69 @@ class ZoneFindingCard extends StatelessWidget {
   Widget build(BuildContext context) => _MultipleChoiceCard(
     timeframe: timeframe,
     accent: _strategyPurple,
-    options: const ['Supply / Demand', 'OrderFlow', 'FVG'],
+    options: const ['Supply / Demand', 'OrderFlow', 'FVG', 'Bank Trap Entry'],
     selected: selected,
     keyPrefix: 'strategy-zone',
     onChanged: onChanged,
+  );
+}
+
+class TrendZoneSelector extends StatelessWidget {
+  const TrendZoneSelector({
+    super.key,
+    required this.keyPrefix,
+    required this.options,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final String keyPrefix;
+  final List<String> options;
+  final Set<String> selected;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(10),
+    decoration: BoxDecoration(
+      color: _strategyGold.withValues(alpha: .035),
+      borderRadius: BorderRadius.circular(13),
+      border: Border.all(color: _strategyGold.withValues(alpha: .38)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.gps_fixed_rounded, color: _strategyGold, size: 19),
+            SizedBox(width: 7),
+            Text(
+              'Zone',
+              style: TextStyle(
+                color: _strategyText,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _ResponsiveCards(
+          preferredWidth: 145,
+          maxColumns: 3,
+          children: [
+            for (final option in options)
+              PremiumCheckboxTile(
+                key: ValueKey('$keyPrefix-${_selectionKey(option)}'),
+                label: option,
+                selected: selected.contains(option),
+                accent: _strategyGold,
+                onTap: () => onChanged(option),
+              ),
+          ],
+        ),
+      ],
+    ),
   );
 }
 
