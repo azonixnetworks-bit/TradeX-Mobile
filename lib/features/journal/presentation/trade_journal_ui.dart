@@ -20,6 +20,7 @@ class JournalScaffold extends StatelessWidget {
     this.subtitle,
     this.actions = const [],
     this.floatingActionButton,
+    this.accentLastTitleWord = false,
   });
 
   final String title;
@@ -27,6 +28,7 @@ class JournalScaffold extends StatelessWidget {
   final Widget body;
   final List<Widget> actions;
   final Widget? floatingActionButton;
+  final bool accentLastTitleWord;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -38,7 +40,15 @@ class JournalScaffold extends StatelessWidget {
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+          accentLastTitleWord
+              ? Text.rich(
+                  TextSpan(children: _accentedTitle(title)),
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                )
+              : Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
           if (subtitle != null)
             Text(
               subtitle!,
@@ -57,6 +67,20 @@ class JournalScaffold extends StatelessWidget {
     body: SafeArea(top: false, child: body),
     floatingActionButton: floatingActionButton,
   );
+
+  List<InlineSpan> _accentedTitle(String value) {
+    final separator = value.lastIndexOf(' ');
+    if (separator <= 0 || separator >= value.length - 1) {
+      return [TextSpan(text: value)];
+    }
+    return [
+      TextSpan(text: value.substring(0, separator + 1)),
+      TextSpan(
+        text: value.substring(separator + 1),
+        style: const TextStyle(color: TradeXColors.goldBright),
+      ),
+    ];
+  }
 }
 
 class JournalPanel extends StatelessWidget {

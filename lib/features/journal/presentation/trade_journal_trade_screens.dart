@@ -68,6 +68,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   var _symbolLoading = false;
   var _symbolLookupFailed = false;
   var _selectingSymbol = false;
+  var _updatingPricePlan = false;
   var _symbolRequestId = 0;
   var _saving = false;
 
@@ -143,6 +144,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       _set('mental_state_note', entry.psychologyBefore['note']);
     }
     _controllers['symbol']!.addListener(_onSymbolChanged);
+    _controllers['planned_entry']!.addListener(_onPlannedEntryChanged);
     if (_controllers['symbol']!.text.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _startLivePriceTracking();
@@ -179,8 +181,9 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
         if (snapshot.hasError || snapshot.data == null) {
           return JournalError(
             error: snapshot.error,
-            onRetry: () =>
-                setState(() => _metaRequest = widget.repository.meta()),
+            onRetry: () => setState(
+              () => _metaRequest = widget.repository.meta(forceRefresh: true),
+            ),
           );
         }
         return _buildForm(snapshot.data!);
@@ -288,7 +291,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           ),
           onDirectionChanged: (value) =>
               setState(() => _strategyDirection = value),
-          onEntryTypeChanged: (value) => setState(() => _direction = value),
+          onEntryTypeChanged: _changeEntryType,
           onEntryStatusChanged: (value) => setState(() => _status = value),
         ),
         const SizedBox(height: 18),
@@ -670,20 +673,44 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   void _applyLivePricePlan() {
     final entry = _selectedSymbolPrice;
     if (entry == null || entry <= 0) return;
+    _applyDefaultRiskPlan(entry, includeEntry: true);
+  }
+
+  void _onPlannedEntryChanged() {
+    if (_updatingPricePlan || !mounted) return;
+    final entry = double.tryParse(_controller('planned_entry'));
+    if (entry == null || entry <= 0) return;
+    _applyDefaultRiskPlan(entry);
+  }
+
+  void _changeEntryType(String value) {
+    setState(() => _direction = value);
+    final entry = double.tryParse(_controller('planned_entry'));
+    if (entry != null && entry > 0) _applyDefaultRiskPlan(entry);
+  }
+
+  void _applyDefaultRiskPlan(double entry, {bool includeEntry = false}) {
     final pipSize = _defaultPipSize(entry);
     final riskDistance = pipSize * 10;
     final rewardDistance = riskDistance * 5;
-    final buy = _direction != 'sell';
+    final buy = _direction.toLowerCase() != 'sell';
     final stopLoss = buy ? entry - riskDistance : entry + riskDistance;
     final takeProfit = buy ? entry + rewardDistance : entry - rewardDistance;
     if (stopLoss <= 0 || takeProfit <= 0) return;
     final decimals = _pipDecimals(pipSize);
 
-    setState(() {
-      _setPriceController('planned_entry', entry, decimals);
-      _setPriceController('planned_sl', stopLoss, decimals);
-      _setPriceController('planned_tp', takeProfit, decimals);
-    });
+    _updatingPricePlan = true;
+    try {
+      setState(() {
+        if (includeEntry) {
+          _setPriceController('planned_entry', entry, decimals);
+        }
+        _setPriceController('planned_sl', stopLoss, decimals);
+        _setPriceController('planned_tp', takeProfit, decimals);
+      });
+    } finally {
+      _updatingPricePlan = false;
+    }
   }
 
   double _defaultPipSize(double price) {
@@ -1189,15 +1216,18 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
   var _rating = 0;
   var _saving = false;
   var _hydrated = false;
+  Timer? _livePriceTimer;
+  double? _liveExitPrice;
+  var _liveExitPriceLoading = false;
+  var _livePriceTrackingStarted = false;
+  var _exitPriceManuallyEdited = false;
 
   static const _currencies = ['USD', 'USDT', 'EUR', 'GBP', 'LKR'];
 
   static const _fields = [
     'exit_price',
     'gross_pnl',
-    'fees',
     'pnl_currency',
-    'pnl_percent',
     'went_well',
     'went_wrong',
     'lesson_learned',
@@ -1217,6 +1247,7 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
 
   @override
   void dispose() {
+    _livePriceTimer?.cancel();
     for (final controller in _controllers.values) {
       controller.dispose();
     }
@@ -1245,8 +1276,12 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
             return JournalError(
               error: snapshot.error,
               onRetry: () => setState(() {
+                _livePriceTimer?.cancel();
+                _livePriceTrackingStarted = false;
+                _liveExitPrice = null;
+                _liveExitPriceLoading = false;
                 _hydrated = false;
-                _request = _load();
+                _request = _load(forceRefresh: true);
               }),
             );
           }
@@ -1254,6 +1289,12 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
           if (!_hydrated) {
             _hydrate(data.entry);
             _hydrated = true;
+          }
+          if (!_livePriceTrackingStarted) {
+            _livePriceTrackingStarted = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _startLivePriceTracking();
+            });
           }
           return _form(data.meta);
         },
@@ -1279,19 +1320,22 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
           onPickTime: _pickTime,
           result: _result,
           onResultChanged: (value) => setState(() => _result = value),
+          livePrice: _liveExitPrice,
+          livePriceLoading: _liveExitPriceLoading,
+          onRefreshLivePrice: () =>
+              unawaited(_refreshLiveExitPrice(showLoading: true)),
+          onUseLivePrice: _liveExitPrice == null ? null : _applyLiveExitPrice,
+          onExitPriceChanged: (_) => _exitPriceManuallyEdited = true,
         ),
         const SizedBox(height: 13),
         CloseTradeProfitLossCard(
           grossController: _controllers['gross_pnl']!,
-          feesController: _controllers['fees']!,
-          percentController: _controllers['pnl_percent']!,
           currency: _value('pnl_currency'),
           currencies: _currencyOptions,
           onCurrencyChanged: (value) => setState(
             () => _controllers['pnl_currency']!.text = value ?? 'USD',
           ),
           numberValidator: _validateOptionalNumber,
-          feesValidator: _validateFees,
         ),
         const SizedBox(height: 13),
         CloseTradeAdditionalInfoCard(
@@ -1411,10 +1455,8 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
         if (_emotion == 'other')
           'emotion_after_other': _value('emotion_after_other'),
       };
-      for (final item in const ['gross_pnl', 'fees', 'pnl_percent']) {
-        final parsed = double.tryParse(_value(item));
-        if (parsed != null) body[item] = parsed;
-      }
+      final grossPnl = double.tryParse(_value('gross_pnl'));
+      if (grossPnl != null) body['gross_pnl'] = grossPnl;
       for (final item in const [
         'pnl_currency',
         'went_well',
@@ -1447,13 +1489,15 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
         : [current, ..._currencies];
   }
 
-  Future<({TradeJournalMeta meta, TradeJournalEntry entry})> _load() async {
+  Future<({TradeJournalMeta meta, TradeJournalEntry entry})> _load({
+    bool forceRefresh = false,
+  }) async {
     if (widget.entry.uuid.trim().isEmpty) {
       throw const ApiException(message: 'The selected trade is invalid.');
     }
     final values = await Future.wait<Object>([
-      widget.repository.meta(),
-      widget.repository.entry(widget.entry.uuid),
+      widget.repository.meta(forceRefresh: forceRefresh),
+      widget.repository.entry(widget.entry.uuid, forceRefresh: forceRefresh),
     ]);
     return (
       meta: values[0] as TradeJournalMeta,
@@ -1466,10 +1510,9 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
     final review = entry.review;
     final pnl = entry.pnl;
     _setText('exit_price', entry.prices['exit_price']);
+    _exitPriceManuallyEdited = _value('exit_price').isNotEmpty;
     _setText('gross_pnl', pnl['gross']);
-    _setText('fees', pnl['fees']);
     _setText('pnl_currency', pnl['currency'] ?? 'USD');
-    _setText('pnl_percent', pnl['percent']);
     _setText('emotion_after_other', review['emotion_after_other']);
     _setText('went_well', review['went_well']);
     _setText('went_wrong', review['went_wrong']);
@@ -1512,6 +1555,58 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
     _controllers[name]!.text = text;
   }
 
+  void _startLivePriceTracking() {
+    _livePriceTimer?.cancel();
+    unawaited(_refreshLiveExitPrice(showLoading: true));
+    _livePriceTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => unawaited(_refreshLiveExitPrice()),
+    );
+  }
+
+  Future<void> _refreshLiveExitPrice({bool showLoading = false}) async {
+    final symbol = _entry.symbol.trim().toUpperCase();
+    if (symbol.isEmpty) return;
+    if (showLoading && mounted && _liveExitPrice == null) {
+      setState(() => _liveExitPriceLoading = true);
+    }
+    try {
+      final price = await widget.repository.livePrice(
+        market: _entry.market,
+        symbol: symbol,
+        stockRegion: _entry.stockRegion,
+      );
+      if (!mounted || _entry.symbol.trim().toUpperCase() != symbol) return;
+      setState(() {
+        _liveExitPrice = price;
+        _liveExitPriceLoading = false;
+        if (price != null && price > 0 && !_exitPriceManuallyEdited) {
+          _setLiveExitPrice(price);
+        }
+      });
+    } catch (_) {
+      if (!mounted || _entry.symbol.trim().toUpperCase() != symbol) return;
+      setState(() => _liveExitPriceLoading = false);
+    }
+  }
+
+  void _applyLiveExitPrice() {
+    final price = _liveExitPrice;
+    if (price == null || price <= 0) return;
+    setState(() {
+      _exitPriceManuallyEdited = false;
+      _setLiveExitPrice(price);
+    });
+  }
+
+  void _setLiveExitPrice(double price) {
+    final controller = _controllers['exit_price']!;
+    controller.text = formatCloseTradePrice(price);
+    controller.selection = TextSelection.collapsed(
+      offset: controller.text.length,
+    );
+  }
+
   String? _validateExitPrice(String? value) {
     final number = double.tryParse(value?.trim() ?? '');
     if (number == null) return 'Exit Price is required.';
@@ -1524,16 +1619,6 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
     if (text.isEmpty) return null;
     final number = double.tryParse(text);
     return number == null || !number.isFinite ? 'Enter a valid number.' : null;
-  }
-
-  String? _validateFees(String? value) {
-    final error = _validateOptionalNumber(value);
-    if (error != null) return error;
-    final text = value?.trim() ?? '';
-    if (text.isNotEmpty && double.parse(text) < 0) {
-      return 'Fees cannot be negative.';
-    }
-    return null;
   }
 
   void _message(String value) {

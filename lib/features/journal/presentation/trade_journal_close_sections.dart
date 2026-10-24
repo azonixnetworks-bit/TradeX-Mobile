@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/trade_journal_models.dart';
+import 'trade_journal_risk_psychology_sections.dart';
 import 'trade_journal_ui.dart';
 
 const closeTradeBackground = Color(0xFF020B1B);
@@ -141,6 +142,11 @@ class CloseTradeExitDetailsCard extends StatelessWidget {
     required this.onPickTime,
     required this.result,
     required this.onResultChanged,
+    required this.livePrice,
+    required this.livePriceLoading,
+    required this.onRefreshLivePrice,
+    required this.onUseLivePrice,
+    required this.onExitPriceChanged,
   });
 
   final TextEditingController exitPriceController;
@@ -151,6 +157,11 @@ class CloseTradeExitDetailsCard extends StatelessWidget {
   final VoidCallback onPickTime;
   final String result;
   final ValueChanged<String> onResultChanged;
+  final double? livePrice;
+  final bool livePriceLoading;
+  final VoidCallback onRefreshLivePrice;
+  final VoidCallback? onUseLivePrice;
+  final ValueChanged<String> onExitPriceChanged;
 
   @override
   Widget build(BuildContext context) => PremiumCloseTradeSection(
@@ -188,6 +199,34 @@ class CloseTradeExitDetailsCard extends StatelessWidget {
             icon: Icons.monetization_on_outlined,
             accent: closeTradeBlue,
             validator: exitPriceValidator,
+            onChanged: onExitPriceChanged,
+            helperText: livePriceLoading
+                ? 'Loading live price…'
+                : livePrice == null
+                ? 'Live price unavailable'
+                : 'Live price · ${formatCloseTradePrice(livePrice!)}',
+            suffix: livePriceLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(13),
+                    child: SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : IconButton(
+                    tooltip: livePrice == null
+                        ? 'Refresh live price'
+                        : 'Use live price',
+                    onPressed: livePrice == null
+                        ? onRefreshLivePrice
+                        : onUseLivePrice,
+                    icon: Icon(
+                      livePrice == null
+                          ? Icons.refresh_rounded
+                          : Icons.bolt_rounded,
+                      color: closeTradeBlue,
+                    ),
+                  ),
           ),
           second: CloseTradeResultSelector(
             value: result,
@@ -244,28 +283,22 @@ class CloseTradeProfitLossCard extends StatelessWidget {
   const CloseTradeProfitLossCard({
     super.key,
     required this.grossController,
-    required this.feesController,
-    required this.percentController,
     required this.currency,
     required this.currencies,
     required this.onCurrencyChanged,
     required this.numberValidator,
-    required this.feesValidator,
   });
 
   final TextEditingController grossController;
-  final TextEditingController feesController;
-  final TextEditingController percentController;
   final String currency;
   final List<String> currencies;
   final ValueChanged<String?> onCurrencyChanged;
   final FormFieldValidator<String> numberValidator;
-  final FormFieldValidator<String> feesValidator;
 
   @override
   Widget build(BuildContext context) => PremiumCloseTradeSection(
     title: 'P&L Details',
-    subtitle: 'Your trade outcome and costs',
+    subtitle: 'Record your trade outcome',
     icon: Icons.bar_chart_rounded,
     accent: closeTradeGreen,
     child: Column(
@@ -281,19 +314,7 @@ class CloseTradeProfitLossCard extends StatelessWidget {
             signed: true,
             validator: numberValidator,
           ),
-          second: PremiumCloseTradeNumberField(
-            key: const ValueKey('close-fees'),
-            controller: feesController,
-            label: 'Fees',
-            hint: 'e.g. 1.50',
-            icon: Icons.toll_rounded,
-            accent: closeTradePurple,
-            validator: feesValidator,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _ResponsivePair(
-          first: PremiumCloseTradeDropdown(
+          second: PremiumCloseTradeDropdown(
             key: const ValueKey('close-pnl-currency'),
             label: 'P&L Currency',
             icon: Icons.monetization_on_outlined,
@@ -301,16 +322,6 @@ class CloseTradeProfitLossCard extends StatelessWidget {
             value: currency,
             items: currencies,
             onChanged: onCurrencyChanged,
-          ),
-          second: PremiumCloseTradeNumberField(
-            key: const ValueKey('close-pnl-percent'),
-            controller: percentController,
-            label: 'P&L %',
-            hint: 'e.g. 2.5',
-            icon: Icons.percent_rounded,
-            accent: closeTradeGold,
-            signed: true,
-            validator: numberValidator,
           ),
         ),
       ],
@@ -346,14 +357,14 @@ class CloseTradeAdditionalInfoCard extends StatelessWidget {
     child: Column(
       children: [
         _ResponsivePair(
-          first: PremiumCloseTradeDropdown(
+          breakpoint: 620,
+          first: PremiumEmotionField(
             key: const ValueKey('close-emotion-after'),
-            label: 'Emotion After',
-            icon: Icons.sentiment_satisfied_alt_rounded,
-            accent: const Color(0xFF685BFF),
             value: emotion,
-            hint: 'Select emotion',
-            items: emotions,
+            label: 'Emotion After',
+            fieldKey: const ValueKey('close-emotion-after-field'),
+            optionKeyPrefix: 'close-emotion-after-option',
+            emotions: emotions,
             onChanged: onEmotionChanged,
           ),
           second: PremiumCloseTradeDropdown(
@@ -897,6 +908,9 @@ class PremiumCloseTradeNumberField extends StatelessWidget {
     required this.accent,
     this.signed = false,
     this.validator,
+    this.onChanged,
+    this.helperText,
+    this.suffix,
   });
 
   final TextEditingController controller;
@@ -906,6 +920,9 @@ class PremiumCloseTradeNumberField extends StatelessWidget {
   final Color accent;
   final bool signed;
   final FormFieldValidator<String>? validator;
+  final ValueChanged<String>? onChanged;
+  final String? helperText;
+  final Widget? suffix;
 
   @override
   Widget build(BuildContext context) => _PremiumFieldShell(
@@ -920,10 +937,21 @@ class PremiumCloseTradeNumberField extends StatelessWidget {
       ),
       inputFormatters: [_DecimalTextInputFormatter(signed: signed)],
       style: const TextStyle(color: closeTradeText, fontSize: 15),
-      decoration: _inputDecoration(hint),
+      decoration: _inputDecoration(hint)
+          .copyWith(helperText: helperText, suffixIcon: suffix),
       validator: validator,
+      onChanged: onChanged,
     ),
   );
+}
+
+String formatCloseTradePrice(double value) {
+  final decimals = value >= 1000
+      ? 2
+      : value >= 1
+      ? 4
+      : 8;
+  return value.toStringAsFixed(decimals);
 }
 
 class PremiumCloseTradeTextField extends StatelessWidget {
