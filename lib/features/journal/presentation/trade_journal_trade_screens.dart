@@ -255,6 +255,8 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           confirmationFinding: _confirmationFinding,
           direction: _strategyDirection,
           entryType: _direction,
+          entryStatus: _status,
+          showEntryStatus: !_editing,
           strategyController: _controllers['setup_strategy']!,
           onHtfChanged: (timeframe, trend) =>
               _setTrend(htf: true, timeframe: timeframe, trend: trend),
@@ -277,6 +279,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           onDirectionChanged: (value) =>
               setState(() => _strategyDirection = value),
           onEntryTypeChanged: (value) => setState(() => _direction = value),
+          onEntryStatusChanged: (value) => setState(() => _status = value),
         ),
         const SizedBox(height: 18),
         PriceRiskPlanSection(
@@ -346,37 +349,6 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       ],
       const SizedBox(height: 12),
       _symbolField(),
-      const SizedBox(height: 12),
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: _CompactChoiceGroup(
-              key: const ValueKey('trade-direction-selector'),
-              value: _direction,
-              choices: const [
-                _CompactChoice('buy', 'BUY', journalGreen),
-                _CompactChoice('sell', 'SELL', journalRed),
-              ],
-              onChanged: (value) => setState(() => _direction = value),
-            ),
-          ),
-          if (!_editing) ...[
-            const SizedBox(width: 8),
-            Expanded(
-              child: _CompactChoiceGroup(
-                key: const ValueKey('trade-status-selector'),
-                value: _status,
-                choices: const [
-                  _CompactChoice('planned', 'PLAN', TradeXColors.goldBright),
-                  _CompactChoice('open', 'OPEN NOW', journalBlue),
-                ],
-                onChanged: (value) => setState(() => _status = value),
-              ),
-            ),
-          ],
-        ],
-      ),
     ],
   );
 
@@ -901,80 +873,6 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           .showSnackBar(SnackBar(content: Text(value)));
     }
   }
-}
-
-class _CompactChoice {
-  const _CompactChoice(this.value, this.label, this.color);
-
-  final String value;
-  final String label;
-  final Color color;
-}
-
-class _CompactChoiceGroup extends StatelessWidget {
-  const _CompactChoiceGroup({
-    super.key,
-    required this.value,
-    required this.choices,
-    required this.onChanged,
-  });
-
-  final String value;
-  final List<_CompactChoice> choices;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 42,
-    padding: const EdgeInsets.all(3),
-    decoration: BoxDecoration(
-      color: Colors.black.withValues(alpha: .2),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.white.withValues(alpha: .09)),
-    ),
-    child: Row(
-      children: [
-        for (final choice in choices)
-          Expanded(
-            child: Semantics(
-              selected: value == choice.value,
-              button: true,
-              child: InkWell(
-                onTap: () => onChanged(choice.value),
-                borderRadius: BorderRadius.circular(9),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: value == choice.value
-                        ? choice.color.withValues(alpha: .2)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(
-                      color: value == choice.value
-                          ? choice.color.withValues(alpha: .72)
-                          : Colors.transparent,
-                    ),
-                  ),
-                  child: Text(
-                    choice.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: value == choice.value
-                          ? choice.color
-                          : TradeXColors.secondaryText,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    ),
-  );
 }
 
 class TradeJournalOpenScreen extends StatefulWidget {

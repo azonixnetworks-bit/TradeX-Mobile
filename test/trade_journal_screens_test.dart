@@ -147,26 +147,27 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.ancestor(
-        of: find.byKey(const ValueKey('trade-direction-selector')),
-        matching: strategySection,
-      ),
-      findsOneWidget,
+      find.byKey(const ValueKey('trade-direction-selector')),
+      findsNothing,
     );
+    expect(find.byKey(const ValueKey('trade-status-selector')), findsNothing);
+    for (final key in const [
+      ValueKey('strategy-entry-buy'),
+      ValueKey('strategy-entry-sell'),
+      ValueKey('strategy-entry-planned'),
+      ValueKey('strategy-entry-open'),
+    ]) {
+      expect(
+        find.ancestor(of: find.byKey(key), matching: strategySection),
+        findsOneWidget,
+      );
+    }
     expect(
       tester.getTopLeft(tradeSetupCard).dy,
       lessThan(
         tester.getTopLeft(find.byKey(const ValueKey('strategy-htf-MN'))).dy,
       ),
     );
-
-    final direction = tester.getTopLeft(
-      find.byKey(const ValueKey('trade-direction-selector')),
-    );
-    final status = tester.getTopLeft(
-      find.byKey(const ValueKey('trade-status-selector')),
-    );
-    expect(direction.dy, status.dy);
 
     await tester.enterText(
       find.byKey(const ValueKey('trade-symbol-field')),
@@ -365,6 +366,13 @@ void main() {
     expect(
       tester.widget<EntryTypeSelector>(find.byType(EntryTypeSelector)).value,
       'sell',
+    );
+    const entryOpen = ValueKey('strategy-entry-open');
+    await tester.tap(find.byKey(entryOpen));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<EntryTypeSelector>(find.byType(EntryTypeSelector)).status,
+      'open',
     );
 
     const setupField = ValueKey('strategy-setup-field');

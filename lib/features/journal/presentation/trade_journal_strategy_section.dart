@@ -26,6 +26,8 @@ class StrategyReasonSection extends StatelessWidget {
     required this.confirmationFinding,
     required this.direction,
     required this.entryType,
+    required this.entryStatus,
+    required this.showEntryStatus,
     required this.strategyController,
     required this.onHtfChanged,
     required this.onLtfChanged,
@@ -35,6 +37,7 @@ class StrategyReasonSection extends StatelessWidget {
     required this.onConfirmationChanged,
     required this.onDirectionChanged,
     required this.onEntryTypeChanged,
+    required this.onEntryStatusChanged,
   });
 
   final Widget tradeSetup;
@@ -46,6 +49,8 @@ class StrategyReasonSection extends StatelessWidget {
   final Map<String, Set<String>> confirmationFinding;
   final String? direction;
   final String entryType;
+  final String entryStatus;
+  final bool showEntryStatus;
   final TextEditingController strategyController;
   final void Function(String timeframe, String? trend) onHtfChanged;
   final void Function(String timeframe, String? trend) onLtfChanged;
@@ -55,6 +60,7 @@ class StrategyReasonSection extends StatelessWidget {
   final void Function(String timeframe, String option) onConfirmationChanged;
   final ValueChanged<String?> onDirectionChanged;
   final ValueChanged<String> onEntryTypeChanged;
+  final ValueChanged<String> onEntryStatusChanged;
 
   static const _htf = <(String, String)>[
     ('Monthly', 'MN'),
@@ -228,7 +234,10 @@ class StrategyReasonSection extends StatelessWidget {
             );
             final entrySelector = EntryTypeSelector(
               value: entryType,
+              status: entryStatus,
+              showStatusChoices: showEntryStatus,
               onChanged: onEntryTypeChanged,
+              onStatusChanged: onEntryStatusChanged,
             );
             if (stacked) {
               return Column(
@@ -908,40 +917,78 @@ class EntryTypeSelector extends StatelessWidget {
   const EntryTypeSelector({
     super.key,
     required this.value,
+    required this.status,
+    required this.showStatusChoices,
     required this.onChanged,
+    required this.onStatusChanged,
   });
 
   final String value;
+  final String status;
+  final bool showStatusChoices;
   final ValueChanged<String> onChanged;
+  final ValueChanged<String> onStatusChanged;
 
   @override
   Widget build(BuildContext context) => TradeSectionCard(
     title: 'Entry Type',
     icon: Icons.swap_vert_rounded,
     accent: _strategyGold,
-    child: Row(
+    child: Column(
       children: [
-        Expanded(
-          child: _EntryTypeTile(
-            key: const ValueKey('strategy-entry-buy'),
-            label: 'Buy / Long',
-            selected: value == 'buy',
-            accent: _strategyGreen,
-            icon: Icons.change_history_rounded,
-            onTap: () => onChanged('buy'),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _EntryTypeTile(
+                key: const ValueKey('strategy-entry-buy'),
+                label: 'Buy / Long',
+                selected: value == 'buy',
+                accent: _strategyGreen,
+                icon: Icons.change_history_rounded,
+                onTap: () => onChanged('buy'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _EntryTypeTile(
+                key: const ValueKey('strategy-entry-sell'),
+                label: 'Sell / Short',
+                selected: value == 'sell',
+                accent: _strategyRed,
+                icon: Icons.arrow_drop_down_rounded,
+                onTap: () => onChanged('sell'),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _EntryTypeTile(
-            key: const ValueKey('strategy-entry-sell'),
-            label: 'Sell / Short',
-            selected: value == 'sell',
-            accent: _strategyRed,
-            icon: Icons.arrow_drop_down_rounded,
-            onTap: () => onChanged('sell'),
+        if (showStatusChoices) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _EntryTypeTile(
+                  key: const ValueKey('strategy-entry-planned'),
+                  label: 'Plan',
+                  selected: status == 'planned',
+                  accent: _strategyGold,
+                  icon: Icons.event_note_rounded,
+                  onTap: () => onStatusChanged('planned'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _EntryTypeTile(
+                  key: const ValueKey('strategy-entry-open'),
+                  label: 'Open Now',
+                  selected: status == 'open',
+                  accent: _strategyBlue,
+                  icon: Icons.bolt_rounded,
+                  onTap: () => onStatusChanged('open'),
+                ),
+              ),
+            ],
           ),
-        ),
+        ],
       ],
     ),
   );
