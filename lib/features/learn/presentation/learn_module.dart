@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7,6 +9,7 @@ import '../../../core/theme/tradex_colors.dart';
 import '../../../core/preferences/app_preferences.dart';
 import '../data/learn_repository.dart';
 import 'course_video_player_screen.dart';
+import 'learn_dashboard_widgets.dart';
 import '../../catalog/presentation/secure_workflow_screens.dart';
 
 const _gold = TradeXColors.goldBright;
@@ -20,12 +23,34 @@ class LearnHomeScreen extends StatefulWidget {
 }
 
 class _LearnHomeScreenState extends State<LearnHomeScreen> {
-  late Future<JsonMap> _future = widget.repository.overview();
+  late Future<_LearnDashboardData> _future;
+  String? _resumingLessonUuid;
 
   @override
   void initState() {
     super.initState();
+    _future = _loadDashboard();
     WidgetsBinding.instance.addPostFrameCallback((_) => _ensureLanguage());
+  }
+
+  Future<_LearnDashboardData> _loadDashboard() async {
+    final overview = await widget.repository.overview();
+    final bookmarked = <String>{};
+    try {
+      final saved = await widget.repository.myLearning('SAVED');
+      for (final raw in LearnRepository.list(saved['items'])) {
+        final item = LearnRepository.map(raw);
+        final lesson = LearnRepository.map(item['lesson']);
+        final uuid = LearnRepository.text(
+          lesson['uuid'],
+          LearnRepository.text(item['lesson_uuid']),
+        );
+        if (uuid.isNotEmpty) bookmarked.add(uuid);
+      }
+    } catch (_) {
+      // The overview remains usable when the optional bookmark lookup fails.
+    }
+    return _LearnDashboardData(overview: overview, bookmarked: bookmarked);
   }
 
   Future<void> _ensureLanguage() async {
@@ -39,159 +64,256 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
         ),
       ),
     );
-    if (mounted) _refresh();
+    if (mounted) await _refresh();
   }
 
-  void _refresh() {
+  Future<void> _refresh() async {
+    final next = _loadDashboard();
     setState(() {
-      _future = widget.repository.overview();
+      _future = next;
     });
+    await next;
   }
 
-  void _open(Widget screen) =>
-      Navigator.of(context)
-          .push(MaterialPageRoute<void>(builder: (_) => screen))
-          .then((_) => _refresh());
+  Future<void> _open(Widget screen) async {
+    await Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => screen));
+    if (mounted) await _refresh();
+  }
 
   @override
-  Widget build(BuildContext context) => _FutureBody(
+  Widget build(BuildContext context) => BlocFutureBuilder<_LearnDashboardData>(
     future: _future,
-    onRetry: _refresh,
-    builder: (data) {
+    builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const ColoredBox(
+          color: learnBackground,
+          child: Center(child: CircularProgressIndicator(color: learnGold)),
+        );
+      }
+      if (snapshot.hasError || snapshot.data == null) {
+        return ColoredBox(
+          color: learnBackground,
+          child: _ErrorState(
+            onRetry: _refresh,
+            message: snapshot.error.toString(),
+          ),
+        );
+      }
+      final dashboard = snapshot.data!;
+      final data = dashboard.overview;
       final learning = LearnRepository.map(data['learning']);
       final isPremium = LearnRepository.flag(data['is_premium']);
       final continueItem = LearnRepository.map(learning['continue_learning']);
-      final starter = LearnRepository.map(learning['default_premium_lesson']);
       final freeLessons = LearnRepository.list(learning['free_lessons']);
       final featured = LearnRepository.list(data['featured_courses']);
+      final premiumStarter = LearnRepository.map(
+        learning['default_premium_lesson'],
+      );
+      final starter = premiumStarter.isNotEmpty
+          ? premiumStarter
+          : freeLessons.isNotEmpty
+          ? LearnRepository.map(freeLessons.first)
+          : <String, dynamic>{};
       return RefreshIndicator(
-        onRefresh: () async => _refresh(),
-        color: _gold,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-          children: [
-            const _PageHeading(
-              title: 'Learn',
-              subtitle: 'Build skill, discipline and consistency.',
+        onRefresh: _refresh,
+        color: learnGold,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [learnBackground, Color(0xFF031326)],
             ),
-            const SizedBox(height: 18),
-            _SectionHeading(
-              icon: Icons.play_circle_fill_rounded,
-              title: 'Continue Learning',
-              action: 'My Learning',
-              onTap: () =>
-                  _open(MyLearningScreen(repository: widget.repository)),
-            ),
-            const SizedBox(height: 10),
-            if (!isPremium)
-              _PremiumLockCard(
-                onTap: () =>
-                    _open(PremiumAccessScreen(repository: widget.repository)),
-              )
-            else if (continueItem.isNotEmpty)
-              _LearningCard(
-                item: continueItem,
-                button: 'Continue',
-                onTap: () => _openLessonFromItem(continueItem),
-              )
-            else
-              _LearningCard(
-                item: starter,
-                button: 'Start Learning',
-                emptyTitle: 'Start Your Learning Journey',
-                onTap: starter.isEmpty
-                    ? null
-                    : () => _openLessonFromItem(starter),
+          ),
+          child: ListView(
+            key: const ValueKey('learn-dashboard-scroll'),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 34),
+            children: [
+              const LearnDashboardHeader(),
+              const SizedBox(height: 22),
+              LearningSectionHeader(
+                icon: Icons.play_arrow_rounded,
+                title: 'Continue Learning',
+                action: 'My Learning',
+                onAction: () =>
+                    _open(MyLearningScreen(repository: widget.repository)),
               ),
-            const SizedBox(height: 22),
-            _ShortcutGrid(
-              onCourses: () =>
-                  _open(SubjectsScreen(repository: widget.repository)),
-              onProgress: () =>
-                  _open(LearningProgressScreen(repository: widget.repository)),
-              onAssignments: () =>
-                  _open(AssignmentsScreen(repository: widget.repository)),
-              onAi: () =>
-                  _open(AskTradeXAiScreen(repository: widget.repository)),
-              onSettings: () =>
-                  _open(LearnSettingsScreen(repository: widget.repository)),
-              onSaved: () => _open(
-                MyLearningScreen(
-                  repository: widget.repository,
-                  initialIndex: 3,
+              const SizedBox(height: 10),
+              if (continueItem.isNotEmpty)
+                ContinueLearningCard(
+                  item: continueItem,
+                  loading: _resumingLessonUuid == _lessonUuid(continueItem),
+                  onContinue: () => _resumeLearning(continueItem),
                 ),
-              ),
-            ),
-            const SizedBox(height: 22),
-            _SectionHeading(
-              icon: Icons.auto_stories_rounded,
-              title: 'Free Lessons',
-              action: 'View all',
-              onTap: () => _open(
-                SubjectsScreen(
-                  repository: widget.repository,
-                  initialAccess: 'FREE',
+              if (continueItem.isEmpty && starter.isNotEmpty)
+                ContinueLearningCard(
+                  item: starter,
+                  starting: true,
+                  onContinue: () => _openLessonFromItem(starter),
                 ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            _HorizontalCards(
-              items: freeLessons,
-              empty: 'No free lessons are published yet.',
-              builder: (item) => _LearningCard(
-                item: LearnRepository.map(item),
-                compact: true,
-                badge: 'FREE',
-                onTap: () => _openLessonFromItem(LearnRepository.map(item)),
-              ),
-            ),
-            const SizedBox(height: 22),
-            _SectionHeading(
-              icon: Icons.school_rounded,
-              title: 'Featured Courses',
-              action: 'All courses',
-              onTap: () => _open(SubjectsScreen(repository: widget.repository)),
-            ),
-            const SizedBox(height: 10),
-            _HorizontalCards(
-              items: featured,
-              empty: 'Courses will appear here when published.',
-              builder: (item) {
-                final course = LearnRepository.map(item);
-                return _CourseCard(
-                  course: course,
-                  compact: true,
-                  onTap: () => _open(
-                    SubjectDetailsScreen(
-                      repository: widget.repository,
-                      courseUuid: LearnRepository.text(course['uuid']),
-                    ),
+              if (continueItem.isEmpty && starter.isEmpty)
+                LearningEmptyState(
+                  title: 'Start Your Learning Journey',
+                  message: isPremium
+                      ? 'Published lessons will appear here when available.'
+                      : 'No accessible free lessons are published yet.',
+                  action: 'Browse Courses',
+                  onAction: () =>
+                      _open(SubjectsScreen(repository: widget.repository)),
+                ),
+              const SizedBox(height: 18),
+              LearningShortcutGrid(items: _shortcuts()),
+              const SizedBox(height: 23),
+              LearningSectionHeader(
+                icon: Icons.menu_book_rounded,
+                title: 'Free Lessons',
+                action: 'View all',
+                onAction: () => _open(
+                  SubjectsScreen(
+                    repository: widget.repository,
+                    initialAccess: 'FREE',
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: 22),
-            _ProgressSummary(
-              completed: LearnRepository.number(learning['completed_lessons']),
-              total: LearnRepository.number(
-                learning['accessible_published_lessons'],
+                ),
               ),
-              percent: LearnRepository.number(learning['completion_percent']),
-              onTap: () =>
-                  _open(LearningProgressScreen(repository: widget.repository)),
-            ),
-          ],
+              const SizedBox(height: 10),
+              if (freeLessons.isEmpty)
+                const LearningEmptyState(
+                  title: 'No free lessons yet',
+                  message: 'Published free lessons will appear here.',
+                )
+              else
+                SizedBox(
+                  height: 238,
+                  child: ListView.separated(
+                    key: const ValueKey('free-lessons-list'),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: freeLessons.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final item = LearnRepository.map(freeLessons[index]);
+                      final uuid = _lessonUuid(item);
+                      final bookmarked =
+                          dashboard.bookmarked.contains(uuid) ||
+                          LearnRepository.flag(item['bookmarked']);
+                      return FreeLessonCard(
+                        item: item,
+                        bookmarked: bookmarked,
+                        onTap: () => _openLessonFromItem(item),
+                        onBookmark: () =>
+                            _toggleBookmark(dashboard, uuid, bookmarked),
+                      );
+                    },
+                  ),
+                ),
+              const SizedBox(height: 23),
+              LearningSectionHeader(
+                icon: Icons.school_rounded,
+                title: 'Featured Courses',
+                action: 'All courses',
+                onAction: () =>
+                    _open(SubjectsScreen(repository: widget.repository)),
+              ),
+              const SizedBox(height: 10),
+              if (featured.isEmpty)
+                const LearningEmptyState(
+                  title: 'No featured courses',
+                  message: 'Featured published courses will appear here.',
+                )
+              else
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final cardWidth = constraints.maxWidth >= 720
+                        ? math.min(520.0, constraints.maxWidth * .62)
+                        : math.min(330.0, constraints.maxWidth * .9);
+                    return SizedBox(
+                      height: 310,
+                      child: ListView.separated(
+                        key: const ValueKey('featured-courses-list'),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: featured.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 10),
+                        itemBuilder: (context, index) {
+                          final course = LearnRepository.map(featured[index]);
+                          return FeaturedCourseCard(
+                            course: course,
+                            width: cardWidth,
+                            onTap: () => _open(
+                              SubjectDetailsScreen(
+                                repository: widget.repository,
+                                courseUuid: LearnRepository.text(
+                                  course['uuid'],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              const SizedBox(height: 18),
+              LearningProgressCard(
+                completed: LearnRepository.number(
+                  learning['completed_lessons'],
+                ),
+                total: LearnRepository.number(
+                  learning['accessible_published_lessons'],
+                ),
+                percent: LearnRepository.number(learning['completion_percent']),
+                onTap: () => _open(
+                  LearningProgressScreen(repository: widget.repository),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     },
   );
 
+  List<LearningShortcutData> _shortcuts() => [
+    LearningShortcutData(
+      icon: Icons.school_outlined,
+      title: 'Courses',
+      subtitle: 'Structured learning paths',
+      accent: learnGold,
+      onTap: () => _open(SubjectsScreen(repository: widget.repository)),
+    ),
+    LearningShortcutData(
+      icon: Icons.trending_up_rounded,
+      title: 'Progress',
+      subtitle: 'Track your growth',
+      accent: learnGreen,
+      onTap: () => _open(LearningProgressScreen(repository: widget.repository)),
+    ),
+    LearningShortcutData(
+      icon: Icons.assignment_outlined,
+      title: 'Assignments',
+      subtitle: 'Practice and apply',
+      accent: learnBlue,
+      onTap: () => _open(AssignmentsScreen(repository: widget.repository)),
+    ),
+    LearningShortcutData(
+      icon: Icons.auto_awesome_rounded,
+      title: 'Ask to Trading BRAIN',
+      subtitle: 'Get instant answers',
+      accent: learnPurple,
+      onTap: () => _open(AskTradeXAiScreen(repository: widget.repository)),
+    ),
+    LearningShortcutData(
+      icon: Icons.bookmark_border_rounded,
+      title: 'Saved',
+      subtitle: 'Your bookmarked content',
+      accent: learnCyan,
+      onTap: () => _open(
+        MyLearningScreen(repository: widget.repository, initialIndex: 3),
+      ),
+    ),
+  ];
+
   void _openLessonFromItem(JsonMap item) {
-    final lesson = LearnRepository.map(item['lesson']);
-    final uuid = LearnRepository.text(
-      lesson['uuid'],
-      LearnRepository.text(item['lesson_uuid']),
-    );
+    final uuid = _lessonUuid(item);
     if (uuid.isEmpty) return;
     _open(
       UniversalLessonViewerScreen(
@@ -200,6 +322,115 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
       ),
     );
   }
+
+  String _lessonUuid(JsonMap item) {
+    final lesson = LearnRepository.map(item['lesson']);
+    return LearnRepository.text(
+      lesson['uuid'],
+      LearnRepository.text(item['lesson_uuid']),
+    );
+  }
+
+  Future<void> _resumeLearning(JsonMap item) async {
+    final lessonUuid = _lessonUuid(item);
+    final videoUuid = LearnRepository.text(item['last_video_uuid']);
+    if (lessonUuid.isEmpty) return;
+    if (videoUuid.isEmpty) {
+      _openLessonFromItem(item);
+      return;
+    }
+    setState(() => _resumingLessonUuid = lessonUuid);
+    try {
+      final detail = await widget.repository.lesson(lessonUuid);
+      final videos = LearnRepository.list(detail['videos'])
+          .map(LearnRepository.map)
+          .toList(growable: false);
+      JsonMap? video;
+      for (final candidate in videos) {
+        if (LearnRepository.text(candidate['uuid']) == videoUuid) {
+          video = candidate;
+          break;
+        }
+      }
+      if (video == null || !LearnRepository.flag(video['playback_ready'])) {
+        if (mounted) _openLessonFromItem(item);
+        return;
+      }
+      final token = await widget.repository.playbackToken(videoUuid);
+      final playbackUrl = LearnRepository.text(token['playback_url']);
+      if (playbackUrl.isEmpty) throw StateError('Playback URL unavailable');
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => CourseVideoPlayerScreen(
+            repository: widget.repository,
+            lessonUuid: lessonUuid,
+            videoUuid: videoUuid,
+            title: LearnRepository.text(
+              video?['title'],
+              LearnRepository.text(
+                LearnRepository.map(item['lesson'])['title'],
+                'TradeX course video',
+              ),
+            ),
+            playbackUrl: playbackUrl,
+            resumeSeconds: LearnRepository.number(
+              item['last_position_seconds'],
+            ),
+          ),
+        ),
+      );
+      if (mounted) await _refresh();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This lesson video is temporarily unavailable.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _resumingLessonUuid = null);
+    }
+  }
+
+  Future<void> _toggleBookmark(
+    _LearnDashboardData dashboard,
+    String lessonUuid,
+    bool bookmarked,
+  ) async {
+    if (lessonUuid.isEmpty) return;
+    final next = !bookmarked;
+    setState(() {
+      if (next) {
+        dashboard.bookmarked.add(lessonUuid);
+      } else {
+        dashboard.bookmarked.remove(lessonUuid);
+      }
+    });
+    try {
+      await widget.repository.setBookmark(lessonUuid, next);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        if (bookmarked) {
+          dashboard.bookmarked.add(lessonUuid);
+        } else {
+          dashboard.bookmarked.remove(lessonUuid);
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update this bookmark.')),
+      );
+    }
+  }
+}
+
+class _LearnDashboardData {
+  const _LearnDashboardData({required this.overview, required this.bookmarked});
+
+  final JsonMap overview;
+  final Set<String> bookmarked;
 }
 
 class SubjectsScreen extends StatefulWidget {
@@ -1451,35 +1682,10 @@ class _FutureBody extends StatelessWidget {
   );
 }
 
-class _PageHeading extends StatelessWidget {
-  const _PageHeading({required this.title, required this.subtitle});
-  final String title;
-  final String subtitle;
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        title,
-        style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
-      ),
-      const SizedBox(height: 4),
-      Text(subtitle, style: const TextStyle(color: TradeXColors.secondaryText)),
-    ],
-  );
-}
-
 class _SectionHeading extends StatelessWidget {
-  const _SectionHeading({
-    required this.icon,
-    required this.title,
-    this.action,
-    this.onTap,
-  });
+  const _SectionHeading({required this.icon, required this.title});
   final IconData icon;
   final String title;
-  final String? action;
-  final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) => Row(
     children: [
@@ -1491,7 +1697,6 @@ class _SectionHeading extends StatelessWidget {
           style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
         ),
       ),
-      if (action != null) TextButton(onPressed: onTap, child: Text(action!)),
     ],
   );
 }
@@ -1539,46 +1744,10 @@ class _InfoCard extends StatelessWidget {
   );
 }
 
-class _PremiumLockCard extends StatelessWidget {
-  const _PremiumLockCard({required this.onTap});
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) => _PremiumCard(
-    child: Column(
-      children: [
-        const Icon(Icons.lock_rounded, color: _gold, size: 36),
-        const SizedBox(height: 8),
-        const Text(
-          'Premium content. Upgrade to continue learning.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 12),
-        FilledButton.icon(
-          onPressed: onTap,
-          icon: const Icon(Icons.workspace_premium),
-          label: const Text('Unlock Premium'),
-        ),
-      ],
-    ),
-  );
-}
-
 class _LearningCard extends StatelessWidget {
-  const _LearningCard({
-    required this.item,
-    this.onTap,
-    this.button,
-    this.emptyTitle,
-    this.compact = false,
-    this.badge,
-  });
+  const _LearningCard({required this.item, this.onTap});
   final JsonMap item;
   final VoidCallback? onTap;
-  final String? button;
-  final String? emptyTitle;
-  final bool compact;
-  final String? badge;
   @override
   Widget build(BuildContext context) {
     final lesson = LearnRepository.map(item['lesson']);
@@ -1586,61 +1755,38 @@ class _LearningCard extends StatelessWidget {
     final course = LearnRepository.map(item['course']);
     final title = LearnRepository.text(
       lesson['title'],
-      LearnRepository.text(
-        item['lesson_title'],
-        emptyTitle ?? 'Start learning',
-      ),
+      LearnRepository.text(item['lesson_title'], 'Start learning'),
     );
     final percent = LearnRepository.number(item['progress_percent']);
-    return SizedBox(
-      width: compact ? 270 : null,
-      child: _PremiumCard(
-        child: InkWell(
-          onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (badge != null) _StatusBadge(badge!),
-              Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                ),
+    return _PremiumCard(
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              '${LearnRepository.text(course['title'], LearnRepository.text(item['course_title']))} • ${LearnRepository.text(module['title'], LearnRepository.text(item['module_title']))}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: TradeXColors.secondaryText,
+                fontSize: 12,
               ),
-              const SizedBox(height: 5),
-              Text(
-                '${LearnRepository.text(course['title'], LearnRepository.text(item['course_title']))} • ${LearnRepository.text(module['title'], LearnRepository.text(item['module_title']))}',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: TradeXColors.secondaryText,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 10),
-              LinearProgressIndicator(
-                value: percent.clamp(0, 100) / 100,
-                color: _gold,
-                backgroundColor: TradeXColors.border,
-              ),
-              if (button != null) ...[
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    button!,
-                    style: const TextStyle(
-                      color: _gold,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
+            ),
+            const SizedBox(height: 10),
+            LinearProgressIndicator(
+              value: percent.clamp(0, 100) / 100,
+              color: _gold,
+              backgroundColor: TradeXColors.border,
+            ),
+          ],
         ),
       ),
     );
@@ -1648,55 +1794,62 @@ class _LearningCard extends StatelessWidget {
 }
 
 class _CourseCard extends StatelessWidget {
-  const _CourseCard({required this.course, this.onTap, this.compact = false});
+  const _CourseCard({required this.course, this.onTap});
   final JsonMap course;
   final VoidCallback? onTap;
-  final bool compact;
   @override
   Widget build(BuildContext context) {
     final locked = LearnRepository.flag(course['is_locked']);
     final progress = LearnRepository.map(course['progress']);
-    return SizedBox(
-      width: compact ? 275 : null,
-      child: _PremiumCard(
-        child: InkWell(
-          onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      LearnRepository.text(course['title'], 'Course'),
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                      ),
+    final courseUuid = LearnRepository.text(course['uuid']);
+    final thumbnail = LearnRepository.text(
+      course['thumbnail_url'],
+      LearnRepository.text(course['thumbnail_path']),
+    );
+    return _PremiumCard(
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CourseThumbnail(
+              key: ValueKey('course-thumbnail-$courseUuid'),
+              thumbnailPath: thumbnail,
+              height: 150,
+            ),
+            const SizedBox(height: 13),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    LearnRepository.text(course['title'], 'Course'),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  Icon(locked ? Icons.lock : Icons.arrow_forward, color: _gold),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                LearnRepository.text(course['short_description']),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: TradeXColors.secondaryText),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  _StatusBadge(
-                    LearnRepository.text(course['access_level'], 'FREE'),
-                  ),
-                  const Spacer(),
-                  Text('${LearnRepository.number(progress['percent'])}%'),
-                ],
-              ),
-            ],
-          ),
+                ),
+                Icon(locked ? Icons.lock : Icons.arrow_forward, color: _gold),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              LearnRepository.text(course['short_description']),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: TradeXColors.secondaryText),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _StatusBadge(
+                  LearnRepository.text(course['access_level'], 'FREE'),
+                ),
+                const Spacer(),
+                Text('${LearnRepository.number(progress['percent'])}%'),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -1707,13 +1860,45 @@ class _CourseHero extends StatelessWidget {
   const _CourseHero({required this.course});
   final JsonMap course;
   @override
-  Widget build(BuildContext context) => _InfoCard(
-    title: LearnRepository.text(course['title'], 'TradeX Course'),
-    body: LearnRepository.text(
+  Widget build(BuildContext context) {
+    final thumbnail = LearnRepository.text(
+      course['thumbnail_url'],
+      LearnRepository.text(course['thumbnail_path']),
+    );
+    final body = LearnRepository.text(
       course['description'],
       LearnRepository.text(course['short_description']),
-    ),
-  );
+    );
+    return _PremiumCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CourseThumbnail(
+            key: ValueKey(
+              'course-hero-thumbnail-${LearnRepository.text(course['uuid'])}',
+            ),
+            thumbnailPath: thumbnail,
+            height: 185,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            LearnRepository.text(course['title'], 'TradeX Course'),
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+          ),
+          if (body.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              body,
+              style: const TextStyle(
+                color: TradeXColors.secondaryText,
+                height: 1.45,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _ModuleCard extends StatelessWidget {
@@ -1772,126 +1957,35 @@ class _LessonCard extends StatelessWidget {
   }
 }
 
-class _HorizontalCards extends StatelessWidget {
-  const _HorizontalCards({
-    required this.items,
-    required this.builder,
-    required this.empty,
-  });
-  final List<dynamic> items;
-  final Widget Function(dynamic) builder;
-  final String empty;
-  @override
-  Widget build(BuildContext context) => items.isEmpty
-      ? _EmptyState(empty)
-      : SizedBox(
-          height: 175,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 10),
-            itemBuilder: (_, i) => builder(items[i]),
-          ),
-        );
-}
-
-class _ShortcutGrid extends StatelessWidget {
-  const _ShortcutGrid({
-    required this.onCourses,
-    required this.onProgress,
-    required this.onAssignments,
-    required this.onAi,
-    required this.onSettings,
-    required this.onSaved,
-  });
-  final VoidCallback onCourses,
-      onProgress,
-      onAssignments,
-      onAi,
-      onSettings,
-      onSaved;
-  @override
-  Widget build(BuildContext context) {
-    final entries = [
-      (Icons.school, 'Courses', onCourses),
-      (Icons.insights, 'Progress', onProgress),
-      (Icons.assignment, 'Assignments', onAssignments),
-      (Icons.auto_awesome, 'Ask AI', onAi),
-      (Icons.bookmark, 'Saved', onSaved),
-      (Icons.settings, 'Settings', onSettings),
-    ];
-    return LayoutBuilder(
-      builder: (_, box) {
-        final width = (box.maxWidth - 20) / 3;
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: entries
-              .map(
-                (entry) => SizedBox(
-                  width: width,
-                  child: _PremiumCard(
-                    child: InkWell(
-                      onTap: entry.$3,
-                      child: Column(
-                        children: [
-                          Icon(entry.$1, color: _gold),
-                          const SizedBox(height: 6),
-                          Text(
-                            entry.$2,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        );
-      },
-    );
-  }
-}
-
 class _ProgressSummary extends StatelessWidget {
   const _ProgressSummary({
     required this.completed,
     required this.total,
     required this.percent,
-    this.onTap,
   });
   final int completed, total, percent;
-  final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) => _PremiumCard(
-    child: InkWell(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Overall Learning Progress',
-            style: TextStyle(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 10),
-          LinearProgressIndicator(
-            value: percent.clamp(0, 100) / 100,
-            minHeight: 8,
-            color: _gold,
-            backgroundColor: TradeXColors.border,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '$percent% • $completed of $total lessons completed',
-            style: const TextStyle(color: TradeXColors.secondaryText),
-          ),
-        ],
-      ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Overall Learning Progress',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+        LinearProgressIndicator(
+          value: percent.clamp(0, 100) / 100,
+          minHeight: 8,
+          color: _gold,
+          backgroundColor: TradeXColors.border,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '$percent% • $completed of $total lessons completed',
+          style: const TextStyle(color: TradeXColors.secondaryText),
+        ),
+      ],
     ),
   );
 }
