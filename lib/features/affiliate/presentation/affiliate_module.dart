@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,6 +18,22 @@ import 'bloc/affiliate_cubits.dart';
 const _gold = TradeXColors.goldBright;
 const _muted = TradeXColors.secondaryText;
 const _purple = Color(0xFFA855F7);
+
+abstract final class _AffiliateAssets {
+  static const giftBox = 'assets/affiliate/illustrations/gift_box_gold.png';
+  static const gift = 'assets/affiliate/illustrations/gift_gold.png';
+  static const coin =
+      'assets/affiliate/illustrations/gold_coin_transparent.png';
+  static const money = 'assets/affiliate/illustrations/money_gold.png';
+  static const crown = 'assets/affiliate/illustrations/crown_gold.png';
+  static const wallet = 'assets/affiliate/illustrations/wallet_gold.png';
+  static const trophy = 'assets/affiliate/illustrations/trophy_silver.png';
+  static const whatsapp = 'assets/affiliate/brands/whatsapp.svg';
+  static const telegram = 'assets/affiliate/brands/telegram.svg';
+  static const paypal = 'assets/affiliate/brands/paypal.svg';
+  static const tether = 'assets/affiliate/brands/tether.svg';
+  static const binance = 'assets/affiliate/brands/binance.svg';
+}
 
 class AffiliateDashboardScreen extends StatelessWidget {
   const AffiliateDashboardScreen({
@@ -262,6 +279,7 @@ class _DashboardContent extends StatelessWidget {
                     financials['lifetime_commission_earned'],
                   ),
                   icon: Icons.monetization_on_outlined,
+                  assetPath: _AffiliateAssets.coin,
                   onTap: openEarnings,
                 ),
                 AffiliateMetricCard(
@@ -269,6 +287,7 @@ class _DashboardContent extends StatelessWidget {
                   label: 'Qualified Sales',
                   value: '$sales',
                   icon: Icons.redeem_outlined,
+                  assetPath: _AffiliateAssets.gift,
                   onTap: openEarnings,
                 ),
                 AffiliateMetricCard(
@@ -284,6 +303,7 @@ class _DashboardContent extends StatelessWidget {
                   value: AffiliateRepository.text(stage['name']),
                   subtitle: '$rate% commission',
                   icon: Icons.workspace_premium_outlined,
+                  assetPath: _AffiliateAssets.crown,
                   onTap: openLevels,
                 ),
               ],
@@ -311,7 +331,11 @@ class _DashboardContent extends StatelessWidget {
             decoration: _goldDecoration(radius: 18),
             child: const Row(
               children: [
-                _GoldIcon(Icons.card_giftcard_rounded, size: 28),
+                _AffiliateArt(
+                  path: _AffiliateAssets.giftBox,
+                  fallback: Icons.card_giftcard_rounded,
+                  size: 48,
+                ),
                 SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -417,14 +441,23 @@ class AffiliateScaffold extends StatelessWidget {
     );
     return Material(
       color: TradeXColors.background,
-      child: SafeArea(
-        child: onRefresh == null
-            ? content
-            : RefreshIndicator(
-                color: _gold,
-                onRefresh: onRefresh!,
-                child: content,
-              ),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(0.75, -0.95),
+            radius: 1.15,
+            colors: [Color(0x27261D08), Colors.transparent],
+          ),
+        ),
+        child: SafeArea(
+          child: onRefresh == null
+              ? content
+              : RefreshIndicator(
+                  color: _gold,
+                  onRefresh: onRefresh!,
+                  child: content,
+                ),
+        ),
       ),
     );
   }
@@ -482,6 +515,28 @@ class AffiliateHero extends StatelessWidget {
       child: Stack(
         children: [
           const Positioned.fill(child: CustomPaint(painter: _HeroPainter())),
+          const Positioned(
+            right: -8,
+            bottom: 5,
+            child: IgnorePointer(
+              child: _AffiliateArt(
+                path: _AffiliateAssets.giftBox,
+                fallback: Icons.card_giftcard_rounded,
+                size: 94,
+              ),
+            ),
+          ),
+          const Positioned(
+            right: 56,
+            top: 4,
+            child: IgnorePointer(
+              child: _AffiliateArt(
+                path: _AffiliateAssets.coin,
+                fallback: Icons.monetization_on_rounded,
+                size: 46,
+              ),
+            ),
+          ),
           FractionallySizedBox(
             widthFactor: .7,
             child: Column(
@@ -559,6 +614,7 @@ class AffiliateMetricCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
+    this.assetPath,
     this.subtitle,
     this.onTap,
   });
@@ -567,6 +623,7 @@ class AffiliateMetricCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
+  final String? assetPath;
   final String? subtitle;
   final VoidCallback? onTap;
 
@@ -585,7 +642,10 @@ class AffiliateMetricCard extends StatelessWidget {
                 Expanded(
                   child: Text(label, style: const TextStyle(color: _muted)),
                 ),
-                _GoldIcon(icon),
+                if (assetPath == null)
+                  _GoldIcon(icon)
+                else
+                  _AffiliateArt(path: assetPath!, fallback: icon, size: 42),
               ],
             ),
             const Spacer(),
@@ -664,6 +724,7 @@ class ReferralLinkPanel extends StatelessWidget {
                 Icons.chat_rounded,
                 const Color(0xFF25D366),
                 onWhatsApp,
+                assetPath: _AffiliateAssets.whatsapp,
               ),
             ),
             const SizedBox(width: 8),
@@ -673,6 +734,7 @@ class ReferralLinkPanel extends StatelessWidget {
                 Icons.send_rounded,
                 const Color(0xFF229ED9),
                 onTelegram,
+                assetPath: _AffiliateAssets.telegram,
               ),
             ),
             const SizedBox(width: 8),
@@ -696,11 +758,18 @@ class ReferralLinkPanel extends StatelessWidget {
 }
 
 class _ShareButton extends StatelessWidget {
-  const _ShareButton(this.label, this.icon, this.color, this.onTap);
+  const _ShareButton(
+    this.label,
+    this.icon,
+    this.color,
+    this.onTap, {
+    this.assetPath,
+  });
   final String label;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
+  final String? assetPath;
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -713,7 +782,15 @@ class _ShareButton extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color),
+          if (assetPath == null)
+            Icon(icon, color: color)
+          else
+            SvgPicture.asset(
+              assetPath!,
+              width: 24,
+              height: 24,
+              semanticsLabel: '$label logo',
+            ),
           const SizedBox(height: 5),
           Text(label, style: const TextStyle(fontSize: 10)),
         ],
@@ -752,12 +829,44 @@ class _ReferralsBody extends StatelessWidget {
         onRefresh: context.read<ReferralCubit>().load,
         child: Column(
           children: [
-            TextField(
-              onChanged: context.read<ReferralCubit>().search,
-              decoration: const InputDecoration(
-                hintText: 'Search by name...',
-                prefixIcon: Icon(Icons.search_rounded),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    onChanged: context.read<ReferralCubit>().search,
+                    decoration: const InputDecoration(
+                      hintText: 'Search by name...',
+                      prefixIcon: Icon(Icons.search_rounded),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                PopupMenuButton<ReferralFilter>(
+                  tooltip: 'Filter referrals',
+                  initialValue: state.filter,
+                  onSelected: context.read<ReferralCubit>().filter,
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(
+                      value: ReferralFilter.all,
+                      child: Text('All referrals'),
+                    ),
+                    PopupMenuItem(
+                      value: ReferralFilter.qualified,
+                      child: Text('Qualified'),
+                    ),
+                    PopupMenuItem(
+                      value: ReferralFilter.noSale,
+                      child: Text('No qualified sale'),
+                    ),
+                  ],
+                  child: Container(
+                    width: 54,
+                    height: 54,
+                    decoration: _fieldDecoration(),
+                    child: const Icon(Icons.filter_list_rounded, color: _gold),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 14),
             Row(
@@ -868,9 +977,20 @@ class ReferralTile extends StatelessWidget {
                 color: qualified ? TradeXColors.success : TradeXColors.warning,
               ),
               const SizedBox(height: 8),
-              Text(
-                '$sales ${sales == 1 ? 'sale' : 'sales'}',
-                style: const TextStyle(color: _gold, fontSize: 12),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _AffiliateArt(
+                    path: _AffiliateAssets.gift,
+                    fallback: Icons.card_giftcard_rounded,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$sales ${sales == 1 ? 'sale' : 'sales'}',
+                    style: const TextStyle(color: _gold, fontSize: 12),
+                  ),
+                ],
               ),
             ],
           ),
@@ -986,9 +1106,18 @@ class EarningsContent extends StatelessWidget {
             children: [
               const Row(
                 children: [
-                  _GoldIcon(Icons.stacked_line_chart_rounded, size: 28),
+                  _AffiliateArt(
+                    path: _AffiliateAssets.money,
+                    fallback: Icons.stacked_line_chart_rounded,
+                    size: 56,
+                  ),
                   SizedBox(width: 10),
-                  Text('Total Commission Earned', style: _sectionTitle),
+                  Expanded(
+                    child: Text(
+                      'Total Commission Earned',
+                      style: _sectionTitle,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 10),
@@ -1003,6 +1132,32 @@ class EarningsContent extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               SizedBox(height: 210, child: EarningsChart(points: points)),
+              if (points.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(width: 10, height: 10, color: _gold),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Net commission',
+                      style: TextStyle(color: _muted, fontSize: 11),
+                    ),
+                    const Spacer(),
+                    Text(
+                      AffiliateRepository.text(points.first['label']),
+                      style: const TextStyle(color: _muted, fontSize: 10),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 6),
+                      child: Text('–', style: TextStyle(color: _muted)),
+                    ),
+                    Text(
+                      AffiliateRepository.text(points.last['label']),
+                      style: const TextStyle(color: _muted, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -1015,6 +1170,7 @@ class EarningsContent extends StatelessWidget {
                 label: 'Qualified Sales',
                 value: '$sales',
                 icon: Icons.shopping_cart_outlined,
+                assetPath: _AffiliateAssets.gift,
               ),
             ),
             const SizedBox(width: 12),
@@ -1235,7 +1391,10 @@ class LevelsContent extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const _StageBadge(code: 'PRO', size: 76),
+                  _StageBadge(
+                    code: AffiliateRepository.text(current['code'], 'STARTER'),
+                    size: 76,
+                  ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -1466,6 +1625,11 @@ class _StageBadge extends StatelessWidget {
       'AMBASSADOR' => (_purple, Icons.workspace_premium_outlined),
       _ => (const Color(0xFFFF5252), Icons.diamond_rounded),
     };
+    final assetPath = switch (normalized) {
+      'STARTER' || 'GROWTH' => _AffiliateAssets.trophy,
+      'PRO' || 'AMBASSADOR' => _AffiliateAssets.crown,
+      _ => null,
+    };
     return Container(
       width: size,
       height: size,
@@ -1477,7 +1641,17 @@ class _StageBadge extends StatelessWidget {
           BoxShadow(color: color.withValues(alpha: .2), blurRadius: 12),
         ],
       ),
-      child: Icon(icon, color: color, size: size * .52),
+      child: assetPath == null
+          ? Icon(icon, color: color, size: size * .52)
+          : Padding(
+              padding: EdgeInsets.all(size * .12),
+              child: _AffiliateArt(
+                path: assetPath,
+                fallback: icon,
+                size: size * .72,
+                tint: normalized == 'PRO' ? null : color,
+              ),
+            ),
     );
   }
 }
@@ -1673,7 +1847,11 @@ class PayoutsContent extends StatelessWidget {
           borderColor: TradeXColors.gold,
           child: Row(
             children: [
-              const _GoldIcon(Icons.account_balance_wallet_rounded, size: 34),
+              const _AffiliateArt(
+                path: _AffiliateAssets.wallet,
+                fallback: Icons.account_balance_wallet_rounded,
+                size: 62,
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -1718,6 +1896,7 @@ class PayoutsContent extends StatelessWidget {
                 'Total Earned',
                 summary['net_earned'],
                 Icons.monetization_on_outlined,
+                assetPath: _AffiliateAssets.money,
               ),
             ),
             const SizedBox(width: 8),
@@ -1800,17 +1979,21 @@ class PayoutsContent extends StatelessWidget {
 }
 
 class _PayoutMetric extends StatelessWidget {
-  const _PayoutMetric(this.label, this.value, this.icon);
+  const _PayoutMetric(this.label, this.value, this.icon, {this.assetPath});
   final String label;
   final Object? value;
   final IconData icon;
+  final String? assetPath;
   @override
   Widget build(BuildContext context) => SectionCard(
     padding: const EdgeInsets.all(12),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _GoldIcon(icon),
+        if (assetPath == null)
+          _GoldIcon(icon)
+        else
+          _AffiliateArt(path: assetPath!, fallback: icon, size: 42),
         const SizedBox(height: 8),
         Text(
           label,
@@ -1850,7 +2033,7 @@ class PayoutMethodTile extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            _GoldIcon(_methodIcon(code)),
+            _PaymentMethodIcon(code: code),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -2213,6 +2396,66 @@ class _GoldIcon extends StatelessWidget {
     ),
     child: Icon(icon, color: _gold, size: size),
   );
+}
+
+class _AffiliateArt extends StatelessWidget {
+  const _AffiliateArt({
+    required this.path,
+    required this.fallback,
+    required this.size,
+    this.tint,
+  });
+
+  final String path;
+  final IconData fallback;
+  final double size;
+  final Color? tint;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: size,
+    child: Image.asset(
+      path,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+      color: tint,
+      colorBlendMode: tint == null ? null : BlendMode.modulate,
+      errorBuilder: (_, _, _) =>
+          Icon(fallback, color: tint ?? _gold, size: size * .65),
+    ),
+  );
+}
+
+class _PaymentMethodIcon extends StatelessWidget {
+  const _PaymentMethodIcon({required this.code});
+  final String code;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = switch (code) {
+      'PAYPAL' => _AffiliateAssets.paypal,
+      'BINANCE' => _AffiliateAssets.binance,
+      'USDT_TRC20' => _AffiliateAssets.tether,
+      _ => null,
+    };
+    if (asset == null) return _GoldIcon(_methodIcon(code));
+    return Container(
+      width: 42,
+      height: 42,
+      padding: const EdgeInsets.all(9),
+      decoration: BoxDecoration(
+        color: TradeXColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: TradeXColors.border),
+      ),
+      child: SvgPicture.asset(
+        asset,
+        width: 24,
+        height: 24,
+        semanticsLabel: '${_methodName(code)} logo',
+      ),
+    );
+  }
 }
 
 class _SectionHeading extends StatelessWidget {

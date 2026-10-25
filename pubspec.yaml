@@ -47,3 +47,6 @@ flutter:
     - assets/branding/
     - assets/crypto_market/cards/
     - assets/market_sessions/
+    - assets/affiliate/
+    - assets/affiliate/illustrations/
+    - assets/affiliate/brands/
