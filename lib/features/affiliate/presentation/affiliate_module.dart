@@ -20,19 +20,46 @@ const _muted = TradeXColors.secondaryText;
 const _purple = Color(0xFFA855F7);
 
 abstract final class _AffiliateAssets {
-  static const giftBox = 'assets/affiliate/illustrations/gift_box_gold.png';
   static const gift = 'assets/affiliate/illustrations/gift_gold.png';
-  static const coin =
-      'assets/affiliate/illustrations/gold_coin_transparent.png';
   static const money = 'assets/affiliate/illustrations/money_gold.png';
   static const crown = 'assets/affiliate/illustrations/crown_gold.png';
   static const wallet = 'assets/affiliate/illustrations/wallet_gold.png';
   static const trophy = 'assets/affiliate/illustrations/trophy_silver.png';
-  static const whatsapp = 'assets/affiliate/brands/whatsapp.svg';
-  static const telegram = 'assets/affiliate/brands/telegram.svg';
   static const paypal = 'assets/affiliate/brands/paypal.svg';
   static const tether = 'assets/affiliate/brands/tether.svg';
   static const binance = 'assets/affiliate/brands/binance.svg';
+  static const dashboardGlobe =
+      'assets/affiliate/illustrations/dashboard_network_globe.png';
+  static const dashboardGift =
+      'assets/affiliate/illustrations/dashboard_gift_box.png';
+  static const dashboardGrowthArrow =
+      'assets/affiliate/illustrations/dashboard_growth_arrow.png';
+  static const dashboardSmallArrow =
+      'assets/affiliate/illustrations/dashboard_small_arrow.png';
+  static const dashboardDollarCoin =
+      'assets/affiliate/illustrations/dashboard_dollar_coin.png';
+  static const dashboardSparkles =
+      'assets/affiliate/illustrations/dashboard_sparkles.png';
+  static const dashboardEarnings =
+      'assets/affiliate/illustrations/dashboard_earnings_icon.png';
+  static const dashboardSales =
+      'assets/affiliate/illustrations/dashboard_sales_icon.png';
+  static const dashboardReferrals =
+      'assets/affiliate/illustrations/dashboard_referrals_icon.png';
+  static const dashboardLevel =
+      'assets/affiliate/illustrations/dashboard_level_icon.png';
+  static const dashboardMenu =
+      'assets/affiliate/illustrations/dashboard_menu_icon.png';
+  static const dashboardBell =
+      'assets/affiliate/illustrations/dashboard_notification_bell.png';
+  static const dashboardWhatsApp =
+      'assets/affiliate/illustrations/dashboard_whatsapp_button.png';
+  static const dashboardTelegram =
+      'assets/affiliate/illustrations/dashboard_telegram_button.png';
+  static const dashboardShare =
+      'assets/affiliate/illustrations/dashboard_share_button.png';
+  static const dashboardQr =
+      'assets/affiliate/illustrations/dashboard_qr_button.png';
 }
 
 class AffiliateDashboardScreen extends StatelessWidget {
@@ -161,6 +188,7 @@ class _DashboardBody extends StatelessWidget {
     return BlocBuilder<AffiliateLoadCubit, AffiliateLoadState>(
       builder: (context, state) => AffiliateScaffold(
         showBack: false,
+        dashboardHeader: true,
         title: 'Affiliate Dashboard',
         subtitle: 'Invite traders. Grow together. Earn rewards.',
         onMenu: () => _openMenu(context),
@@ -272,38 +300,35 @@ class _DashboardContent extends StatelessWidget {
               spacing: 12,
               runSpacing: 12,
               children: [
-                AffiliateMetricCard(
+                _DashboardMetricCard(
                   width: width,
                   label: 'Total Earnings',
                   value: AffiliateRepository.moneyText(
                     financials['lifetime_commission_earned'],
                   ),
-                  icon: Icons.monetization_on_outlined,
-                  assetPath: _AffiliateAssets.coin,
+                  assetPath: _AffiliateAssets.dashboardEarnings,
                   onTap: openEarnings,
                 ),
-                AffiliateMetricCard(
+                _DashboardMetricCard(
                   width: width,
                   label: 'Qualified Sales',
                   value: '$sales',
-                  icon: Icons.redeem_outlined,
-                  assetPath: _AffiliateAssets.gift,
+                  assetPath: _AffiliateAssets.dashboardSales,
                   onTap: openEarnings,
                 ),
-                AffiliateMetricCard(
+                _DashboardMetricCard(
                   width: width,
                   label: 'Total Referrals',
                   value: '$direct',
-                  icon: Icons.people_alt_outlined,
+                  assetPath: _AffiliateAssets.dashboardReferrals,
                   onTap: openReferrals,
                 ),
-                AffiliateMetricCard(
+                _DashboardMetricCard(
                   width: width,
                   label: 'Current Level',
                   value: AffiliateRepository.text(stage['name']),
                   subtitle: '$rate% commission',
-                  icon: Icons.workspace_premium_outlined,
-                  assetPath: _AffiliateAssets.crown,
+                  assetPath: _AffiliateAssets.dashboardLevel,
                   onTap: openLevels,
                 ),
               ],
@@ -323,44 +348,7 @@ class _DashboardContent extends StatelessWidget {
           onQr: () => _showQr(context, url),
         ),
         const SizedBox(height: 16),
-        InkWell(
-          onTap: openPayouts,
-          borderRadius: BorderRadius.circular(18),
-          child: Container(
-            padding: const EdgeInsets.all(18),
-            decoration: _goldDecoration(radius: 18),
-            child: const Row(
-              children: [
-                _AffiliateArt(
-                  path: _AffiliateAssets.giftBox,
-                  fallback: Icons.card_giftcard_rounded,
-                  size: 48,
-                ),
-                SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Earn commission and milestone rewards',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Track verified earnings and withdrawals',
-                        style: TextStyle(color: _muted, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.arrow_forward_rounded, color: _gold),
-              ],
-            ),
-          ),
-        ),
+        _CommissionRewardBanner(commissionRate: rate, onTap: openPayouts),
       ],
     );
   }
@@ -373,6 +361,7 @@ class AffiliateScaffold extends StatelessWidget {
     required this.subtitle,
     required this.child,
     this.showBack = true,
+    this.dashboardHeader = false,
     this.onMenu,
     this.onNotifications,
     this.onRefresh,
@@ -383,6 +372,7 @@ class AffiliateScaffold extends StatelessWidget {
   final String subtitle;
   final Widget child;
   final bool showBack;
+  final bool dashboardHeader;
   final VoidCallback? onMenu;
   final VoidCallback? onNotifications;
   final Future<void> Function()? onRefresh;
@@ -398,31 +388,49 @@ class AffiliateScaffold extends StatelessWidget {
           children: [
             IconButton(
               onPressed: showBack ? () => Navigator.maybePop(context) : onMenu,
-              icon: Icon(
-                showBack ? Icons.arrow_back_rounded : Icons.menu_rounded,
-              ),
+              icon: dashboardHeader
+                  ? Image.asset(
+                      _AffiliateAssets.dashboardMenu,
+                      width: 34,
+                      height: 34,
+                      fit: BoxFit.contain,
+                      semanticLabel: 'Affiliate menu',
+                    )
+                  : Icon(
+                      showBack ? Icons.arrow_back_rounded : Icons.menu_rounded,
+                    ),
               color: _gold,
               tooltip: showBack ? 'Back' : 'Affiliate menu',
             ),
-            const SizedBox(width: 6),
-            const Text(
-              'Trade',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
-            ),
-            const Text(
-              'X',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                color: _gold,
+            if (!dashboardHeader) ...[
+              const SizedBox(width: 6),
+              const Text(
+                'Trade',
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
               ),
-            ),
+              const Text(
+                'X',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: _gold,
+                ),
+              ),
+            ],
             const Spacer(),
             ...actions,
             if (onNotifications != null)
               IconButton(
                 onPressed: onNotifications,
-                icon: const Icon(Icons.notifications_none_rounded),
+                icon: dashboardHeader
+                    ? Image.asset(
+                        _AffiliateAssets.dashboardBell,
+                        width: 42,
+                        height: 42,
+                        fit: BoxFit.contain,
+                        semanticLabel: 'Notifications',
+                      )
+                    : const Icon(Icons.notifications_none_rounded),
                 color: _gold,
                 tooltip: 'Notifications',
               ),
@@ -507,104 +515,317 @@ class AffiliateHero extends StatelessWidget {
   final VoidCallback onInvite;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 220),
-      padding: const EdgeInsets.all(20),
-      decoration: _goldDecoration(radius: 20),
-      child: Stack(
-        children: [
-          const Positioned.fill(child: CustomPaint(painter: _HeroPainter())),
-          const Positioned(
-            right: -8,
-            bottom: 5,
-            child: IgnorePointer(
-              child: _AffiliateArt(
-                path: _AffiliateAssets.giftBox,
-                fallback: Icons.card_giftcard_rounded,
-                size: 94,
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final compact = constraints.maxWidth < 350;
+      final height = compact ? 270.0 : 286.0;
+      return Container(
+        height: height,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF13150F), Color(0xFF050A09), Color(0xFF231A05)],
+          ),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE7B820), width: 1.2),
+          boxShadow: const [
+            BoxShadow(color: Color(0x35FFC83D), blurRadius: 24),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Image.asset(
+                  _AffiliateAssets.dashboardSparkles,
+                  fit: BoxFit.cover,
+                  opacity: const AlwaysStoppedAnimation(.55),
+                ),
               ),
             ),
-          ),
-          const Positioned(
-            right: 56,
-            top: 4,
-            child: IgnorePointer(
-              child: _AffiliateArt(
-                path: _AffiliateAssets.coin,
-                fallback: Icons.monetization_on_rounded,
-                size: 46,
+            Positioned(
+              right: compact ? -72 : -54,
+              bottom: -44,
+              child: IgnorePointer(
+                child: Image.asset(
+                  _AffiliateAssets.dashboardGlobe,
+                  width: compact ? 245 : 275,
+                  height: compact ? 245 : 275,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-          ),
-          FractionallySizedBox(
-            widthFactor: .7,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'TURN YOUR NETWORK\nINTO REWARDS',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    height: 1.08,
+            Positioned(
+              right: compact ? -6 : 4,
+              bottom: 8,
+              child: IgnorePointer(
+                child: Image.asset(
+                  _AffiliateAssets.dashboardGift,
+                  width: compact ? 108 : 126,
+                  height: compact ? 108 : 126,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            Positioned(
+              right: compact ? -18 : -8,
+              top: 1,
+              child: IgnorePointer(
+                child: Image.asset(
+                  _AffiliateAssets.dashboardGrowthArrow,
+                  width: compact ? 86 : 102,
+                  height: compact ? 86 : 102,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            Positioned(
+              right: compact ? 72 : 92,
+              bottom: 4,
+              child: IgnorePointer(
+                child: Image.asset(
+                  _AffiliateAssets.dashboardDollarCoin,
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xF2050A09),
+                      Color(0x9A050A09),
+                      Colors.transparent,
+                    ],
+                    stops: [0, .48, .78],
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  'Share TradeX with your friends and earn up to $commissionRate% commission on qualified sales.',
-                  style: const TextStyle(color: _muted, height: 1.4),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(18, 20, compact ? 100 : 118, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'TURN',
+                    style: TextStyle(
+                      color: _gold,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'YOUR NETWORK',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: compact ? 18 : 21,
+                      fontWeight: FontWeight.w900,
+                      height: 1.05,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'INTO REWARDS',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _gold,
+                      fontSize: compact ? 18 : 21,
+                      fontWeight: FontWeight.w900,
+                      height: 1.05,
+                    ),
+                  ),
+                  const SizedBox(height: 13),
+                  Text(
+                    'Share TradeX with your friends and earn up to $commissionRate% commission on every qualified sale.',
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: const Color(0xFFC5D0E2),
+                      fontSize: compact ? 11.5 : 12.5,
+                      height: 1.35,
+                    ),
+                  ),
+                  const Spacer(),
+                  GoldActionButton(label: 'Invite Now', onPressed: onInvite),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+class _DashboardMetricCard extends StatelessWidget {
+  const _DashboardMetricCard({
+    required this.width,
+    required this.label,
+    required this.value,
+    required this.assetPath,
+    required this.onTap,
+    this.subtitle,
+  });
+
+  final double width;
+  final String label;
+  final String value;
+  final String assetPath;
+  final VoidCallback onTap;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: width,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        height: 122,
+        padding: const EdgeInsets.fromLTRB(15, 14, 12, 14),
+        decoration: _dashboardCardDecoration(),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -3,
+              top: -4,
+              child: Image.asset(
+                assetPath,
+                width: 55,
+                height: 55,
+                fit: BoxFit.contain,
+                semanticLabel: '$label icon',
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 44),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFB8C6DC),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 18),
-                GoldActionButton(label: 'Invite Now', onPressed: onInvite),
+                const Spacer(),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFC6D0E0),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _CommissionRewardBanner extends StatelessWidget {
+  const _CommissionRewardBanner({
+    required this.commissionRate,
+    required this.onTap,
+  });
+
+  final String commissionRate;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(18),
+    child: Container(
+      height: 92,
+      padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Color(0xFF321405), Color(0xFF0A110F), Color(0xFF2A2107)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5AD00)),
+        boxShadow: const [BoxShadow(color: Color(0x2AFFC83D), blurRadius: 18)],
+      ),
+      child: Row(
+        children: [
+          Image.asset(
+            _AffiliateAssets.dashboardGift,
+            width: 66,
+            height: 66,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Earn up to $commissionRate% Commission',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'And unlock milestone rewards',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Color(0xFFB9C6D9), fontSize: 11.5),
+                ),
               ],
             ),
           ),
+          Image.asset(
+            _AffiliateAssets.dashboardSmallArrow,
+            width: 38,
+            height: 38,
+            fit: BoxFit.contain,
+          ),
         ],
       ),
-    );
-  }
-}
-
-class _HeroPainter extends CustomPainter {
-  const _HeroPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width * .84, size.height * .54);
-    final glow = Paint()
-      ..shader = const RadialGradient(
-        colors: [Color(0x70FFC83D), Colors.transparent],
-      ).createShader(Rect.fromCircle(center: center, radius: 110));
-    canvas.drawCircle(center, 110, glow);
-    final line = Paint()
-      ..color = const Color(0x88D4AF37)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-    canvas.drawCircle(center, 64, line);
-    canvas.drawOval(
-      Rect.fromCenter(center: center, width: 46, height: 126),
-      line,
-    );
-    canvas.drawLine(
-      Offset(center.dx - 64, center.dy),
-      Offset(center.dx + 64, center.dy),
-      line,
-    );
-    final arrow = Path()
-      ..moveTo(center.dx - 38, center.dy + 54)
-      ..lineTo(center.dx + 24, center.dy - 24)
-      ..lineTo(center.dx + 13, center.dy - 26)
-      ..lineTo(center.dx + 48, center.dy - 54)
-      ..lineTo(center.dx + 36, center.dy - 16)
-      ..lineTo(center.dx + 32, center.dy - 30)
-      ..lineTo(center.dx - 28, center.dy + 62)
-      ..close();
-    canvas.drawPath(arrow, Paint()..color = _gold);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+    ),
+  );
 }
 
 class AffiliateMetricCard extends StatelessWidget {
@@ -688,7 +909,9 @@ class ReferralLinkPanel extends StatelessWidget {
   final VoidCallback onQr;
 
   @override
-  Widget build(BuildContext context) => SectionCard(
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: _dashboardCardDecoration(goldAccent: true),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -724,7 +947,7 @@ class ReferralLinkPanel extends StatelessWidget {
                 Icons.chat_rounded,
                 const Color(0xFF25D366),
                 onWhatsApp,
-                assetPath: _AffiliateAssets.whatsapp,
+                assetPath: _AffiliateAssets.dashboardWhatsApp,
               ),
             ),
             const SizedBox(width: 8),
@@ -734,7 +957,7 @@ class ReferralLinkPanel extends StatelessWidget {
                 Icons.send_rounded,
                 const Color(0xFF229ED9),
                 onTelegram,
-                assetPath: _AffiliateAssets.telegram,
+                assetPath: _AffiliateAssets.dashboardTelegram,
               ),
             ),
             const SizedBox(width: 8),
@@ -744,11 +967,18 @@ class ReferralLinkPanel extends StatelessWidget {
                 Icons.share_rounded,
                 _muted,
                 onShare,
+                assetPath: _AffiliateAssets.dashboardShare,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: _ShareButton('QR', Icons.qr_code_2_rounded, _gold, onQr),
+              child: _ShareButton(
+                'QR Code',
+                Icons.qr_code_2_rounded,
+                _gold,
+                onQr,
+                assetPath: _AffiliateAssets.dashboardQr,
+              ),
             ),
           ],
         ),
@@ -772,29 +1002,38 @@ class _ShareButton extends StatelessWidget {
   final String? assetPath;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(12),
-    child: Container(
-      constraints: const BoxConstraints(minHeight: 68),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      decoration: _fieldDecoration(),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (assetPath == null)
-            Icon(icon, color: color)
-          else
-            SvgPicture.asset(
-              assetPath!,
-              width: 24,
-              height: 24,
-              semanticsLabel: '$label logo',
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: label,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: assetPath?.endsWith('.png') ?? false
+          ? AspectRatio(
+              aspectRatio: 1.2,
+              child: Image.asset(
+                assetPath!,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+                excludeFromSemantics: true,
+              ),
+            )
+          : Container(
+              constraints: const BoxConstraints(minHeight: 68),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              decoration: _fieldDecoration(),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (assetPath == null)
+                    Icon(icon, color: color)
+                  else
+                    SvgPicture.asset(assetPath!, width: 24, height: 24),
+                  const SizedBox(height: 5),
+                  Text(label, style: const TextStyle(fontSize: 10)),
+                ],
+              ),
             ),
-          const SizedBox(height: 5),
-          Text(label, style: const TextStyle(fontSize: 10)),
-        ],
-      ),
     ),
   );
 }
@@ -2491,16 +2730,27 @@ BoxDecoration _fieldDecoration() => BoxDecoration(
   border: Border.all(color: TradeXColors.border),
 );
 
-BoxDecoration _goldDecoration({required double radius}) => BoxDecoration(
-  gradient: const LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF17170F), Color(0xFF08110F), Color(0xFF241B08)],
-  ),
-  borderRadius: BorderRadius.circular(radius),
-  border: Border.all(color: TradeXColors.goldSoft),
-  boxShadow: const [BoxShadow(color: Color(0x1AFFC83D), blurRadius: 18)],
-);
+BoxDecoration _dashboardCardDecoration({bool goldAccent = false}) =>
+    BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: goldAccent
+            ? const [Color(0xFF101615), Color(0xFF07100E), Color(0xFF291F08)]
+            : const [Color(0xFF101718), Color(0xFF07110F), Color(0xFF171407)],
+      ),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(
+        color: goldAccent ? const Color(0xFFD6A800) : const Color(0xFF49606A),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFFFFC83D)
+              .withValues(alpha: goldAccent ? .12 : .06),
+          blurRadius: 18,
+        ),
+      ],
+    );
 
 String _date(Object? value) {
   final parsed = DateTime.tryParse(value?.toString() ?? '')?.toLocal();

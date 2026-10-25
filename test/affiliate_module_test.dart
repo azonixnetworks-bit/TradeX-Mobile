@@ -39,6 +39,32 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('affiliate dashboard header omits the TradeX wordmark', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: AffiliateScaffold(
+          title: 'Affiliate Dashboard',
+          subtitle: 'Invite traders. Grow together. Earn rewards.',
+          showBack: false,
+          dashboardHeader: true,
+          onMenu: () {},
+          onNotifications: () {},
+          child: const SizedBox.shrink(),
+        ),
+      ),
+    );
+
+    expect(find.text('Affiliate Dashboard'), findsOneWidget);
+    expect(find.text('Trade'), findsNothing);
+    expect(find.text('X'), findsNothing);
+    expect(find.bySemanticsLabel('Affiliate menu'), findsOneWidget);
+    expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('referral tile renders only API-backed referral fields', (
     tester,
   ) async {

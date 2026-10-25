@@ -37,3 +37,7 @@ Source: [Simple Icons](https://simpleicons.org/), project licensed CC0-1.0. Bran
 - `brands/binance.svg`
 
 The brand SVGs are kept in their recognizable official colors and are never used as TradeX identity artwork.
+
+## TradeX Affiliate Dashboard component pack
+
+The files prefixed with `illustrations/dashboard_` were supplied by the TradeX product owner in `TradeX_Affiliate_20_Transparent_Components.zip` on 2026-10-25. They are used only on the Affiliate Dashboard as visual artwork; all dynamic values and interactions remain native Flutter components.
