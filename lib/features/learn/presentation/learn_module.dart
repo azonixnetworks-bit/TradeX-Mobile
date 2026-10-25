@@ -296,7 +296,7 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
     ),
     LearningShortcutData(
       icon: Icons.auto_awesome_rounded,
-      title: 'Ask AI',
+      title: 'Ask to Trading BRAIN',
       subtitle: 'Get instant answers',
       accent: learnPurple,
       onTap: () => _open(AskTradeXAiScreen(repository: widget.repository)),
@@ -309,13 +309,6 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
       onTap: () => _open(
         MyLearningScreen(repository: widget.repository, initialIndex: 3),
       ),
-    ),
-    LearningShortcutData(
-      icon: Icons.settings_outlined,
-      title: 'Settings',
-      subtitle: 'Learning preferences',
-      accent: learnCyan,
-      onTap: () => _open(LearnSettingsScreen(repository: widget.repository)),
     ),
   ];
 

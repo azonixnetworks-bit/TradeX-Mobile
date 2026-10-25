@@ -43,12 +43,12 @@ void main() {
       'Courses',
       'Progress',
       'Assignments',
-      'Ask AI',
+      'Ask to Trading BRAIN',
       'Saved',
-      'Settings',
     ]) {
       expect(find.text(label), findsOneWidget);
     }
+    expect(find.text('Settings'), findsNothing);
     expect(find.byType(BottomNavigationBar), findsNothing);
 
     final scrollable = find.byType(Scrollable).first;
