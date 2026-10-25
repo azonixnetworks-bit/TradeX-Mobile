@@ -30,6 +30,7 @@ import '../../learn/presentation/learn_module.dart';
 import '../../market/presentation/crypto_market_screen.dart';
 import '../../auth/presentation/quick_unlock_settings_screen.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../affiliate/presentation/affiliate_module.dart';
 import '../../catalog/models/feature_spec.dart';
 import '../../catalog/presentation/feature_catalog_screen.dart';
 import 'bloc/home_navigation_cubit.dart';
@@ -3041,44 +3042,29 @@ class _AffiliateTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _EntitlementAwareTab(
+    return AffiliateDashboardScreen(
       apiClient: apiClient,
-      title: 'Affiliate Centre',
-      introduction: 'Share your TradeX referral after activation, then follow direct referrals, qualified sales, progressive stages and verified commission records.',
-      protectedFeatures: const [
-        FeatureSpec(
-          id: 'affiliate-overview',
-          group: 'Affiliate & Referrals',
-          title: 'Affiliate Overview',
-          subtitle: 'Verified referral progress and current stage',
-          icon: Icons.hub_rounded,
-          endpoint: '/api/v1/affiliate/overview',
+      onNotifications: () => onActionTap('notifications'),
+      onUpgrade: () => Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              PremiumAccessScreen(repository: LearnRepository(apiClient)),
         ),
-        FeatureSpec(
-          id: 'direct-referrals',
-          group: 'Affiliate & Referrals',
-          title: 'Direct Referrals',
-          subtitle: 'Your authorized direct referral records',
-          icon: Icons.people_alt_rounded,
-          endpoint: '/api/v1/affiliate/referrals',
-        ),
-        FeatureSpec(
-          id: 'qualified-sales',
-          group: 'Affiliate & Referrals',
-          title: 'Qualified Sales',
-          subtitle: 'Server-verified sale qualification history',
-          icon: Icons.point_of_sale_rounded,
-          endpoint: '/api/v1/affiliate/sales',
-        ),
-        FeatureSpec(
-          id: 'commissions',
-          group: 'Affiliate & Referrals',
-          title: 'Commission Earnings',
-          subtitle: 'Protected commission ledger and adjustments',
-          icon: Icons.savings_rounded,
-          endpoint: '/api/v1/affiliate/commissions',
-        ),
-      ],
+      ),
+      onConfigurePayoutMethod: (code) {
+        final method = switch (code) {
+          'PAYPAL' => WithdrawalMethod.paypal,
+          'BINANCE' => WithdrawalMethod.binance,
+          'USDT_TRC20' => WithdrawalMethod.usdtTrc20,
+          _ => WithdrawalMethod.localBank,
+        };
+        Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                WithdrawalMethodScreen(apiClient: apiClient, method: method),
+          ),
+        );
+      },
     );
   }
 }

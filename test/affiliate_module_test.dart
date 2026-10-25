@@ -1,0 +1,100 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:tradex_mobile/features/affiliate/presentation/affiliate_module.dart';
+import 'package:tradex_mobile/features/affiliate/presentation/bloc/affiliate_cubits.dart';
+
+void main() {
+  Widget host(Widget child, {Size size = const Size(390, 844)}) {
+    return MediaQuery(
+      data: MediaQueryData(size: size),
+      child: MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+
+  testWidgets('affiliate metric card is responsive on a narrow phone', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        const AffiliateMetricCard(
+          width: 170,
+          label: 'Total Earnings',
+          value: r'$1,245.50',
+          icon: Icons.monetization_on_outlined,
+        ),
+        size: const Size(320, 640),
+      ),
+    );
+
+    expect(find.text('Total Earnings'), findsOneWidget);
+    expect(find.text(r'$1,245.50'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('referral tile renders only API-backed referral fields', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        const ReferralTile(
+          data: {
+            'name': 'Arun Kumar',
+            'joined_at': '2026-10-12T00:00:00Z',
+            'qualification': {
+              'has_qualified_sale': true,
+              'active_qualified_sales_count': 3,
+            },
+          },
+        ),
+      ),
+    );
+
+    expect(find.text('Arun Kumar'), findsOneWidget);
+    expect(find.text('Qualified'), findsOneWidget);
+    expect(find.text('3 sales'), findsOneWidget);
+    expect(find.textContaining('@'), findsNothing);
+  });
+
+  testWidgets('stage tile exposes current state from actual stage code', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        const StageTile(
+          sales: 90,
+          currentCode: 'PRO',
+          data: {
+            'code': 'PRO',
+            'name': 'Pro',
+            'qualified_sales_range': {'min': 81, 'max': 150},
+            'standard_commission_percent': '20.00',
+            'milestone': {
+              'gift': {'amount': '200.00', 'currency': 'USD'},
+            },
+          },
+        ),
+      ),
+    );
+
+    expect(find.text('Pro'), findsOneWidget);
+    expect(find.text('Current'), findsOneWidget);
+    expect(find.text(r'$200.00'), findsOneWidget);
+  });
+
+  test('affiliate load cubit emits immutable ready state', () async {
+    final cubit = AffiliateLoadCubit(() async => {'value': 42});
+    await cubit.load();
+
+    expect(cubit.state.status, AffiliateLoadStatus.ready);
+    expect(cubit.state.data['value'], 42);
+    await cubit.close();
+  });
+}
