@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tradex_mobile/core/auth/secure_session_store.dart';
 import 'package:tradex_mobile/core/device/device_identity.dart';
 import 'package:tradex_mobile/core/network/tradex_api_client.dart';
+import 'package:tradex_mobile/core/profile/local_profile_photo_store.dart';
 import 'package:tradex_mobile/core/preferences/app_preferences.dart';
 import 'package:tradex_mobile/features/auth/data/auth_repository.dart';
 import 'package:tradex_mobile/features/home/data/learning_repository.dart';
@@ -39,6 +43,7 @@ void main() {
           tradeIdeasRepository: TradeIdeasRepository(api),
           learningRepository: LearningRepository(api),
           authRepository: AuthRepository(api, store, device),
+          profilePhotoStore: _MemoryProfilePhotoStore(),
         ),
       ),
     );
@@ -87,6 +92,52 @@ void main() {
       'Sign out from all devices',
     ]);
 
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('profile photo loads securely and removal is server backed', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    await AppPreferences.instance.load();
+    await AppPreferences.instance.setDashboardTab(4);
+    final store = SecureSessionStore();
+    final device = DeviceIdentity(store);
+    final api = _ProfileMenuApiClient(store, device, withPhoto: true);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeDashboardScreen(
+          onLogout: () async {},
+          onForgetDevice: () async {},
+          onLogoutAll: () async {},
+          apiClient: api,
+          tradeIdeasRepository: TradeIdeasRepository(api),
+          learningRepository: LearningRepository(api),
+          authRepository: AuthRepository(api, store, device),
+          profilePhotoStore: _MemoryProfilePhotoStore(),
+        ),
+      ),
+    );
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const ValueKey('profile-photo-avatar')),
+    );
+
+    expect(api.bytePaths, contains('/api/v1/profile/settings/photo?v=7'));
+
+    await tester.tap(find.byKey(const ValueKey('profile-photo-avatar')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove profile picture'));
+    await tester.pumpAndSettle();
+
+    expect(api.deletedPaths, contains('/api/v1/profile/settings/photo'));
+    expect(find.text('Profile picture removed.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
@@ -138,7 +189,39 @@ Future<void> _pumpUntilFound(WidgetTester tester, Finder finder) async {
 }
 
 class _ProfileMenuApiClient extends TradeXApiClient {
-  _ProfileMenuApiClient(super.sessionStore, super.deviceIdentity);
+  _ProfileMenuApiClient(
+    super.sessionStore,
+    super.deviceIdentity, {
+    this.withPhoto = false,
+  });
+
+  final bool withPhoto;
+  bool photoRemoved = false;
+  final bytePaths = <String>[];
+  final deletedPaths = <String>[];
+
+  @override
+  Future<Uint8List> getBytes(String path) async {
+    bytePaths.add(path);
+    return base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZlB8AAAAASUVORK5CYII=',
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>> deleteJson(String path) async {
+    deletedPaths.add(path);
+    photoRemoved = true;
+    return <String, dynamic>{
+      'data': <String, dynamic>{
+        'profile_photo': <String, dynamic>{
+          'available': false,
+          'version': 8,
+          'endpoint': null,
+        },
+      },
+    };
+  }
 
   @override
   Future<Map<String, dynamic>> getJson(String path) async {
@@ -166,6 +249,13 @@ class _ProfileMenuApiClient extends TradeXApiClient {
               'telegram_username': 'profile_test',
             },
             'preferences': <String, dynamic>{'language_code': 'en'},
+            'photo': <String, dynamic>{
+              'available': withPhoto && !photoRemoved,
+              'version': withPhoto ? (photoRemoved ? 8 : 7) : 0,
+              'endpoint': withPhoto && !photoRemoved
+                  ? '/api/v1/profile/settings/photo'
+                  : null,
+            },
             'security': <String, dynamic>{'totp_confirmed': true},
             'financial': <String, dynamic>{
               'paypal': <String, dynamic>{
@@ -194,4 +284,24 @@ class _ProfileMenuApiClient extends TradeXApiClient {
     }
     throw StateError('Unexpected GET $path');
   }
+}
+
+class _MemoryProfilePhotoStore extends LocalProfilePhotoStore {
+  CachedProfilePhoto? cached;
+
+  @override
+  Future<CachedProfilePhoto?> read(String accountEmail) async => cached;
+
+  @override
+  Future<Uint8List> saveBytes({
+    required String accountEmail,
+    required Uint8List bytes,
+    required int version,
+  }) async {
+    cached = CachedProfilePhoto(bytes: bytes, version: version);
+    return bytes;
+  }
+
+  @override
+  Future<void> remove(String accountEmail) async => cached = null;
 }

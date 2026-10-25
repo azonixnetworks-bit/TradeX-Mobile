@@ -12,6 +12,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/tradex_api_client.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/platform/app_background_service.dart';
 import '../../../core/profile/local_profile_photo_store.dart';
@@ -52,6 +53,7 @@ class HomeDashboardScreen extends StatefulWidget {
     required this.tradeIdeasRepository,
     required this.learningRepository,
     required this.authRepository,
+    this.profilePhotoStore = const LocalProfilePhotoStore(),
   });
 
   final Future<void> Function() onLogout;
@@ -61,6 +63,7 @@ class HomeDashboardScreen extends StatefulWidget {
   final TradeIdeasRepository tradeIdeasRepository;
   final LearningRepository learningRepository;
   final AuthRepository authRepository;
+  final LocalProfilePhotoStore profilePhotoStore;
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -197,6 +200,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       onLogoutAll: widget.onLogoutAll,
       apiClient: widget.apiClient,
       authRepository: widget.authRepository,
+      profilePhotoStore: widget.profilePhotoStore,
     ),
   };
 
@@ -3314,6 +3318,7 @@ class _ProfileTab extends StatefulWidget {
     required this.onLogoutAll,
     required this.apiClient,
     required this.authRepository,
+    required this.profilePhotoStore,
   });
 
   final ValueChanged<String> onActionTap;
@@ -3322,6 +3327,7 @@ class _ProfileTab extends StatefulWidget {
   final Future<void> Function() onLogoutAll;
   final TradeXApiClient apiClient;
   final AuthRepository authRepository;
+  final LocalProfilePhotoStore profilePhotoStore;
 
   @override
   State<_ProfileTab> createState() => _ProfileTabState();
@@ -3330,11 +3336,11 @@ class _ProfileTab extends StatefulWidget {
 enum _ProfileSection { account, withdrawal, security, help }
 
 class _ProfileTabState extends State<_ProfileTab> {
-  static const _photoStore = LocalProfilePhotoStore();
   final _imagePicker = ImagePicker();
   late Future<_CustomerProfile> _profile;
   Uint8List? _profilePhoto;
   String? _profileEmail;
+  bool _profilePhotoBusy = false;
   bool _fingerprintAdded = false;
   bool _passcodeAdded = false;
   _ProfileSection? _expandedSection;
@@ -3363,10 +3369,8 @@ class _ProfileTabState extends State<_ProfileTab> {
       premiumAccess: premiumAccess,
     );
     _profileEmail = profile.email;
+    await _syncProfilePhoto(profile);
     try {
-      _profilePhoto = await _photoStore
-          .read(profile.email)
-          .timeout(const Duration(seconds: 1));
       final quickUnlock = await widget.authRepository
           .readLocalQuickUnlockConfig()
           .timeout(const Duration(seconds: 1));
@@ -3376,6 +3380,50 @@ class _ProfileTabState extends State<_ProfileTab> {
       // The remote profile remains usable if optional local state is missing.
     }
     return profile;
+  }
+
+  Future<void> _syncProfilePhoto(_CustomerProfile profile) async {
+    CachedProfilePhoto? cached;
+    try {
+      cached = await widget.profilePhotoStore
+          .read(profile.email)
+          .timeout(const Duration(seconds: 1));
+    } catch (_) {
+      // Remote profile state remains authoritative if disk cache is unavailable.
+    }
+
+    if (!profile.photoAvailable) {
+      _profilePhoto = null;
+      try {
+        await widget.profilePhotoStore.remove(profile.email);
+      } catch (_) {
+        // A stale local cache must not block the server-backed profile.
+      }
+      return;
+    }
+
+    if (cached != null && cached.version == profile.photoVersion) {
+      _profilePhoto = cached.bytes;
+      return;
+    }
+
+    try {
+      final bytes = await widget.apiClient.getBytes(
+        '${profile.photoEndpoint}?v=${profile.photoVersion}',
+      );
+      _profilePhoto = bytes;
+      try {
+        await widget.profilePhotoStore.saveBytes(
+          accountEmail: profile.email,
+          bytes: bytes,
+          version: profile.photoVersion,
+        );
+      } catch (_) {
+        // The authenticated bytes can still be shown if local caching fails.
+      }
+    } catch (_) {
+      _profilePhoto = cached?.bytes;
+    }
   }
 
   void _refresh() {
@@ -3563,7 +3611,7 @@ class _ProfileTabState extends State<_ProfileTab> {
 
   Future<void> _chooseProfilePhoto() async {
     final email = _profileEmail;
-    if (email == null) return;
+    if (email == null || _profilePhotoBusy) return;
     try {
       final selected = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -3572,24 +3620,81 @@ class _ProfileTabState extends State<_ProfileTab> {
         imageQuality: 86,
       );
       if (selected == null) return;
-      final bytes = await _photoStore.saveFromPath(
-        accountEmail: email,
-        sourcePath: selected.path,
+      if (mounted) setState(() => _profilePhotoBusy = true);
+      final response = await widget.apiClient.postMultipart(
+        '/api/v1/profile/settings/photo',
+        const {},
+        {'photo': selected.path},
       );
+      final metadata = _asMap(_asMap(response['data'])['profile_photo']);
+      final version = metadata['version'] is num
+          ? (metadata['version'] as num).toInt()
+          : 0;
+      final endpoint = metadata['endpoint']?.toString().trim();
+      if (version < 1 || endpoint == null || endpoint.isEmpty) {
+        throw const ApiException(
+          message: 'The server did not confirm the profile photo.',
+        );
+      }
+      final bytes = await widget.apiClient.getBytes('$endpoint?v=$version');
+      try {
+        await widget.profilePhotoStore.saveBytes(
+          accountEmail: email,
+          bytes: bytes,
+          version: version,
+        );
+      } catch (_) {
+        // Upload succeeded; a local cache failure must not hide that result.
+      }
       if (mounted) setState(() => _profilePhoto = bytes);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile picture updated securely.')),
+        );
+        _refresh();
+      }
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not save the profile picture.')),
+        const SnackBar(
+          content: Text('Could not upload the profile picture securely.'),
+        ),
       );
+    } finally {
+      if (mounted) setState(() => _profilePhotoBusy = false);
     }
   }
 
   Future<void> _removeProfilePhoto() async {
     final email = _profileEmail;
-    if (email == null) return;
-    await _photoStore.remove(email);
-    if (mounted) setState(() => _profilePhoto = null);
+    if (email == null || _profilePhotoBusy) return;
+    setState(() => _profilePhotoBusy = true);
+    try {
+      await widget.apiClient.deleteJson('/api/v1/profile/settings/photo');
+      try {
+        await widget.profilePhotoStore.remove(email);
+      } catch (_) {
+        // Server deletion is authoritative even if local cleanup fails.
+      }
+      if (mounted) {
+        setState(() => _profilePhoto = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile picture removed.')),
+        );
+        _refresh();
+      }
+    } on ApiException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _profilePhotoBusy = false);
+    }
   }
 
   Future<void> _showProfilePhotoActions() async {
@@ -3612,6 +3717,7 @@ class _ProfileTabState extends State<_ProfileTab> {
                       ? 'Add profile picture'
                       : 'Change profile picture',
                 ),
+                enabled: !_profilePhotoBusy,
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _chooseProfilePhoto();
@@ -3619,6 +3725,7 @@ class _ProfileTabState extends State<_ProfileTab> {
               ),
               if (_profilePhoto != null)
                 ListTile(
+                  enabled: !_profilePhotoBusy,
                   leading: const Icon(
                     Icons.delete_outline_rounded,
                     color: TradeXColors.error,
@@ -3670,7 +3777,8 @@ class _ProfileTabState extends State<_ProfileTab> {
             _CustomerProfileHero(
               profile: profile,
               photo: _profilePhoto,
-              onPhotoTap: _showProfilePhotoActions,
+              onPhotoTap: _profilePhotoBusy ? null : _showProfilePhotoActions,
+              photoBusy: _profilePhotoBusy,
             ),
             const SizedBox(height: 20),
             _ProfileAccordionPanel(
@@ -3841,6 +3949,9 @@ class _CustomerProfile {
     required this.languageLabel,
     required this.totpConfirmed,
     required this.financialMethods,
+    required this.photoAvailable,
+    required this.photoVersion,
+    required this.photoEndpoint,
   });
 
   factory _CustomerProfile.fromJson(
@@ -3855,6 +3966,7 @@ class _CustomerProfile {
     final accountSecurity = _asMap(json['account_security']);
     final verification = _asMap(accountSecurity['verification']);
     final financial = _asMap(profile['financial']);
+    final photo = _asMap(profile['photo']);
     final language = preferences['language_code']?.toString().toLowerCase();
     return _CustomerProfile(
       name: identity['name']?.toString() ?? 'TradeX Customer',
@@ -3906,6 +4018,12 @@ class _CustomerProfile {
           configured: _asMap(financial['bank'])['configured'] == true,
         ),
       ],
+      photoAvailable: photo['available'] == true,
+      photoVersion: photo['version'] is num
+          ? (photo['version'] as num).toInt()
+          : 0,
+      photoEndpoint:
+          photo['endpoint']?.toString() ?? '/api/v1/profile/settings/photo',
     );
   }
 
@@ -3921,6 +4039,9 @@ class _CustomerProfile {
   final String languageLabel;
   final bool totpConfirmed;
   final List<_FinancialMethod> financialMethods;
+  final bool photoAvailable;
+  final int photoVersion;
+  final String photoEndpoint;
 }
 
 Map<String, dynamic> _asMap(Object? value) =>
@@ -3945,11 +4066,13 @@ class _CustomerProfileHero extends StatelessWidget {
     required this.profile,
     required this.photo,
     required this.onPhotoTap,
+    required this.photoBusy,
   });
 
   final _CustomerProfile profile;
   final Uint8List? photo;
-  final VoidCallback onPhotoTap;
+  final VoidCallback? onPhotoTap;
+  final bool photoBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -3976,6 +4099,7 @@ class _CustomerProfileHero extends StatelessWidget {
                 clipBehavior: Clip.none,
                 children: [
                   Container(
+                    key: const ValueKey('profile-photo-avatar'),
                     width: 66,
                     height: 66,
                     alignment: Alignment.center,
@@ -3993,7 +4117,15 @@ class _CustomerProfileHero extends StatelessWidget {
                               fit: BoxFit.cover,
                             ),
                     ),
-                    child: photo == null
+                    child: photoBusy
+                        ? const SizedBox.square(
+                            dimension: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: TradeXColors.goldBright,
+                            ),
+                          )
+                        : photo == null
                         ? Text(
                             profile.name.isEmpty
                                 ? 'T'

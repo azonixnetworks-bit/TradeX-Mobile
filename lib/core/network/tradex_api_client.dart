@@ -200,7 +200,7 @@ class TradeXApiClient {
     final statusCode = response.statusCode ?? 500;
     if (statusCode < 200 || statusCode >= 300 || response.data is! List<int>) {
       throw const ApiException(
-        message: 'Trade idea chart is unavailable right now.',
+        message: 'Secure media is unavailable right now.',
       );
     }
 
@@ -532,6 +532,7 @@ class TradeXApiClient {
     final path = Uri.parse(value).path;
     return path == '/api/v1/languages' ||
         path == '/api/v1/products' ||
+        path == '/api/v1/profile/settings' ||
         path.startsWith('/api/v1/dashboard') ||
         path.startsWith('/api/v1/economic-news') ||
         path.startsWith('/api/v1/screener') ||
@@ -547,6 +548,9 @@ class TradeXApiClient {
         path.startsWith('/api/v1/screener') ||
         path.startsWith('/api/v1/dashboard')) {
       return const Duration(minutes: 5);
+    }
+    if (path == '/api/v1/profile/settings') {
+      return const Duration(minutes: 30);
     }
     if (path.startsWith('/api/v1/education/')) {
       return const Duration(hours: 12);
