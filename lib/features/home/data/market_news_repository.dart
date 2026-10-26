@@ -144,6 +144,7 @@ class MarketNewsItem {
     required this.uuid,
     required this.title,
     required this.summary,
+    required this.category,
     required this.previous,
     required this.forecast,
     required this.actual,
@@ -166,6 +167,7 @@ class MarketNewsItem {
       uuid: _text(json['event_uuid'], fallback: _text(json['uuid'])),
       title: _text(json['event_title'], fallback: message),
       summary: message,
+      category: _text(json['category']),
       previous: _nullableText(json['previous']),
       forecast: _nullableText(json['forecast']),
       actual: _nullableText(json['actual']),
@@ -201,6 +203,7 @@ class MarketNewsItem {
       summary: details.isEmpty
           ? 'Scheduled market-moving economic event'
           : details.join(' • '),
+      category: _text(json['category']),
       previous: previous,
       forecast: forecast,
       actual: actual,
@@ -223,6 +226,7 @@ class MarketNewsItem {
   final String uuid;
   final String title;
   final String summary;
+  final String category;
   final String? previous;
   final String? forecast;
   final String? actual;

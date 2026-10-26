@@ -123,7 +123,7 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [learnBackground, Color(0xFF031326)],
+              colors: [learnBackground, TradeXColors.backgroundSoft],
             ),
           ),
           child: ListView(

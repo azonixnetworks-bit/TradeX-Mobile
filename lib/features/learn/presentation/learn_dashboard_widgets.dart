@@ -3,9 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../core/config/tradex_api_config.dart';
+import '../../../core/theme/tradex_colors.dart';
 import '../data/learn_repository.dart';
 
-const learnBackground = Color(0xFF020B1B);
+const learnBackground = TradeXColors.background;
 const learnCard = Color(0xFF061A32);
 const learnCardRaised = Color(0xFF0A203D);
 const learnBorder = Color(0xFF225186);

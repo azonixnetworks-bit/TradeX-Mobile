@@ -97,6 +97,10 @@ void main() {
     expect(find.byKey(const ValueKey('market-news-card-3')), findsOneWidget);
     expect(find.text('Federal Reserve holds rates steady'), findsOneWidget);
     expect(
+      find.byKey(const ValueKey('market-news-artwork-icon-event-1')),
+      findsOneWidget,
+    );
+    expect(
       find.byKey(const ValueKey('market-news-values-event-1')),
       findsOneWidget,
     );

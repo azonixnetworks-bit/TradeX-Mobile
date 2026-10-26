@@ -1,16 +1,55 @@
 class ApiException implements Exception {
+  // Keep the public `message` parameter while storing only the raw private
+  // value; every consumer must receive the sanitized getter below.
   const ApiException({
-    required this.message,
+    required String message,
     this.statusCode,
     this.code,
     this.validationErrors,
-  });
+    // ignore: prefer_initializing_formals
+  }) : _message = message;
 
-  final String message;
+  final String _message;
   final int? statusCode;
   final String? code;
 
   final Map<String, List<String>>? validationErrors;
+
+  /// A safe message for presentation surfaces.
+  ///
+  /// Backend routes, URLs, SQL errors and stack details must never be exposed
+  /// in the customer application. The original value remains private so every
+  /// existing UI consumer automatically receives the sanitized message.
+  String get message {
+    final value = _message.trim();
+    if (value.isEmpty || _containsTechnicalDetail(value)) {
+      if (statusCode == 404) {
+        return 'This information is not available yet.';
+      }
+      if ((statusCode ?? 0) >= 500) {
+        return 'The service is temporarily unavailable. Please try again.';
+      }
+      return 'The request could not be completed. Please try again.';
+    }
+    return value;
+  }
+
+  static bool _containsTechnicalDetail(String value) {
+    final lower = value.toLowerCase();
+    return lower.contains('http://') ||
+        lower.contains('https://') ||
+        lower.contains('sqlstate') ||
+        lower.contains('stack trace') ||
+        lower.contains('illuminate\\') ||
+        RegExp(
+          r'(^|[\s(])/?api/v\d+(/|[\s).,]|$)',
+          caseSensitive: false,
+        ).hasMatch(value) ||
+        RegExp(
+          r'\b(route|endpoint)\b.*\b(not found|not defined|missing)\b',
+          caseSensitive: false,
+        ).hasMatch(value);
+  }
 
   bool get isAuthenticationFailure {
     return statusCode == 401 ||

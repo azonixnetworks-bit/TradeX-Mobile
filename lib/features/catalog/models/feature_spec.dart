@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/tradex_icons.dart';
+
 enum FeatureKind { collection, detail, action, local }
 
 @immutable
@@ -320,7 +322,7 @@ const tradeXFeatureSpecs = <FeatureSpec>[
     group: 'Notifications & Support',
     title: 'Notification Center',
     subtitle: 'Read, unread and related actions',
-    icon: Icons.notifications_rounded,
+    icon: TradeXIcons.notifications,
     endpoint: '/api/v1/notifications',
   ),
   FeatureSpec(

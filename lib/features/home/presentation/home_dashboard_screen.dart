@@ -19,6 +19,7 @@ import '../../../core/profile/local_profile_photo_store.dart';
 import '../../../core/profile/pending_financial_form_store.dart';
 import '../../../core/preferences/app_preferences.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_icons.dart';
 import '../data/trade_ideas_repository.dart';
 import '../data/learning_repository.dart';
 import '../data/market_news_repository.dart';
@@ -30,6 +31,7 @@ import '../../learn/presentation/learn_module.dart';
 import '../../market/presentation/crypto_market_screen.dart';
 import '../../auth/presentation/quick_unlock_settings_screen.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../affiliate/presentation/affiliate_module.dart';
 import '../../catalog/models/feature_spec.dart';
 import '../../catalog/presentation/feature_catalog_screen.dart';
 import 'bloc/home_navigation_cubit.dart';
@@ -288,15 +290,54 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 onHorizontalDragUpdate: _updateHorizontalSwipe,
                 onHorizontalDragEnd: _finishHorizontalSwipe,
                 onHorizontalDragCancel: () => _horizontalDragDistance = 0,
-                child: IndexedStack(
-                  index: selectedTab,
-                  children: List<Widget>.generate(
-                    5,
-                    (index) => TickerMode(
-                      enabled: index == selectedTab,
-                      child: _tabPages[index] ?? const SizedBox.shrink(),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: _SmoothIndexedStack(
+                        key: const ValueKey('main-menu-page-view'),
+                        index: selectedTab,
+                        children: List<Widget>.generate(
+                          5,
+                          (index) => TickerMode(
+                            enabled: index == selectedTab,
+                            child: _tabPages[index] ?? const SizedBox.shrink(),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    if (selectedTab > 0)
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 24,
+                        child: GestureDetector(
+                          key: const ValueKey('dashboard-swipe-previous'),
+                          behavior: HitTestBehavior.translucent,
+                          onHorizontalDragStart: _beginHorizontalSwipe,
+                          onHorizontalDragUpdate: _updateHorizontalSwipe,
+                          onHorizontalDragEnd: _finishHorizontalSwipe,
+                          onHorizontalDragCancel: () =>
+                              _horizontalDragDistance = 0,
+                        ),
+                      ),
+                    if (selectedTab < 4)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 24,
+                        child: GestureDetector(
+                          key: const ValueKey('dashboard-swipe-next'),
+                          behavior: HitTestBehavior.translucent,
+                          onHorizontalDragStart: _beginHorizontalSwipe,
+                          onHorizontalDragUpdate: _updateHorizontalSwipe,
+                          onHorizontalDragEnd: _finishHorizontalSwipe,
+                          onHorizontalDragCancel: () =>
+                              _horizontalDragDistance = 0,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -309,6 +350,104 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       ),
     );
   }
+}
+
+class _SmoothIndexedStack extends StatefulWidget {
+  const _SmoothIndexedStack({
+    super.key,
+    required this.index,
+    required this.children,
+  });
+
+  final int index;
+  final List<Widget> children;
+
+  @override
+  State<_SmoothIndexedStack> createState() => _SmoothIndexedStackState();
+}
+
+class _SmoothIndexedStackState extends State<_SmoothIndexedStack>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+  late int _activeIndex;
+  int? _previousIndex;
+  int _direction = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeIndex = widget.index;
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 360),
+      value: 1,
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        setState(() => _previousIndex = null);
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _SmoothIndexedStack oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.index == _activeIndex) return;
+    _direction = widget.index > _activeIndex ? 1 : -1;
+    _previousIndex = _activeIndex;
+    _activeIndex = widget.index;
+    _controller.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => AnimatedBuilder(
+      animation: _animation,
+      builder: (context, _) {
+        final progress = _animation.value;
+        return ClipRect(
+          child: Stack(
+            children: List<Widget>.generate(widget.children.length, (index) {
+              final isActive = index == _activeIndex;
+              final isPrevious = index == _previousIndex;
+              final isVisible = isActive || isPrevious;
+              final offset = isActive
+                  ? _direction * (1 - progress) * constraints.maxWidth
+                  : isPrevious
+                  ? -_direction * progress * constraints.maxWidth
+                  : 0.0;
+              return Positioned.fill(
+                child: Offstage(
+                  offstage: !isVisible,
+                  child: Transform.translate(
+                    offset: Offset(offset, 0),
+                    child: Opacity(
+                      opacity: isActive ? .72 + (.28 * progress) : 1 - progress,
+                      child: IgnorePointer(
+                        ignoring: !isActive,
+                        child: widget.children[index],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        );
+      },
+    ),
+  );
 }
 
 class _HomeContent extends StatelessWidget {
@@ -438,7 +577,7 @@ class _Header extends StatelessWidget {
             smallSize: 9,
             backgroundColor: TradeXColors.goldBright,
             child: Icon(
-              Icons.notifications_none_rounded,
+              TradeXIcons.notifications,
               color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
@@ -1515,7 +1654,7 @@ class _MarketNewsCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                CustomPaint(painter: _MarketNewsArtworkPainter(artworkIndex)),
+                _MarketNewsArtwork(item: item, variant: artworkIndex),
                 const DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -1620,6 +1759,108 @@ class _MarketNewsCard extends StatelessWidget {
     return '${local.day.toString().padLeft(2, '0')}/'
         '${local.month.toString().padLeft(2, '0')} • $hour:$minute';
   }
+}
+
+class _MarketNewsArtwork extends StatelessWidget {
+  const _MarketNewsArtwork({required this.item, required this.variant});
+
+  final MarketNewsItem item;
+  final int variant;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = _economicNewsIcon(item);
+    final country = _countryFlag(item.countryCode);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CustomPaint(painter: _MarketNewsArtworkPainter(variant)),
+        Positioned(
+          right: 8,
+          top: 24,
+          child: Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: TradeXColors.background.withValues(alpha: .7),
+              border: Border.all(
+                color: TradeXColors.goldBright.withValues(alpha: .4),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: TradeXColors.gold.withValues(alpha: .18),
+                  blurRadius: 16,
+                ),
+              ],
+            ),
+            child: Icon(
+              icon,
+              key: ValueKey('market-news-artwork-icon-${item.uuid}'),
+              color: TradeXColors.goldBright,
+              size: 25,
+            ),
+          ),
+        ),
+        if (country.isNotEmpty)
+          Positioned(
+            right: 8,
+            top: 70,
+            child: Text(country, style: const TextStyle(fontSize: 14)),
+          ),
+      ],
+    );
+  }
+}
+
+IconData _economicNewsIcon(MarketNewsItem item) {
+  final value = '${item.category} ${item.title}'.toLowerCase();
+  if (value.contains('employment') ||
+      value.contains('payroll') ||
+      value.contains('job') ||
+      value.contains('unemployment')) {
+    return Icons.groups_2_rounded;
+  }
+  if (value.contains('inflation') ||
+      value.contains('cpi') ||
+      value.contains('ppi') ||
+      value.contains('price index')) {
+    return Icons.price_change_rounded;
+  }
+  if (value.contains('interest') ||
+      value.contains('rate decision') ||
+      value.contains('central bank') ||
+      value.contains('federal reserve')) {
+    return Icons.account_balance_rounded;
+  }
+  if (value.contains('gdp') ||
+      value.contains('growth') ||
+      value.contains('production')) {
+    return Icons.query_stats_rounded;
+  }
+  if (value.contains('retail') || value.contains('consumer')) {
+    return Icons.shopping_cart_rounded;
+  }
+  if (value.contains('housing') || value.contains('home')) {
+    return Icons.home_work_rounded;
+  }
+  if (value.contains('manufactur') || value.contains('pmi')) {
+    return Icons.precision_manufacturing_rounded;
+  }
+  if (value.contains('trade') ||
+      value.contains('import') ||
+      value.contains('export')) {
+    return Icons.local_shipping_rounded;
+  }
+  return Icons.candlestick_chart_rounded;
+}
+
+String _countryFlag(String countryCode) {
+  final code = countryCode.trim().toUpperCase();
+  if (!RegExp(r'^[A-Z]{2}$').hasMatch(code)) return '';
+  return String.fromCharCodes(
+    code.codeUnits.map((character) => character + 0x1F1A5),
+  );
 }
 
 class _MarketNewsReleaseValues extends StatelessWidget {
@@ -3041,44 +3282,29 @@ class _AffiliateTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _EntitlementAwareTab(
+    return AffiliateDashboardScreen(
       apiClient: apiClient,
-      title: 'Affiliate Centre',
-      introduction: 'Share your TradeX referral after activation, then follow direct referrals, qualified sales, progressive stages and verified commission records.',
-      protectedFeatures: const [
-        FeatureSpec(
-          id: 'affiliate-overview',
-          group: 'Affiliate & Referrals',
-          title: 'Affiliate Overview',
-          subtitle: 'Verified referral progress and current stage',
-          icon: Icons.hub_rounded,
-          endpoint: '/api/v1/affiliate/overview',
+      onNotifications: () => onActionTap('notifications'),
+      onUpgrade: () => Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              PremiumAccessScreen(repository: LearnRepository(apiClient)),
         ),
-        FeatureSpec(
-          id: 'direct-referrals',
-          group: 'Affiliate & Referrals',
-          title: 'Direct Referrals',
-          subtitle: 'Your authorized direct referral records',
-          icon: Icons.people_alt_rounded,
-          endpoint: '/api/v1/affiliate/referrals',
-        ),
-        FeatureSpec(
-          id: 'qualified-sales',
-          group: 'Affiliate & Referrals',
-          title: 'Qualified Sales',
-          subtitle: 'Server-verified sale qualification history',
-          icon: Icons.point_of_sale_rounded,
-          endpoint: '/api/v1/affiliate/sales',
-        ),
-        FeatureSpec(
-          id: 'commissions',
-          group: 'Affiliate & Referrals',
-          title: 'Commission Earnings',
-          subtitle: 'Protected commission ledger and adjustments',
-          icon: Icons.savings_rounded,
-          endpoint: '/api/v1/affiliate/commissions',
-        ),
-      ],
+      ),
+      onConfigurePayoutMethod: (code) {
+        final method = switch (code) {
+          'PAYPAL' => WithdrawalMethod.paypal,
+          'BINANCE' => WithdrawalMethod.binance,
+          'USDT_TRC20' => WithdrawalMethod.usdtTrc20,
+          _ => WithdrawalMethod.localBank,
+        };
+        Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                WithdrawalMethodScreen(apiClient: apiClient, method: method),
+          ),
+        );
+      },
     );
   }
 }
