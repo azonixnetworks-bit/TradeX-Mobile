@@ -11,6 +11,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../../home/presentation/economic_news_screen.dart';
+import '../../copy_trading/presentation/copy_trading_module.dart';
 import '../../journal/data/trade_journal_repository.dart';
 import '../../journal/presentation/trade_journal_home_screen.dart';
 import '../../journal/presentation/trade_journal_insights_screens.dart';
@@ -70,8 +71,8 @@ Future<void> openTradeXFeature(
     'kyc-submit' => KycSubmissionScreen(apiClient: apiClient),
     'payment-proof' => PaymentProofScreen(apiClient: apiClient),
     'contact-number' => ContactChangeScreen(apiClient: apiClient),
-    'copy-dashboard' => CopyTradeDashboardScreen(apiClient: apiClient),
-    'connect-broker' => CopyTradeDashboardScreen(apiClient: apiClient),
+    'copy-dashboard' => CopyTradingHomeScreen(apiClient: apiClient),
+    'connect-broker' => CopyTradingHomeScreen(apiClient: apiClient),
     'checkout' => PaymentCheckoutScreen(apiClient: apiClient),
     _ => null,
   };

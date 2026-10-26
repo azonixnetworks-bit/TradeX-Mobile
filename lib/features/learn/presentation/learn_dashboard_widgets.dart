@@ -7,16 +7,16 @@ import '../../../core/theme/tradex_colors.dart';
 import '../data/learn_repository.dart';
 
 const learnBackground = TradeXColors.background;
-const learnCard = Color(0xFF061A32);
-const learnCardRaised = Color(0xFF0A203D);
-const learnBorder = Color(0xFF225186);
-const learnGold = Color(0xFFFFC94D);
-const learnGreen = Color(0xFF00D5A5);
-const learnBlue = Color(0xFF248EFF);
-const learnPurple = Color(0xFFA94BFF);
-const learnCyan = Color(0xFF18CEDC);
-const learnText = Color(0xFFF5F8FF);
-const learnMuted = Color(0xFF9EB3D1);
+const learnCard = TradeXColors.surface;
+const learnCardRaised = TradeXColors.surfaceRaised;
+const learnBorder = TradeXColors.goldSoft;
+const learnGold = TradeXColors.goldBright;
+const learnGreen = TradeXColors.goldBright;
+const learnBlue = TradeXColors.goldBright;
+const learnPurple = TradeXColors.goldBright;
+const learnCyan = TradeXColors.goldBright;
+const learnText = TradeXColors.primaryText;
+const learnMuted = TradeXColors.secondaryText;
 
 class LearnDashboardHeader extends StatelessWidget {
   const LearnDashboardHeader({super.key});
@@ -142,7 +142,11 @@ class PremiumLearningCard extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [learnCardRaised, learnCard, Color(0xFF041426)],
+            colors: [
+              TradeXColors.surfaceRaised,
+              TradeXColors.surface,
+              TradeXColors.backgroundSoft,
+            ],
           ),
           borderRadius: BorderRadius.circular(radius),
           border: Border.all(color: accent.withValues(alpha: .78)),
@@ -981,7 +985,7 @@ class _TradingThumbnailPainter extends CustomPainter {
       ..shader = const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF071C35), Color(0xFF020B1B)],
+        colors: [TradeXColors.surfaceRaised, TradeXColors.background],
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, background);
     final grid = Paint()
@@ -1003,7 +1007,7 @@ class _TradingThumbnailPainter extends CustomPainter {
       final next = (price + delta).clamp(size.height * .18, size.height * .83);
       final x = size.width * .08 + i * candleWidth;
       final rising = next < price;
-      final color = rising ? learnGreen : const Color(0xFFFF4658);
+      final color = rising ? learnGold : TradeXColors.goldSoft;
       final candle = Paint()
         ..color = color
         ..strokeWidth = 1.5;
