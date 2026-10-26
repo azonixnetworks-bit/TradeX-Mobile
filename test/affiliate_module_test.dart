@@ -1,7 +1,11 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tradex_mobile/core/network/api_exception.dart';
 import 'package:tradex_mobile/features/affiliate/presentation/affiliate_module.dart';
 import 'package:tradex_mobile/features/affiliate/presentation/bloc/affiliate_cubits.dart';
+import 'package:tradex_mobile/features/affiliate/presentation/services/affiliate_share_card_service.dart';
 
 void main() {
   Widget host(Widget child, {Size size = const Size(390, 844)}) {
@@ -65,6 +69,45 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('earnings header omits the TradeX wordmark', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: const AffiliateScaffold(
+          title: 'Earnings & Sales',
+          subtitle: 'Track commission income and qualified sales.',
+          showBrand: false,
+          child: SizedBox.shrink(),
+        ),
+      ),
+    );
+
+    expect(find.text('Earnings & Sales'), findsOneWidget);
+    expect(find.text('Trade'), findsNothing);
+    expect(find.text('X'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('technical API routes are never exposed as customer messages', () {
+    const error = ApiException(
+      message: 'The route api/v1/affiliate/earnings-series was not found.',
+      statusCode: 404,
+    );
+
+    expect(error.message, 'This information is not available yet.');
+    expect(error.message, isNot(contains('api/v1')));
+  });
+
+  testWidgets('empty earnings chart uses a friendly state card', (
+    tester,
+  ) async {
+    await tester.pumpWidget(host(const EarningsChart(points: [])));
+
+    expect(find.text('Earnings activity will appear here'), findsOneWidget);
+    expect(find.textContaining('/api/'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('referral panel shows only the referral code', (tester) async {
     var copied = false;
     var shared = false;
@@ -78,6 +121,7 @@ void main() {
           onShare: () => shared = true,
           onQr: () {},
         ),
+        size: const Size(320, 640),
       ),
     );
 
@@ -93,6 +137,35 @@ void main() {
     await tester.pump();
     expect(shared, isTrue);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('premium share card renders live values and QR at story size', (
+    tester,
+  ) async {
+    final result = await tester.runAsync(() async {
+      final bytes = await const AffiliateShareCardService().renderCard(
+        clientName: 'Arun Trader',
+        referralUrl: 'https://tradex.example/register?ref=TXAFF001',
+        referralCode: 'TXAFF001',
+        earnings: r'$2,450.00',
+        averageEarningsPerSale: r'$58.00',
+        totalReferrals: 42,
+        qualifiedSales: 8,
+        commissionRate: '20.00',
+        currentLevel: 'Pro',
+      );
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      final dimensions = (frame.image.width, frame.image.height, bytes.length);
+      frame.image.dispose();
+      codec.dispose();
+      return dimensions;
+    });
+
+    expect(result, isNotNull);
+    expect(result!.$1, 1080);
+    expect(result.$2, 1920);
+    expect(result.$3, greaterThan(0));
   });
 
   testWidgets('referral tile renders only API-backed referral fields', (

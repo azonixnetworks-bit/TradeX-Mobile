@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_icons.dart';
 import '../data/affiliate_repository.dart';
 import 'bloc/affiliate_cubits.dart';
 import 'services/affiliate_share_card_service.dart';
@@ -51,8 +52,6 @@ abstract final class _AffiliateAssets {
       'assets/affiliate/illustrations/dashboard_level_icon.png';
   static const dashboardMenu =
       'assets/affiliate/illustrations/dashboard_menu_icon.png';
-  static const dashboardBell =
-      'assets/affiliate/illustrations/dashboard_notification_bell.png';
   static const dashboardWhatsApp =
       'assets/affiliate/illustrations/dashboard_whatsapp_button.png';
   static const dashboardTelegram =
@@ -272,6 +271,7 @@ class _DashboardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final affiliate = AffiliateRepository.mapOf(data['affiliate']);
     final referral = AffiliateRepository.mapOf(data['referral']);
     final financials = AffiliateRepository.mapOf(data['financials']);
     final stage = AffiliateRepository.mapOf(data['current_stage']);
@@ -286,6 +286,15 @@ class _DashboardContent extends StatelessWidget {
       referral['direct_referrals_count'],
     );
     final sales = AffiliateRepository.integer(data['qualified_sales_count']);
+    final lifetimeEarnings = financials['lifetime_commission_earned'];
+    final averageEarnings =
+        AffiliateRepository.mapOf(
+          financials['average_commission_per_qualified_sale'],
+        ).isNotEmpty
+        ? AffiliateRepository.moneyText(
+            financials['average_commission_per_qualified_sale'],
+          )
+        : _averageEarningsPerSale(lifetimeEarnings, sales);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -348,11 +357,18 @@ class _DashboardContent extends StatelessWidget {
           onTelegram: () => _shareExternal(context, 'TELEGRAM'),
           onShare: () => _shareAffiliateIncomeCard(
             context,
+            clientName: AffiliateRepository.text(
+              affiliate['name'],
+              'TradeX Affiliate',
+            ),
             referralUrl: url,
             referralCode: code,
-            earnings: AffiliateRepository.moneyText(
-              financials['lifetime_commission_earned'],
-            ),
+            earnings: AffiliateRepository.moneyText(lifetimeEarnings),
+            averageEarningsPerSale: averageEarnings,
+            totalReferrals: direct,
+            qualifiedSales: sales,
+            commissionRate: rate,
+            currentLevel: AffiliateRepository.text(stage['name'], 'Affiliate'),
           ),
           onQr: () => _showQr(context, url),
         ),
@@ -371,6 +387,7 @@ class AffiliateScaffold extends StatelessWidget {
     required this.child,
     this.showBack = true,
     this.dashboardHeader = false,
+    this.showBrand = true,
     this.onMenu,
     this.onNotifications,
     this.onRefresh,
@@ -382,6 +399,7 @@ class AffiliateScaffold extends StatelessWidget {
   final Widget child;
   final bool showBack;
   final bool dashboardHeader;
+  final bool showBrand;
   final VoidCallback? onMenu;
   final VoidCallback? onNotifications;
   final Future<void> Function()? onRefresh;
@@ -411,7 +429,7 @@ class AffiliateScaffold extends StatelessWidget {
               color: _gold,
               tooltip: showBack ? 'Back' : 'Affiliate menu',
             ),
-            if (!dashboardHeader) ...[
+            if (!dashboardHeader && showBrand) ...[
               const SizedBox(width: 6),
               const Text(
                 'Trade',
@@ -431,15 +449,10 @@ class AffiliateScaffold extends StatelessWidget {
             if (onNotifications != null)
               IconButton(
                 onPressed: onNotifications,
-                icon: dashboardHeader
-                    ? Image.asset(
-                        _AffiliateAssets.dashboardBell,
-                        width: 42,
-                        height: 42,
-                        fit: BoxFit.contain,
-                        semanticLabel: 'Notifications',
-                      )
-                    : const Icon(Icons.notifications_none_rounded),
+                icon: const Icon(
+                  TradeXIcons.notifications,
+                  semanticLabel: 'Notifications',
+                ),
                 color: _gold,
                 tooltip: 'Notifications',
               ),
@@ -527,8 +540,9 @@ class AffiliateHero extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final compact = constraints.maxWidth < 350;
-      final height = compact ? 270.0 : 286.0;
+      final height = compact ? 244.0 : 256.0;
       return Container(
+        margin: EdgeInsets.symmetric(horizontal: compact ? 4 : 8),
         height: height,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
@@ -555,49 +569,49 @@ class AffiliateHero extends StatelessWidget {
               ),
             ),
             Positioned(
-              right: compact ? -72 : -54,
-              bottom: -44,
+              right: compact ? -58 : -44,
+              bottom: -34,
               child: IgnorePointer(
                 child: Image.asset(
                   _AffiliateAssets.dashboardGlobe,
-                  width: compact ? 245 : 275,
-                  height: compact ? 245 : 275,
+                  width: compact ? 218 : 232,
+                  height: compact ? 218 : 232,
                   fit: BoxFit.contain,
                 ),
               ),
             ),
             Positioned(
-              right: compact ? -6 : 4,
-              bottom: 8,
+              right: compact ? -2 : 8,
+              bottom: 6,
               child: IgnorePointer(
                 child: Image.asset(
                   _AffiliateAssets.dashboardGift,
-                  width: compact ? 108 : 126,
-                  height: compact ? 108 : 126,
+                  width: compact ? 92 : 104,
+                  height: compact ? 92 : 104,
                   fit: BoxFit.contain,
                 ),
               ),
             ),
             Positioned(
-              right: compact ? -18 : -8,
-              top: 1,
+              right: compact ? -10 : 0,
+              top: 2,
               child: IgnorePointer(
                 child: Image.asset(
                   _AffiliateAssets.dashboardGrowthArrow,
-                  width: compact ? 86 : 102,
-                  height: compact ? 86 : 102,
+                  width: compact ? 74 : 84,
+                  height: compact ? 74 : 84,
                   fit: BoxFit.contain,
                 ),
               ),
             ),
             Positioned(
-              right: compact ? 72 : 92,
+              right: compact ? 66 : 78,
               bottom: 4,
               child: IgnorePointer(
                 child: Image.asset(
                   _AffiliateAssets.dashboardDollarCoin,
-                  width: 50,
-                  height: 50,
+                  width: 42,
+                  height: 42,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -617,7 +631,7 @@ class AffiliateHero extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(18, 20, compact ? 100 : 118, 18),
+              padding: EdgeInsets.fromLTRB(16, 16, compact ? 88 : 102, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -654,7 +668,7 @@ class AffiliateHero extends StatelessWidget {
                       height: 1.05,
                     ),
                   ),
-                  const SizedBox(height: 13),
+                  const SizedBox(height: 10),
                   Text(
                     'Share TradeX with your friends and earn up to $commissionRate% commission on every qualified sale.',
                     maxLines: 4,
@@ -666,7 +680,11 @@ class AffiliateHero extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  GoldActionButton(label: 'Invite Now', onPressed: onInvite),
+                  GoldActionButton(
+                    label: 'Invite Now',
+                    onPressed: onInvite,
+                    compact: true,
+                  ),
                 ],
               ),
             ),
@@ -919,13 +937,13 @@ class ReferralLinkPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
+    padding: const EdgeInsets.all(13),
     decoration: _dashboardCardDecoration(goldAccent: true),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Your Referral Code', style: _sectionTitle),
-        const SizedBox(height: 12),
+        const SizedBox(height: 9),
         Container(
           padding: const EdgeInsets.only(left: 14),
           decoration: _fieldDecoration(),
@@ -953,7 +971,7 @@ class ReferralLinkPanel extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
         Row(
           children: [
             Expanded(
@@ -1024,8 +1042,8 @@ class _ShareButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: assetPath?.endsWith('.png') ?? false
-          ? AspectRatio(
-              aspectRatio: 1.2,
+          ? SizedBox(
+              height: 56,
               child: Image.asset(
                 assetPath!,
                 fit: BoxFit.contain,
@@ -1272,16 +1290,26 @@ class _AffiliateEarningsScreenState extends State<AffiliateEarningsScreen> {
   int months = 1;
 
   Future<JsonMap> _load() async {
+    final overview = await widget.repository.overview();
     final values = await Future.wait([
-      widget.repository.overview(),
-      widget.repository.earningsSeries(months: months == 0 ? 12 : months),
-      widget.repository.commissions(perPage: 20),
+      _optional(
+        widget.repository.earningsSeries(months: months == 0 ? 12 : months),
+      ),
+      _optional(widget.repository.commissions(perPage: 20)),
     ]);
     return {
-      'overview': values[0],
-      'series': values[1],
-      'commissions': values[2],
+      'overview': overview,
+      'series': values[0],
+      'commissions': values[1],
     };
+  }
+
+  Future<JsonMap> _optional(Future<JsonMap> request) async {
+    try {
+      return await request;
+    } catch (_) {
+      return const {};
+    }
   }
 
   @override
@@ -1293,6 +1321,7 @@ class _AffiliateEarningsScreenState extends State<AffiliateEarningsScreen> {
         builder: (context, state) => AffiliateScaffold(
           title: 'Earnings & Sales',
           subtitle: 'Track commission income and qualified sales.',
+          showBrand: false,
           onRefresh: context.read<AffiliateLoadCubit>().load,
           child: Column(
             children: [
@@ -1468,8 +1497,39 @@ class EarningsChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (points.isEmpty) {
-      return const Center(
-        child: Text('No chart data', style: TextStyle(color: _muted)),
+      return Container(
+        decoration: BoxDecoration(
+          color: const Color(0x80101818),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: TradeXColors.border),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.query_stats_rounded,
+                color: TradeXColors.goldSoft,
+                size: 38,
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Earnings activity will appear here',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Your summary cards remain available.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _muted, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
       );
     }
     return CustomPaint(painter: _EarningsChartPainter(points));
@@ -2807,6 +2867,17 @@ String _message(Object error) => error is ApiException
     ? error.message
     : 'The request could not be completed.';
 
+String _averageEarningsPerSale(Object? lifetimeValue, int qualifiedSales) {
+  final money = AffiliateRepository.mapOf(lifetimeValue);
+  final currency = AffiliateRepository.text(money['currency'], 'USD');
+  final average = qualifiedSales <= 0
+      ? 0.0
+      : AffiliateRepository.decimal(money['amount']) / qualifiedSales;
+  return currency == 'USD'
+      ? '\$${average.toStringAsFixed(2)}'
+      : '$currency ${average.toStringAsFixed(2)}';
+}
+
 void _snack(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
@@ -2837,9 +2908,15 @@ Future<void> _nativeShare(BuildContext context, String url) async {
 
 Future<void> _shareAffiliateIncomeCard(
   BuildContext context, {
+  required String clientName,
   required String referralUrl,
   required String referralCode,
   required String earnings,
+  required String averageEarningsPerSale,
+  required int totalReferrals,
+  required int qualifiedSales,
+  required String commissionRate,
+  required String currentLevel,
 }) async {
   if (referralCode.isEmpty) {
     _snack(context, 'Referral code is unavailable.');
@@ -2850,9 +2927,15 @@ Future<void> _shareAffiliateIncomeCard(
     final box = context.findRenderObject() as RenderBox?;
     await const AffiliateShareCardService().share(
       anchor: box,
+      clientName: clientName,
       referralUrl: referralUrl,
       earnings: earnings,
       referralCode: referralCode,
+      averageEarningsPerSale: averageEarningsPerSale,
+      totalReferrals: totalReferrals,
+      qualifiedSales: qualifiedSales,
+      commissionRate: commissionRate,
+      currentLevel: currentLevel,
     );
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();

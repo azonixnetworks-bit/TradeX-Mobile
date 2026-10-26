@@ -102,22 +102,27 @@ void main() {
     expect(find.byKey(const PageStorageKey('profile-tab')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('dashboard-nav-item-4')));
-    await tester.pump(const Duration(milliseconds: 10));
+    await tester.pump();
+    expect(find.byKey(const PageStorageKey('home-tab')), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.byKey(const PageStorageKey('profile-tab')), findsOneWidget);
     expect(find.byKey(const PageStorageKey('home-tab')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('dashboard-nav-item-3')));
-    await tester.pump(const Duration(milliseconds: 10));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.byKey(const PageStorageKey('affiliate-tab')), findsOneWidget);
     expect(find.byKey(const PageStorageKey('profile-tab')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('dashboard-nav-item-2')));
-    await tester.pump(const Duration(milliseconds: 10));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.byKey(const PageStorageKey('ideas-tab')), findsOneWidget);
     expect(find.byKey(const PageStorageKey('affiliate-tab')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('dashboard-nav-item-0')));
-    await tester.pump(const Duration(milliseconds: 10));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.byKey(const PageStorageKey('home-tab')), findsOneWidget);
     expect(find.byKey(const PageStorageKey('ideas-tab')), findsNothing);
   });
@@ -125,7 +130,9 @@ void main() {
   testWidgets('horizontal swipes move to next and previous dashboard tabs', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'tradex.learn_language_selected': true,
+    });
     await AppPreferences.instance.load();
     final store = SecureSessionStore();
     final device = DeviceIdentity(store);
@@ -148,16 +155,21 @@ void main() {
 
     // Start outside horizontally scrollable home carousels so this gesture
     // represents the dashboard-level page swipe.
-    await tester.dragFrom(const Offset(350, 350), const Offset(-220, 0));
+    await tester.drag(
+      find.byKey(const ValueKey('dashboard-swipe-next')),
+      const Offset(-220, 0),
+    );
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byKey(const PageStorageKey('learn-tab')), findsOneWidget);
     expect(find.byKey(const ValueKey('dashboard-nav-label-1')), findsOneWidget);
     expect(find.byKey(const ValueKey('dashboard-nav-label-0')), findsNothing);
 
     await tester.drag(
-      find.byKey(const PageStorageKey('learn-tab')),
+      find.byKey(const ValueKey('dashboard-swipe-previous')),
       const Offset(220, 0),
     );
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byKey(const PageStorageKey('home-tab')), findsOneWidget);
     expect(find.byKey(const ValueKey('dashboard-nav-label-0')), findsOneWidget);
