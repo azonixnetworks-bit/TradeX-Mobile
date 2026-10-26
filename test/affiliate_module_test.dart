@@ -65,6 +65,36 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('referral panel shows only the referral code', (tester) async {
+    var copied = false;
+    var shared = false;
+    await tester.pumpWidget(
+      host(
+        ReferralLinkPanel(
+          code: 'TXPREMIUM25',
+          onCopy: () => copied = true,
+          onWhatsApp: () {},
+          onTelegram: () {},
+          onShare: () => shared = true,
+          onQr: () {},
+        ),
+      ),
+    );
+
+    expect(find.text('Your Referral Code'), findsOneWidget);
+    expect(find.text('TXPREMIUM25'), findsOneWidget);
+    expect(find.textContaining('https://'), findsNothing);
+
+    await tester.tap(find.byTooltip('Copy referral code'));
+    await tester.pump();
+    expect(copied, isTrue);
+
+    await tester.tap(find.bySemanticsLabel('Share'));
+    await tester.pump();
+    expect(shared, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('referral tile renders only API-backed referral fields', (
     tester,
   ) async {
