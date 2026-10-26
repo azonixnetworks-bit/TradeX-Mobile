@@ -64,6 +64,7 @@ void main() {
       (KycSubmissionScreen(apiClient: client), 'KYC Document Submission'),
       (PaymentProofScreen(apiClient: client), 'Upload Payment Proof'),
       (ContactChangeScreen(apiClient: client), 'Change Contact'),
+      (CopyTradeDashboardScreen(apiClient: client), 'Copy Trading'),
       (BrokerConnectionScreen(apiClient: client), 'Connect Broker Account'),
       (PaymentCheckoutScreen(apiClient: client), 'Payment Checkout'),
     ];

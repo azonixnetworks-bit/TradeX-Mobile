@@ -70,7 +70,8 @@ Future<void> openTradeXFeature(
     'kyc-submit' => KycSubmissionScreen(apiClient: apiClient),
     'payment-proof' => PaymentProofScreen(apiClient: apiClient),
     'contact-number' => ContactChangeScreen(apiClient: apiClient),
-    'connect-broker' => BrokerConnectionScreen(apiClient: apiClient),
+    'copy-dashboard' => CopyTradeDashboardScreen(apiClient: apiClient),
+    'connect-broker' => CopyTradeDashboardScreen(apiClient: apiClient),
     'checkout' => PaymentCheckoutScreen(apiClient: apiClient),
     _ => null,
   };
