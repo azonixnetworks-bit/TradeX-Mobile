@@ -16,6 +16,7 @@ import '../../journal/data/trade_journal_repository.dart';
 import '../../journal/presentation/trade_journal_home_screen.dart';
 import '../../journal/presentation/trade_journal_insights_screens.dart';
 import '../../journal/presentation/trade_journal_trade_screens.dart';
+import '../../support/presentation/support_module.dart';
 import '../models/feature_spec.dart';
 import 'secure_workflow_screens.dart';
 
@@ -73,6 +74,7 @@ Future<void> openTradeXFeature(
     'contact-number' => ContactChangeScreen(apiClient: apiClient),
     'copy-dashboard' => CopyTradingHomeScreen(apiClient: apiClient),
     'connect-broker' => CopyTradingHomeScreen(apiClient: apiClient),
+    'help-faq' || 'contact-support' => SupportHomeScreen(apiClient: apiClient),
     'checkout' => PaymentCheckoutScreen(apiClient: apiClient),
     _ => null,
   };
