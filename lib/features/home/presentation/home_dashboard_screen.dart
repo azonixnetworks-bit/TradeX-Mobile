@@ -29,6 +29,9 @@ import '../../profile/presentation/withdrawal_method_screen.dart';
 import '../../learn/data/learn_repository.dart';
 import '../../learn/presentation/learn_module.dart';
 import '../../market/presentation/crypto_market_screen.dart';
+import '../../trade_ideas/data/trade_idea_repository.dart';
+import '../../trade_ideas/presentation/trade_ideas_screen.dart';
+import '../../trade_ideas/presentation/trade_idea_details_screen.dart';
 import '../../auth/presentation/quick_unlock_settings_screen.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../affiliate/presentation/affiliate_module.dart';
@@ -2430,14 +2433,6 @@ class _LiveTradeIdeaCard extends StatefulWidget {
 }
 
 class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
-  late Future<Uint8List?> _chart;
-
-  @override
-  void initState() {
-    super.initState();
-    _chart = widget.repository.chartBytes(widget.idea);
-  }
-
   @override
   Widget build(BuildContext context) {
     final idea = widget.idea;
@@ -2478,7 +2473,7 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _TradeChartPreview(chart: _chart),
+                const _TradeChartPreview(),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -2548,9 +2543,14 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
           ),
           const SizedBox(height: 4),
           InkWell(
-            onTap: idea.tradingViewUrl == null
-                ? null
-                : () => _openTradingView(context, idea.tradingViewUrl!),
+            onTap: () => Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(
+                builder: (_) => TradeIdeaDetailsScreen(
+                  repository: TradeIdeaRepository(widget.repository.apiClient),
+                  uuid: idea.uuid,
+                ),
+              ),
+            ),
             borderRadius: BorderRadius.circular(10),
             child: Ink(
               width: double.infinity,
@@ -2565,13 +2565,13 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.open_in_new_rounded,
+                    Icons.insights_rounded,
                     size: 15,
                     color: TradeXColors.goldBright,
                   ),
                   SizedBox(width: 6),
                   Text(
-                    'Open TradingView',
+                    'View Analysis',
                     style: TextStyle(
                       color: TradeXColors.goldBright,
                       fontSize: 11,
@@ -2603,45 +2603,20 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
       }
     }
   }
-
-  Future<void> _openTradingView(BuildContext context, String rawUrl) async {
-    final uri = Uri.tryParse(rawUrl);
-    if (uri == null ||
-        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Unable to open TradingView right now.'),
-          ),
-        );
-      }
-    }
-  }
 }
 
 class _TradeChartPreview extends StatelessWidget {
-  const _TradeChartPreview({required this.chart});
-
-  final Future<Uint8List?> chart;
+  const _TradeChartPreview();
 
   @override
   Widget build(BuildContext context) => SizedBox(
     width: 126,
     child: ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: BlocFutureBuilder<Uint8List?>(
-        future: chart,
-        builder: (context, snapshot) {
-          final bytes = snapshot.data;
-          if (bytes != null) {
-            return Image.memory(bytes, fit: BoxFit.cover);
-          }
-          return Container(
-            color: const Color(0xFF0A1514),
-            alignment: Alignment.center,
-            child: const _MiniCandles(),
-          );
-        },
+      child: Container(
+        color: const Color(0xFF0A1514),
+        alignment: Alignment.center,
+        child: const _MiniCandles(),
       ),
     ),
   );
@@ -3266,6 +3241,8 @@ class _TradeIdeasTab extends StatelessWidget {
       title: 'Trade Ideas',
       introduction: 'Explore TradeX market-analysis tools. Protected prices, levels, charts and full analysis are requested only after the server confirms your membership.',
       protectedFeatures: [featureById('trade-idea-details')],
+      activeBuilder: (_) =>
+          TradeIdeasScreen(repository: TradeIdeaRepository(apiClient)),
     );
   }
 }
@@ -3315,12 +3292,14 @@ class _EntitlementAwareTab extends StatefulWidget {
     required this.title,
     required this.introduction,
     required this.protectedFeatures,
+    this.activeBuilder,
   });
 
   final TradeXApiClient apiClient;
   final String title;
   final String introduction;
   final List<FeatureSpec> protectedFeatures;
+  final WidgetBuilder? activeBuilder;
 
   @override
   State<_EntitlementAwareTab> createState() => _EntitlementAwareTabState();
@@ -3353,6 +3332,9 @@ class _EntitlementAwareTabState extends State<_EntitlementAwareTab> {
         );
       }
       if (snapshot.data == true && widget.protectedFeatures.length == 1) {
+        if (widget.activeBuilder != null) {
+          return widget.activeBuilder!(context);
+        }
         return TradeXFeatureScreen(
           apiClient: widget.apiClient,
           spec: widget.protectedFeatures.first,
@@ -3407,8 +3389,12 @@ class _EntitlementAwareTabState extends State<_EntitlementAwareTab> {
     if (active) {
       await Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
-          builder: (_) =>
-              TradeXFeatureScreen(apiClient: widget.apiClient, spec: feature),
+          builder:
+              widget.activeBuilder ??
+              (_) => TradeXFeatureScreen(
+                apiClient: widget.apiClient,
+                spec: feature,
+              ),
         ),
       );
     }

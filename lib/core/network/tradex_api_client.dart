@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -199,9 +200,21 @@ class TradeXApiClient {
 
     final statusCode = response.statusCode ?? 500;
     if (statusCode < 200 || statusCode >= 300 || response.data is! List<int>) {
-      throw const ApiException(
-        message: 'Secure media is unavailable right now.',
-      );
+      var message = 'Secure media is unavailable right now.';
+      String? code;
+      if (response.data is List<int>) {
+        try {
+          final decoded = jsonDecode(utf8.decode(response.data as List<int>));
+          if (decoded is Map) {
+            final candidate = decoded['message']?.toString().trim() ?? '';
+            if (candidate.isNotEmpty) message = candidate;
+            code = decoded['code']?.toString();
+          }
+        } catch (_) {
+          // The server may return an image or an empty response on failure.
+        }
+      }
+      throw ApiException(message: message, statusCode: statusCode, code: code);
     }
 
     return Uint8List.fromList(response.data as List<int>);

@@ -7,6 +7,7 @@ class TradeIdeasRepository {
   TradeIdeasRepository(this._apiClient);
 
   final TradeXApiClient _apiClient;
+  TradeXApiClient get apiClient => _apiClient;
 
   Future<List<DashboardTradeIdea>> latestThree() => _latest(perPage: 12);
 
@@ -27,21 +28,14 @@ class TradeIdeasRepository {
     final ideas = data is Map ? data['trade_ideas'] : null;
     if (ideas is! List) return const [];
 
-    final summaries = ideas.whereType<Map>().toList(growable: false);
-    final details = await Future.wait(
-      summaries.map((summary) async {
-        final uuid = summary['uuid']?.toString();
-        if (uuid == null || uuid.isEmpty) return null;
-        final response = await _apiClient.getJson('/api/v1/trade-ideas/$uuid');
-        final payload = response['data'];
-        final idea = payload is Map ? payload['trade_idea'] : null;
-        return idea is Map
-            ? DashboardTradeIdea.fromJson(Map<String, dynamic>.from(idea))
-            : null;
-      }),
-    );
-
-    return details.whereType<DashboardTradeIdea>().toList(growable: false);
+    return ideas
+        .whereType<Map>()
+        .map(
+          (idea) =>
+              DashboardTradeIdea.fromJson(Map<String, dynamic>.from(idea)),
+        )
+        .where((idea) => idea.uuid.isNotEmpty)
+        .toList(growable: false);
   }
 
   Future<Uint8List?> chartBytes(DashboardTradeIdea idea) async {
@@ -112,6 +106,14 @@ class DashboardTradeIdea {
                   ),
                 )
                 .toList(growable: false)
+          : targets is Map && ((targets['total'] as num?)?.toInt() ?? 0) > 0
+          ? [
+              DashboardTradeTarget(
+                label: 'Targets',
+                price:
+                    '${(targets['hit'] as num?)?.toInt() ?? 0}/${(targets['total'] as num?)?.toInt() ?? 0}',
+              ),
+            ]
           : const [],
       chartAvailable: json['chart_available'] == true,
       tradingViewUrl: json['tradingview_url']?.toString(),
