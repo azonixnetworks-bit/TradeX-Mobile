@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 
+import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../data/support_repository.dart';
@@ -30,16 +33,13 @@ class SupportHomeScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SupportUnavailableBanner(),
-          const SizedBox(height: 16),
           LayoutBuilder(
             builder: (context, constraints) {
               final cards = [
                 _SupportActionCard(
                   icon: 'live_chat.svg',
                   title: 'Live Chat',
-                  body:
-                      'Chat with our support team when live service is ready.',
+                  body: 'Chat securely with an online support agent.',
                   action: 'Start Chat',
                   onTap: () => _push(
                     context,
@@ -380,10 +380,137 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
   );
 }
 
-class LiveChatWaitingScreen extends StatelessWidget {
+class LiveChatWaitingScreen extends StatefulWidget {
   const LiveChatWaitingScreen({super.key, required this.repository});
 
   final SupportRepository repository;
+
+  @override
+  State<LiveChatWaitingScreen> createState() => _LiveChatWaitingScreenState();
+}
+
+class _LiveChatWaitingScreenState extends State<LiveChatWaitingScreen> {
+  final _idempotencyKey = const Uuid().v4();
+  SupportChatSession? _session;
+  Timer? _pollTimer;
+  Timer? _heartbeatTimer;
+  Object? _error;
+  bool _loading = true;
+  bool _polling = false;
+  bool _cancelling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_start());
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    _heartbeatTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _start() async {
+    _pollTimer?.cancel();
+    _heartbeatTimer?.cancel();
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final session = await widget.repository.startLiveChat(
+        idempotencyKey: _idempotencyKey,
+      );
+      if (!mounted) return;
+      setState(() {
+        _session = session;
+        _loading = false;
+      });
+      if (session.isConnected) {
+        _openConversation(session);
+        return;
+      }
+      _pollTimer = Timer.periodic(
+        const Duration(seconds: 2),
+        (_) => unawaited(_poll()),
+      );
+      _heartbeatTimer = Timer.periodic(
+        const Duration(seconds: 20),
+        (_) => unawaited(_heartbeat()),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error;
+      });
+    }
+  }
+
+  Future<void> _poll() async {
+    final session = _session;
+    if (_polling || session == null || session.isEnded) return;
+    _polling = true;
+    try {
+      final updated = await widget.repository.chat(session.uuid);
+      if (!mounted) return;
+      setState(() => _session = updated);
+      if (updated.isConnected) _openConversation(updated);
+    } catch (error) {
+      if (mounted) setState(() => _error = error);
+    } finally {
+      _polling = false;
+    }
+  }
+
+  Future<void> _heartbeat() async {
+    final session = _session;
+    if (session == null || session.isEnded) return;
+    try {
+      final updated = await widget.repository.heartbeat(session.uuid);
+      if (mounted) setState(() => _session = updated);
+    } catch (_) {
+      // The status poll surfaces persistent connection failures.
+    }
+  }
+
+  void _openConversation(SupportChatSession session) {
+    _pollTimer?.cancel();
+    _heartbeatTimer?.cancel();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement<void, void>(
+        MaterialPageRoute<void>(
+          builder: (_) => LiveChatConversationScreen(
+            repository: widget.repository,
+            session: session,
+          ),
+        ),
+      );
+    });
+  }
+
+  Future<void> _cancel() async {
+    if (_cancelling) return;
+    final session = _session;
+    if (session == null) {
+      Navigator.of(context).maybePop();
+      return;
+    }
+    setState(() => _cancelling = true);
+    try {
+      await widget.repository.cancelChat(session.uuid);
+      if (mounted) Navigator.of(context).maybePop();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error;
+        _cancelling = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) => _SupportScaffold(
@@ -403,65 +530,516 @@ class LiveChatWaitingScreen extends StatelessWidget {
         _SupportPanel(
           child: Row(
             children: [
-              const Expanded(
-                child: _QueueMetric(value: '—', label: 'Queue position'),
+              Expanded(
+                child: _QueueMetric(
+                  value: _session?.queuePosition?.toString() ?? '—',
+                  label: 'Queue position',
+                ),
               ),
               _divider(),
-              const Expanded(
-                child: _QueueMetric(value: '—', label: 'Estimated wait'),
+              Expanded(
+                child: _QueueMetric(
+                  value: _session?.etaMinutes == null
+                      ? '—'
+                      : '${_session!.etaMinutes}m',
+                  label: 'Estimated wait',
+                ),
               ),
               _divider(),
-              const Expanded(
-                child: _QueueMetric(value: '—', label: 'Agents online'),
+              Expanded(
+                child: _QueueMetric(
+                  value: _session?.agentsOnline.toString() ?? '—',
+                  label: 'Agents online',
+                ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 14),
-        const _SupportUnavailableBanner(),
+        if (_loading)
+          const _LiveStatusBanner(
+            icon: Icons.lock_clock_outlined,
+            message: 'Creating your secure support request…',
+          )
+        else if (_error != null)
+          _LiveStatusBanner(
+            icon: Icons.error_outline,
+            message: _friendlyError(_error!),
+            error: true,
+            action: 'Retry',
+            onTap: _start,
+          )
+        else
+          _LiveStatusBanner(
+            icon: Icons.verified_user_outlined,
+            message: _session!.agentsOnline > 0
+                ? 'Your request is live. An online agent can claim it now.'
+                : 'Your request is queued securely. We will connect the next available agent.',
+          ),
         const SizedBox(height: 14),
         OutlinedButton.icon(
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: _cancelling ? null : _cancel,
           style: OutlinedButton.styleFrom(
             foregroundColor: TradeXColors.error,
             side: const BorderSide(color: TradeXColors.error),
             minimumSize: const Size.fromHeight(54),
           ),
           icon: const Icon(Icons.stop_circle_outlined),
-          label: const Text('Cancel Request'),
+          label: Text(_cancelling ? 'Cancelling…' : 'Cancel Request'),
         ),
       ],
     ),
   );
 }
 
-class LiveChatConversationScreen extends StatelessWidget {
-  const LiveChatConversationScreen({super.key, required this.repository});
+class LiveChatConversationScreen extends StatefulWidget {
+  const LiveChatConversationScreen({
+    super.key,
+    required this.repository,
+    this.session,
+  });
 
   final SupportRepository repository;
+  final SupportChatSession? session;
+
+  @override
+  State<LiveChatConversationScreen> createState() =>
+      _LiveChatConversationScreenState();
+}
+
+class _LiveChatConversationScreenState
+    extends State<LiveChatConversationScreen> {
+  final _message = TextEditingController();
+  final _scroll = ScrollController();
+  final List<SupportMessage> _messages = [];
+  Timer? _pollTimer;
+  Timer? _heartbeatTimer;
+  SupportChatSession? _session;
+  Object? _error;
+  int _cursor = 0;
+  bool _loading = true;
+  bool _polling = false;
+  bool _sending = false;
+  bool _ending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _session = widget.session;
+    if (_session == null) {
+      _loading = false;
+      _error = StateError('No active support conversation was selected.');
+      return;
+    }
+    unawaited(_loadEvents());
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => unawaited(_loadEvents()),
+    );
+    _heartbeatTimer = Timer.periodic(
+      const Duration(seconds: 20),
+      (_) => unawaited(_heartbeat()),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    _heartbeatTimer?.cancel();
+    _message.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadEvents() async {
+    final session = _session;
+    if (_polling || session == null || session.isEnded) return;
+    _polling = true;
+    try {
+      final result = await widget.repository.events(
+        session.uuid,
+        after: _cursor,
+      );
+      if (!mounted) return;
+      setState(() {
+        _session = result.chat;
+        _cursor = result.nextCursor;
+        for (final event in result.events) {
+          if (_messages.every((item) => item.uuid != event.uuid)) {
+            _messages.add(event);
+          }
+        }
+        _loading = false;
+        _error = null;
+      });
+      _scrollToLatest();
+      if (result.chat.isEnded) {
+        _pollTimer?.cancel();
+        _heartbeatTimer?.cancel();
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = error;
+        });
+      }
+    } finally {
+      _polling = false;
+    }
+  }
+
+  Future<void> _heartbeat() async {
+    final session = _session;
+    if (session == null || session.isEnded) return;
+    try {
+      final updated = await widget.repository.heartbeat(session.uuid);
+      if (mounted) setState(() => _session = updated);
+    } catch (_) {}
+  }
+
+  Future<void> _send() async {
+    final session = _session;
+    final text = _message.text.trim();
+    if (_sending || session == null || text.isEmpty || session.isEnded) return;
+    setState(() => _sending = true);
+    try {
+      final sent = await widget.repository.sendMessage(
+        ticketUuid: session.ticketUuid,
+        message: text,
+      );
+      if (!mounted) return;
+      setState(() {
+        if (_messages.every((item) => item.uuid != sent.uuid)) {
+          _messages.add(sent);
+        }
+        if (sent.cursor > _cursor) _cursor = sent.cursor;
+        _message.clear();
+        _error = null;
+      });
+      _scrollToLatest();
+    } catch (error) {
+      if (mounted) setState(() => _error = error);
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _end() async {
+    final session = _session;
+    if (_ending || session == null) return;
+    setState(() => _ending = true);
+    try {
+      await widget.repository.endChat(session.uuid);
+      if (mounted) Navigator.of(context).maybePop();
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error;
+          _ending = false;
+        });
+      }
+    }
+  }
+
+  void _scrollToLatest() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      _scroll.animateTo(
+        _scroll.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOut,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) => _SupportScaffold(
     title: 'Live Support',
-    subtitle: 'Authenticated support conversation',
+    subtitle: _session?.ticketReference.isNotEmpty == true
+        ? 'Secure conversation · ${_session!.ticketReference}'
+        : 'Authenticated support conversation',
     child: Column(
       children: [
-        const _SupportUnavailableField(
-          icon: 'headset.svg',
-          label: 'No agent assigned',
-          helper: 'Agent identity and presence are server-owned.',
+        _LiveAgentHeader(
+          name: _session?.assignedAgentName ?? 'Support agent',
+          state: _session?.state ?? 'unavailable',
         ),
-        const SizedBox(height: 20),
-        const _UnavailableContent(
-          icon: 'message_circle.svg',
-          title: 'Live updates unavailable',
-          message: 'Secure HTTP persistence and private broadcast authorization are not available. Refresh after the backend is enabled.',
+        const SizedBox(height: 14),
+        _SupportPanel(
+          child: SizedBox(
+            height: 390,
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _messages.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Connected. Send a message to your support agent.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: TradeXColors.secondaryText),
+                    ),
+                  )
+                : ListView.separated(
+                    controller: _scroll,
+                    itemCount: _messages.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (_, index) =>
+                        _LiveMessageBubble(message: _messages[index]),
+                  ),
+          ),
         ),
-        const SizedBox(height: 16),
-        const _DisabledComposer(),
+        if (_error != null) ...[
+          const SizedBox(height: 10),
+          _LiveStatusBanner(
+            icon: Icons.error_outline,
+            message: _friendlyError(_error!),
+            error: true,
+            action: 'Retry',
+            onTap: _loadEvents,
+          ),
+        ],
+        const SizedBox(height: 12),
+        _LiveComposer(
+          controller: _message,
+          enabled: _session != null && !(_session?.isEnded ?? true),
+          sending: _sending,
+          onSend: _send,
+        ),
+        const SizedBox(height: 12),
+        TextButton.icon(
+          onPressed: _ending ? null : _end,
+          icon: const Icon(Icons.call_end_outlined),
+          label: Text(_ending ? 'Ending…' : 'End live chat'),
+          style: TextButton.styleFrom(foregroundColor: TradeXColors.error),
+        ),
       ],
     ),
   );
+}
+
+class _LiveStatusBanner extends StatelessWidget {
+  const _LiveStatusBanner({
+    required this.icon,
+    required this.message,
+    this.error = false,
+    this.action,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String message;
+  final bool error;
+  final String? action;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: error
+          ? TradeXColors.error.withValues(alpha: .08)
+          : TradeXColors.gold.withValues(alpha: .07),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: error
+            ? TradeXColors.error.withValues(alpha: .65)
+            : TradeXColors.goldSoft.withValues(alpha: .72),
+      ),
+    ),
+    child: Row(
+      children: [
+        Icon(
+          icon,
+          color: error ? TradeXColors.error : TradeXColors.goldBright,
+          size: 21,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            message,
+            style: const TextStyle(
+              color: TradeXColors.secondaryText,
+              height: 1.35,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        if (action != null && onTap != null)
+          TextButton(onPressed: onTap, child: Text(action!)),
+      ],
+    ),
+  );
+}
+
+class _LiveAgentHeader extends StatelessWidget {
+  const _LiveAgentHeader({required this.name, required this.state});
+
+  final String name;
+  final String state;
+
+  @override
+  Widget build(BuildContext context) => _SupportPanel(
+    child: Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: TradeXColors.gold.withValues(alpha: .12),
+            border: Border.all(color: TradeXColors.goldSoft),
+          ),
+          child: const Center(child: SupportSvgIcon('headset.svg', size: 24)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: TradeXColors.primaryText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                state == 'active' ? '● Online · Live chat' : '● Connected',
+                style: const TextStyle(
+                  color: TradeXColors.success,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Icon(
+          Icons.lock_outline,
+          color: TradeXColors.goldBright,
+          size: 20,
+        ),
+      ],
+    ),
+  );
+}
+
+class _LiveMessageBubble extends StatelessWidget {
+  const _LiveMessageBubble({required this.message});
+
+  final SupportMessage message;
+
+  @override
+  Widget build(BuildContext context) {
+    final mine = message.fromCustomer;
+    final hour = message.createdAt.hour.toString().padLeft(2, '0');
+    final minute = message.createdAt.minute.toString().padLeft(2, '0');
+    return Align(
+      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 300),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: mine
+                  ? [
+                      TradeXColors.goldDeep.withValues(alpha: .7),
+                      TradeXColors.surfaceRaised,
+                    ]
+                  : [TradeXColors.surfaceMuted, TradeXColors.surfaceRaised],
+            ),
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(16),
+              topRight: const Radius.circular(16),
+              bottomLeft: Radius.circular(mine ? 16 : 4),
+              bottomRight: Radius.circular(mine ? 4 : 16),
+            ),
+            border: Border.all(
+              color: mine ? TradeXColors.goldSoft : TradeXColors.borderStrong,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  message.message,
+                  style: const TextStyle(
+                    color: TradeXColors.primaryText,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$hour:$minute',
+                style: const TextStyle(
+                  color: TradeXColors.tertiaryText,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LiveComposer extends StatelessWidget {
+  const _LiveComposer({
+    required this.controller,
+    required this.enabled,
+    required this.sending,
+    required this.onSend,
+  });
+
+  final TextEditingController controller;
+  final bool enabled;
+  final bool sending;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: controller,
+    enabled: enabled && !sending,
+    minLines: 1,
+    maxLines: 4,
+    maxLength: 10000,
+    textCapitalization: TextCapitalization.sentences,
+    style: const TextStyle(color: TradeXColors.primaryText),
+    decoration: InputDecoration(
+      counterText: '',
+      hintText: enabled ? 'Type your message…' : 'Conversation ended',
+      filled: true,
+      fillColor: TradeXColors.surfaceRaised,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
+      suffixIcon: IconButton(
+        tooltip: 'Send message',
+        onPressed: enabled && !sending ? onSend : null,
+        icon: sending
+            ? const SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const SupportSvgIcon('send.svg', size: 21),
+      ),
+    ),
+  );
+}
+
+String _friendlyError(Object error) {
+  if (error is ApiException) return error.message;
+  if (error is StateError) return error.message;
+  return 'Live support is temporarily unavailable. Please try again.';
 }
 
 class HelpCenterScreen extends StatefulWidget {

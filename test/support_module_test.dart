@@ -17,6 +17,28 @@ void main() {
     repository = SupportRepository(apiClient);
   });
 
+  test('support live-chat models parse server counts and assignment', () {
+    final overview = SupportOverview.fromJson({
+      'ticket_counts': {'open': 2, 'resolved': 4, 'closed': 1},
+      'live_chat': {'agents_online': 3, 'available': true},
+    });
+    final session = SupportChatSession.fromJson({
+      'uuid': 'chat-uuid',
+      'ticket_uuid': 'ticket-uuid',
+      'ticket_reference': 'TX-SUP-000001',
+      'state': 'assigned',
+      'queue_position': null,
+      'eta_minutes': null,
+      'agents_online': 3,
+      'assigned_agent': {'name': 'Support Agent'},
+    });
+
+    expect(overview.agentsOnline, 3);
+    expect(overview.openTickets, 2);
+    expect(session.isConnected, isTrue);
+    expect(session.assignedAgentName, 'Support Agent');
+  });
+
   for (final width in const [360.0, 390.0, 430.0]) {
     testWidgets('support home is responsive at ${width.toInt()} px', (
       tester,
