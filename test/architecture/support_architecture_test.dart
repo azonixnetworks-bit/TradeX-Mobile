@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  for (final feature in const ['support', 'copy_trading']) {
+  for (final feature in const ['support', 'copy_trading', 'funded_advisor']) {
     final featureRoot = Directory('lib/features/$feature');
 
     test('$feature domain is framework and infrastructure independent', () {
