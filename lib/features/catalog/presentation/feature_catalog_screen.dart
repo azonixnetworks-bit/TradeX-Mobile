@@ -21,6 +21,8 @@ import '../../journal/data/trade_journal_repository.dart';
 import '../../journal/presentation/trade_journal_home_screen.dart';
 import '../../journal/presentation/trade_journal_insights_screens.dart';
 import '../../journal/presentation/trade_journal_trade_screens.dart';
+import '../../notifications/notification_dependencies.dart';
+import '../../notifications/presentation/notification_module.dart';
 import '../../risk_reward/presentation/risk_reward_module.dart';
 import '../../risk_reward/risk_reward_dependencies.dart';
 import '../../support/presentation/support_module.dart';
@@ -92,6 +94,9 @@ Future<void> openTradeXFeature(
     ),
     'risk-reward-calculator' => RiskRewardHomeScreen(
       repository: RiskRewardDependencies(apiClient).repository,
+    ),
+    'notifications' || 'notification-details' => NotificationCenterScreen(
+      repository: NotificationDependencies(apiClient).repository,
     ),
     'help-faq' || 'contact-support' => SupportHomeScreen(
       useCases: SupportDependencies(apiClient).useCases,

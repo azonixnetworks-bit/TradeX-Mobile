@@ -2,6 +2,7 @@ import Flutter
 import LocalAuthentication
 import Security
 import UIKit
+import UserNotifications
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -23,6 +24,49 @@ import UIKit
     )
     channel.setMethodCallHandler { [weak self] call, result in
       self?.handleDeviceCredential(call: call, result: result)
+    }
+    let notificationChannel = FlutterMethodChannel(
+      name: "com.azonixnetworks.tradex_mobile/notifications",
+      binaryMessenger: registrar.messenger()
+    )
+    notificationChannel.setMethodCallHandler { [weak self] call, result in
+      self?.handleNotificationPermission(call: call, result: result)
+    }
+  }
+
+  private func handleNotificationPermission(
+    call: FlutterMethodCall,
+    result: @escaping FlutterResult
+  ) {
+    let center = UNUserNotificationCenter.current()
+    switch call.method {
+    case "status":
+      center.getNotificationSettings { settings in
+        DispatchQueue.main.async { result(self.notificationStatus(settings.authorizationStatus)) }
+      }
+    case "request":
+      center.requestAuthorization(options: [.alert, .badge, .sound]) { _, error in
+        if let error {
+          DispatchQueue.main.async {
+            result(FlutterError(code: "NOTIFICATION_PERMISSION_ERROR", message: error.localizedDescription, details: nil))
+          }
+          return
+        }
+        center.getNotificationSettings { settings in
+          DispatchQueue.main.async { result(self.notificationStatus(settings.authorizationStatus)) }
+        }
+      }
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private func notificationStatus(_ status: UNAuthorizationStatus) -> String {
+    switch status {
+    case .authorized, .provisional, .ephemeral: return "granted"
+    case .denied: return "denied"
+    case .notDetermined: return "notDetermined"
+    @unknown default: return "unsupported"
     }
   }
 
