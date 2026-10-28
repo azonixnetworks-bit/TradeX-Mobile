@@ -7,9 +7,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/network/api_exception.dart';
-import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
-import '../data/support_repository.dart';
+import '../domain/entities/support_entities.dart';
+import '../domain/support_policy.dart';
+import '../domain/usecases/support_use_cases.dart';
 
 const _iconRoot = 'assets/support/icons';
 const _imageRoot = 'assets/support/images';
@@ -17,13 +18,12 @@ const _globeAsset =
     'assets/affiliate/illustrations/dashboard_network_globe.png';
 
 class SupportHomeScreen extends StatelessWidget {
-  const SupportHomeScreen({super.key, required this.apiClient});
+  const SupportHomeScreen({super.key, required this.useCases});
 
-  final TradeXApiClient apiClient;
+  final SupportUseCases useCases;
 
   @override
   Widget build(BuildContext context) {
-    final repository = SupportRepository(apiClient);
     return _SupportScaffold(
       eyebrow: 'SUPPORT CENTER',
       title: 'How can we help you?',
@@ -41,10 +41,8 @@ class SupportHomeScreen extends StatelessWidget {
                   title: 'Live Chat',
                   body: 'Chat securely with an online support agent.',
                   action: 'Start Chat',
-                  onTap: () => _push(
-                    context,
-                    LiveChatWaitingScreen(repository: repository),
-                  ),
+                  onTap: () =>
+                      _push(context, LiveChatWaitingScreen(useCases: useCases)),
                 ),
                 _SupportActionCard(
                   icon: 'support_document.svg',
@@ -53,7 +51,7 @@ class SupportHomeScreen extends StatelessWidget {
                   action: 'New Ticket',
                   onTap: () => _push(
                     context,
-                    CreateSupportTicketScreen(repository: repository),
+                    CreateSupportTicketScreen(useCases: useCases),
                   ),
                 ),
               ];
@@ -80,8 +78,7 @@ class SupportHomeScreen extends StatelessWidget {
           _SupportSearchField(
             hint: 'Search for help topics',
             readOnly: true,
-            onTap: () =>
-                _push(context, HelpCenterScreen(repository: repository)),
+            onTap: () => _push(context, HelpCenterScreen(useCases: useCases)),
           ),
           const SizedBox(height: 14),
           _SupportPanel(
@@ -118,7 +115,7 @@ class SupportHomeScreen extends StatelessWidget {
             title: 'Support Services',
             action: 'My Tickets',
             onTap: () =>
-                _push(context, MySupportTicketsScreen(repository: repository)),
+                _push(context, MySupportTicketsScreen(useCases: useCases)),
           ),
           const SizedBox(height: 10),
           _SupportListTile(
@@ -126,15 +123,14 @@ class SupportHomeScreen extends StatelessWidget {
             title: 'My Support Tickets',
             subtitle: 'Track requests and view verified responses.',
             onTap: () =>
-                _push(context, MySupportTicketsScreen(repository: repository)),
+                _push(context, MySupportTicketsScreen(useCases: useCases)),
           ),
           const SizedBox(height: 10),
           _SupportListTile(
             icon: 'faq.svg',
             title: 'Help Center & FAQ',
             subtitle: 'Read server-published support articles.',
-            onTap: () =>
-                _push(context, HelpCenterScreen(repository: repository)),
+            onTap: () => _push(context, HelpCenterScreen(useCases: useCases)),
           ),
         ],
       ),
@@ -143,9 +139,9 @@ class SupportHomeScreen extends StatelessWidget {
 }
 
 class CreateSupportTicketScreen extends StatefulWidget {
-  const CreateSupportTicketScreen({super.key, required this.repository});
+  const CreateSupportTicketScreen({super.key, required this.useCases});
 
-  final SupportRepository repository;
+  final SupportUseCases useCases;
 
   @override
   State<CreateSupportTicketScreen> createState() =>
@@ -271,9 +267,9 @@ class _CreateSupportTicketScreenState extends State<CreateSupportTicketScreen> {
 }
 
 class MySupportTicketsScreen extends StatefulWidget {
-  const MySupportTicketsScreen({super.key, required this.repository});
+  const MySupportTicketsScreen({super.key, required this.useCases});
 
-  final SupportRepository repository;
+  final SupportUseCases useCases;
 
   @override
   State<MySupportTicketsScreen> createState() => _MySupportTicketsScreenState();
@@ -315,7 +311,7 @@ class _MySupportTicketsScreenState extends State<MySupportTicketsScreen> {
         _UnavailableContent(
           icon: 'support_document.svg',
           title: 'Ticket history is not connected',
-          message: SupportRepository.unavailableMessage,
+          message: SupportPolicy.unavailableMessage,
           action: 'Back to Support',
           onTap: () => Navigator.of(context).maybePop(),
         ),
@@ -325,9 +321,9 @@ class _MySupportTicketsScreenState extends State<MySupportTicketsScreen> {
 }
 
 class TicketDetailsScreen extends StatefulWidget {
-  const TicketDetailsScreen({super.key, required this.repository});
+  const TicketDetailsScreen({super.key, required this.useCases});
 
-  final SupportRepository repository;
+  final SupportUseCases useCases;
 
   @override
   State<TicketDetailsScreen> createState() => _TicketDetailsScreenState();
@@ -381,9 +377,9 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
 }
 
 class LiveChatWaitingScreen extends StatefulWidget {
-  const LiveChatWaitingScreen({super.key, required this.repository});
+  const LiveChatWaitingScreen({super.key, required this.useCases});
 
-  final SupportRepository repository;
+  final SupportUseCases useCases;
 
   @override
   State<LiveChatWaitingScreen> createState() => _LiveChatWaitingScreenState();
@@ -420,8 +416,8 @@ class _LiveChatWaitingScreenState extends State<LiveChatWaitingScreen> {
       _error = null;
     });
     try {
-      final session = await widget.repository.startLiveChat(
-        idempotencyKey: _idempotencyKey,
+      final session = await widget.useCases.startLiveChat(
+        StartSupportLiveChatParams(_idempotencyKey),
       );
       if (!mounted) return;
       setState(() {
@@ -454,7 +450,7 @@ class _LiveChatWaitingScreenState extends State<LiveChatWaitingScreen> {
     if (_polling || session == null || session.isEnded) return;
     _polling = true;
     try {
-      final updated = await widget.repository.chat(session.uuid);
+      final updated = await widget.useCases.getChat(session.uuid);
       if (!mounted) return;
       setState(() => _session = updated);
       if (updated.isConnected) _openConversation(updated);
@@ -469,7 +465,7 @@ class _LiveChatWaitingScreenState extends State<LiveChatWaitingScreen> {
     final session = _session;
     if (session == null || session.isEnded) return;
     try {
-      final updated = await widget.repository.heartbeat(session.uuid);
+      final updated = await widget.useCases.heartbeat(session.uuid);
       if (mounted) setState(() => _session = updated);
     } catch (_) {
       // The status poll surfaces persistent connection failures.
@@ -484,7 +480,7 @@ class _LiveChatWaitingScreenState extends State<LiveChatWaitingScreen> {
       Navigator.of(context).pushReplacement<void, void>(
         MaterialPageRoute<void>(
           builder: (_) => LiveChatConversationScreen(
-            repository: widget.repository,
+            useCases: widget.useCases,
             session: session,
           ),
         ),
@@ -501,7 +497,7 @@ class _LiveChatWaitingScreenState extends State<LiveChatWaitingScreen> {
     }
     setState(() => _cancelling = true);
     try {
-      await widget.repository.cancelChat(session.uuid);
+      await widget.useCases.cancelChat(session.uuid);
       if (mounted) Navigator.of(context).maybePop();
     } catch (error) {
       if (!mounted) return;
@@ -595,11 +591,11 @@ class _LiveChatWaitingScreenState extends State<LiveChatWaitingScreen> {
 class LiveChatConversationScreen extends StatefulWidget {
   const LiveChatConversationScreen({
     super.key,
-    required this.repository,
+    required this.useCases,
     this.session,
   });
 
-  final SupportRepository repository;
+  final SupportUseCases useCases;
   final SupportChatSession? session;
 
   @override
@@ -656,9 +652,8 @@ class _LiveChatConversationScreenState
     if (_polling || session == null || session.isEnded) return;
     _polling = true;
     try {
-      final result = await widget.repository.events(
-        session.uuid,
-        after: _cursor,
+      final result = await widget.useCases.getEvents(
+        SupportChatEventsParams(chatUuid: session.uuid, after: _cursor),
       );
       if (!mounted) return;
       setState(() {
@@ -693,7 +688,7 @@ class _LiveChatConversationScreenState
     final session = _session;
     if (session == null || session.isEnded) return;
     try {
-      final updated = await widget.repository.heartbeat(session.uuid);
+      final updated = await widget.useCases.heartbeat(session.uuid);
       if (mounted) setState(() => _session = updated);
     } catch (_) {}
   }
@@ -704,9 +699,8 @@ class _LiveChatConversationScreenState
     if (_sending || session == null || text.isEmpty || session.isEnded) return;
     setState(() => _sending = true);
     try {
-      final sent = await widget.repository.sendMessage(
-        ticketUuid: session.ticketUuid,
-        message: text,
+      final sent = await widget.useCases.sendMessage(
+        SendSupportMessageParams(ticketUuid: session.ticketUuid, message: text),
       );
       if (!mounted) return;
       setState(() {
@@ -730,7 +724,7 @@ class _LiveChatConversationScreenState
     if (_ending || session == null) return;
     setState(() => _ending = true);
     try {
-      await widget.repository.endChat(session.uuid);
+      await widget.useCases.endChat(session.uuid);
       if (mounted) Navigator.of(context).maybePop();
     } catch (error) {
       if (mounted) {
@@ -1043,9 +1037,9 @@ String _friendlyError(Object error) {
 }
 
 class HelpCenterScreen extends StatefulWidget {
-  const HelpCenterScreen({super.key, required this.repository});
+  const HelpCenterScreen({super.key, required this.useCases});
 
-  final SupportRepository repository;
+  final SupportUseCases useCases;
 
   @override
   State<HelpCenterScreen> createState() => _HelpCenterScreenState();
@@ -1092,7 +1086,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           action: 'Prepare a Ticket',
           onTap: () => _push(
             context,
-            CreateSupportTicketScreen(repository: widget.repository),
+            CreateSupportTicketScreen(useCases: widget.useCases),
           ),
         ),
       ],
@@ -1101,9 +1095,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
 }
 
 class TicketFeedbackScreen extends StatefulWidget {
-  const TicketFeedbackScreen({super.key, required this.repository});
+  const TicketFeedbackScreen({super.key, required this.useCases});
 
-  final SupportRepository repository;
+  final SupportUseCases useCases;
 
   @override
   State<TicketFeedbackScreen> createState() => _TicketFeedbackScreenState();
@@ -1413,7 +1407,7 @@ class _SupportUnavailableBanner extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Text(
-            SupportRepository.unavailableMessage,
+            SupportPolicy.unavailableMessage,
             style: TextStyle(
               color: TradeXColors.secondaryText,
               fontSize: compact ? 11 : 12,
@@ -2078,6 +2072,6 @@ Future<void> _push(BuildContext context, Widget screen) =>
 
 void _showUnavailable(BuildContext context) {
   ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text(SupportRepository.unavailableMessage)),
+    const SnackBar(content: Text(SupportPolicy.unavailableMessage)),
   );
 }

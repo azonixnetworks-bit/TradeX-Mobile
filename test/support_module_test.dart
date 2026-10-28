@@ -4,25 +4,28 @@ import 'package:tradex_mobile/core/auth/secure_session_store.dart';
 import 'package:tradex_mobile/core/device/device_identity.dart';
 import 'package:tradex_mobile/core/network/tradex_api_client.dart';
 import 'package:tradex_mobile/core/theme/tradex_theme.dart';
-import 'package:tradex_mobile/features/support/data/support_repository.dart';
+import 'package:tradex_mobile/features/support/data/models/support_models.dart';
+import 'package:tradex_mobile/features/support/domain/support_policy.dart';
+import 'package:tradex_mobile/features/support/domain/usecases/support_use_cases.dart';
 import 'package:tradex_mobile/features/support/presentation/support_module.dart';
+import 'package:tradex_mobile/features/support/support_dependencies.dart';
 
 void main() {
   late TradeXApiClient apiClient;
-  late SupportRepository repository;
+  late SupportUseCases useCases;
 
   setUp(() {
     final store = SecureSessionStore();
     apiClient = TradeXApiClient(store, DeviceIdentity(store));
-    repository = SupportRepository(apiClient);
+    useCases = SupportDependencies(apiClient).useCases;
   });
 
   test('support live-chat models parse server counts and assignment', () {
-    final overview = SupportOverview.fromJson({
+    final overview = SupportOverviewModel.fromJson({
       'ticket_counts': {'open': 2, 'resolved': 4, 'closed': 1},
       'live_chat': {'agents_online': 3, 'available': true},
-    });
-    final session = SupportChatSession.fromJson({
+    }).toEntity();
+    final session = SupportChatSessionModel.fromJson({
       'uuid': 'chat-uuid',
       'ticket_uuid': 'ticket-uuid',
       'ticket_reference': 'TX-SUP-000001',
@@ -31,7 +34,7 @@ void main() {
       'eta_minutes': null,
       'agents_online': 3,
       'assigned_agent': {'name': 'Support Agent'},
-    });
+    }).toEntity();
 
     expect(overview.agentsOnline, 3);
     expect(overview.openTickets, 2);
@@ -51,7 +54,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: TradeXTheme.dark,
-          home: SupportHomeScreen(apiClient: apiClient),
+          home: SupportHomeScreen(useCases: useCases),
         ),
       );
       await tester.pumpAndSettle();
@@ -67,20 +70,17 @@ void main() {
     tester,
   ) async {
     final screens = <(Widget, String)>[
-      (SupportHomeScreen(apiClient: apiClient), 'How can we help you?'),
+      (SupportHomeScreen(useCases: useCases), 'How can we help you?'),
+      (CreateSupportTicketScreen(useCases: useCases), 'Create Support Ticket'),
+      (MySupportTicketsScreen(useCases: useCases), 'My Support Tickets'),
+      (TicketDetailsScreen(useCases: useCases), 'Ticket Details'),
       (
-        CreateSupportTicketScreen(repository: repository),
-        'Create Support Ticket',
-      ),
-      (MySupportTicketsScreen(repository: repository), 'My Support Tickets'),
-      (TicketDetailsScreen(repository: repository), 'Ticket Details'),
-      (
-        LiveChatWaitingScreen(repository: repository),
+        LiveChatWaitingScreen(useCases: useCases),
         'Finding the right support agent for you',
       ),
-      (LiveChatConversationScreen(repository: repository), 'Live Support'),
-      (HelpCenterScreen(repository: repository), 'Help Center'),
-      (TicketFeedbackScreen(repository: repository), 'Ticket Resolved'),
+      (LiveChatConversationScreen(useCases: useCases), 'Live Support'),
+      (HelpCenterScreen(useCases: useCases), 'Help Center'),
+      (TicketFeedbackScreen(useCases: useCases), 'Ticket Resolved'),
     ];
 
     for (final screen in screens) {
@@ -100,7 +100,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: TradeXTheme.dark,
-        home: SupportHomeScreen(apiClient: apiClient),
+        home: SupportHomeScreen(useCases: useCases),
       ),
     );
     await tester.pumpAndSettle();
@@ -124,7 +124,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: TradeXTheme.dark,
-        home: TicketFeedbackScreen(repository: repository),
+        home: TicketFeedbackScreen(useCases: useCases),
       ),
     );
     await tester.pumpAndSettle();
@@ -135,7 +135,7 @@ void main() {
     await tester.tap(find.text('Submit Feedback'));
     await tester.pump();
 
-    expect(find.text(SupportRepository.unavailableMessage), findsWidgets);
+    expect(find.text(SupportPolicy.unavailableMessage), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }
