@@ -13,6 +13,8 @@ import '../../../core/theme/tradex_colors.dart';
 import '../../home/presentation/economic_news_screen.dart';
 import '../../copy_trading/presentation/copy_trading_module.dart';
 import '../../copy_trading/copy_trading_dependencies.dart';
+import '../../funded_advisor/funded_advisor_dependencies.dart';
+import '../../funded_advisor/presentation/funded_advisor_module.dart';
 import '../../journal/data/trade_journal_repository.dart';
 import '../../journal/presentation/trade_journal_home_screen.dart';
 import '../../journal/presentation/trade_journal_insights_screens.dart';
@@ -79,6 +81,9 @@ Future<void> openTradeXFeature(
     ),
     'connect-broker' => CopyTradingHomeScreen(
       useCases: CopyTradingDependencies(apiClient).useCases,
+    ),
+    'funded-advisor' => FundedAdvisorScreen(
+      useCases: FundedAdvisorDependencies(apiClient).useCases,
     ),
     'help-faq' || 'contact-support' => SupportHomeScreen(
       useCases: SupportDependencies(apiClient).useCases,
