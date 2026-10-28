@@ -3,7 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/tradex_colors.dart';
-import '../data/copy_trading_repository.dart';
+import '../domain/entities/copy_trading_entities.dart';
+import '../domain/usecases/copy_trading_use_cases.dart';
 
 const copyGold = TradeXColors.goldBright;
 const copyMuted = Color(0xFFAAB6CA);
@@ -347,13 +348,13 @@ class CopyStatusPill extends StatelessWidget {
 class CopyBrokerLogo extends StatefulWidget {
   const CopyBrokerLogo({
     super.key,
-    required this.repository,
+    required this.useCases,
     required this.name,
     this.logoUrl,
     this.size = 58,
   });
 
-  final CopyTradingRepository repository;
+  final CopyTradingUseCases useCases;
   final String name;
   final String? logoUrl;
   final double size;
@@ -369,7 +370,7 @@ class _CopyBrokerLogoState extends State<CopyBrokerLogo> {
   void initState() {
     super.initState();
     if (widget.logoUrl case final url? when url.isNotEmpty) {
-      _logo = widget.repository.brokerLogo(url);
+      _logo = widget.useCases.loadBrokerLogo(url);
     }
   }
 
@@ -581,14 +582,11 @@ class CopyErrorState extends StatelessWidget {
   );
 }
 
-String copyAccountId(CopyTradeJson account) =>
-    account['uuid']?.toString() ?? '';
+String copyAccountId(CopyTradingAccount account) => account.uuid;
 
-String copyAccountStatus(CopyTradeJson account) =>
-    account['status']?.toString().toUpperCase() ?? 'PENDING';
+String copyAccountStatus(CopyTradingAccount account) => account.status;
 
-String copyAccountMarket(CopyTradeJson account) =>
-    account['market_category']?.toString().toUpperCase() ?? 'CTRADER';
+String copyAccountMarket(CopyTradingAccount account) => account.marketCategory;
 
-CopyTradeJson copyAccountBroker(CopyTradeJson account) =>
-    copyTradeMap(account['broker']);
+CopyTradingBrokerMarket copyAccountBroker(CopyTradingAccount account) =>
+    account.broker;
