@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/network/tradex_api_client.dart';
+import '../domain/no_trade_zone_warning.dart';
 
 class MarketNewsRepository {
   const MarketNewsRepository(this._apiClient);
@@ -29,7 +30,7 @@ class MarketNewsRepository {
     final preferences = await SharedPreferences.getInstance();
     final cached = _readCache(preferences.getString(_dailyCacheKey));
     if (!forceRefresh && cached?.day == day) {
-      return _parseUpcomingEvents(cached!.events, localNow);
+      return _parseUpcomingEvents(cached!.events, localNow, cached.savedAt);
     }
 
     final requestKey = forceRefresh ? '$day:refresh' : day;
@@ -58,7 +59,9 @@ class MarketNewsRepository {
     required DateTime localNow,
     required _MarketNewsCache? stale,
   }) async {
-    final from = Uri.encodeQueryComponent(localNow.toUtc().toIso8601String());
+    final from = Uri.encodeQueryComponent(
+      localNow.subtract(const Duration(minutes: 35)).toUtc().toIso8601String(),
+    );
     final to = Uri.encodeQueryComponent(
       localNow.add(const Duration(days: 14)).toUtc().toIso8601String(),
     );
@@ -75,17 +78,20 @@ class MarketNewsRepository {
                 .map((event) => Map<String, dynamic>.from(event))
                 .toList(growable: false)
           : <Map<String, dynamic>>[];
+      final savedAt = DateTime.now().toUtc();
       await preferences.setString(
         _dailyCacheKey,
         jsonEncode(<String, dynamic>{
           'day': day,
-          'saved_at': DateTime.now().toUtc().toIso8601String(),
+          'saved_at': savedAt.toIso8601String(),
           'events': events,
         }),
       );
-      return _parseUpcomingEvents(events, localNow);
+      return _parseUpcomingEvents(events, localNow, savedAt);
     } catch (_) {
-      if (stale != null) return _parseUpcomingEvents(stale.events, localNow);
+      if (stale != null) {
+        return _parseUpcomingEvents(stale.events, localNow, stale.savedAt);
+      }
       rethrow;
     }
   }
@@ -93,16 +99,18 @@ class MarketNewsRepository {
   static List<MarketNewsItem> _parseUpcomingEvents(
     List<Map<String, dynamic>> events,
     DateTime reference,
+    DateTime observedAt,
   ) {
     final parsed = events
-        .map(MarketNewsItem.fromEvent)
+        .map((event) => MarketNewsItem.fromEvent(event, observedAt: observedAt))
         .where((item) => item.title.isNotEmpty)
         .where((item) {
           final status = item.status.toUpperCase();
           if (status == 'CANCELLED') return false;
           if (status == 'LIVE') return true;
           final scheduled = item.occurredAt;
-          return scheduled == null || !scheduled.isBefore(reference);
+          return scheduled == null ||
+              !scheduled.add(const Duration(minutes: 35)).isBefore(reference);
         })
         .toList(growable: false);
     parsed.sort((a, b) {
@@ -123,6 +131,9 @@ class MarketNewsRepository {
       if (decoded is! Map || decoded['events'] is! List) return null;
       return _MarketNewsCache(
         day: decoded['day']?.toString() ?? '',
+        savedAt:
+            DateTime.tryParse(decoded['saved_at']?.toString() ?? '')?.toUtc() ??
+            DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         events: (decoded['events'] as List)
             .whereType<Map>()
             .map((event) => Map<String, dynamic>.from(event))
@@ -158,6 +169,7 @@ class MarketNewsItem {
     required this.status,
     required this.occurredAt,
     required this.isLiveUpdate,
+    required this.observedAtUtc,
   });
 
   factory MarketNewsItem.fromLiveUpdate(Map<String, dynamic> json) {
@@ -181,10 +193,14 @@ class MarketNewsItem {
       status: 'LIVE',
       occurredAt: DateTime.tryParse(_text(json['published_at_utc'])),
       isLiveUpdate: true,
+      observedAtUtc: DateTime.now().toUtc(),
     );
   }
 
-  factory MarketNewsItem.fromEvent(Map<String, dynamic> json) {
+  factory MarketNewsItem.fromEvent(
+    Map<String, dynamic> json, {
+    DateTime? observedAt,
+  }) {
     final actual = _nullableText(json['actual']);
     final forecast = _nullableText(json['forecast']);
     final previous =
@@ -220,6 +236,7 @@ class MarketNewsItem {
       status: _text(json['status'], fallback: 'SCHEDULED'),
       occurredAt: DateTime.tryParse(_text(json['scheduled_at_utc'])),
       isLiveUpdate: false,
+      observedAtUtc: (observedAt ?? DateTime.now()).toUtc(),
     );
   }
 
@@ -240,6 +257,18 @@ class MarketNewsItem {
   final String status;
   final DateTime? occurredAt;
   final bool isLiveUpdate;
+  final DateTime observedAtUtc;
+
+  EconomicNewsSnapshot toWarningSnapshot() => EconomicNewsSnapshot(
+    uuid: uuid,
+    title: title,
+    currency: currency,
+    impact: impact,
+    status: status,
+    scheduledAtUtc: occurredAt?.toUtc(),
+    affectedPairs: affectedPairs,
+    observedAtUtc: observedAtUtc,
+  );
 
   static List<String> _pairSymbols(Object? value) {
     if (value is! List) return const [];
@@ -276,8 +305,13 @@ class MarketNewsItem {
 }
 
 class _MarketNewsCache {
-  const _MarketNewsCache({required this.day, required this.events});
+  const _MarketNewsCache({
+    required this.day,
+    required this.savedAt,
+    required this.events,
+  });
 
   final String day;
+  final DateTime savedAt;
   final List<Map<String, dynamic>> events;
 }

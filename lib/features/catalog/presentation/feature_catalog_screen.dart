@@ -10,6 +10,8 @@ import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../home/data/market_news_repository.dart';
+import '../../home/data/market_news_warning_source.dart';
 import '../../home/presentation/economic_news_screen.dart';
 import '../../copy_trading/presentation/copy_trading_module.dart';
 import '../../copy_trading/copy_trading_dependencies.dart';
@@ -84,6 +86,7 @@ Future<void> openTradeXFeature(
     ),
     'funded-advisor' => FundedAdvisorScreen(
       useCases: FundedAdvisorDependencies(apiClient).useCases,
+      warningSource: MarketNewsWarningSource(MarketNewsRepository(apiClient)),
     ),
     'help-faq' || 'contact-support' => SupportHomeScreen(
       useCases: SupportDependencies(apiClient).useCases,

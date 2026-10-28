@@ -3,14 +3,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../shared/widgets/no_trade_zone_warning.dart';
+import '../../home/domain/no_trade_zone_warning.dart';
 import '../data/trade_idea_repository.dart';
 import '../models/trade_idea_models.dart';
 import 'trade_idea_details_screen.dart';
 
 class TradeIdeasScreen extends StatefulWidget {
-  const TradeIdeasScreen({super.key, required this.repository});
+  const TradeIdeasScreen({
+    super.key,
+    required this.repository,
+    required this.warningSource,
+  });
 
   final TradeIdeaDataSource repository;
+  final NoTradeWarningSource warningSource;
 
   @override
   State<TradeIdeasScreen> createState() => _TradeIdeasScreenState();
@@ -123,6 +130,15 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                       fontSize: 14,
                     ),
                   ),
+                  if (_category == 'FOREX') ...[
+                    const SizedBox(height: 14),
+                    NoTradeZoneWarningBanner(
+                      source: widget.warningSource,
+                      applicableSymbolsOrCurrencies: _items
+                          .where((idea) => idea.category == 'FOREX')
+                          .map((idea) => idea.symbol),
+                    ),
+                  ],
                   const SizedBox(height: 18),
                   SizedBox(
                     height: 44,
@@ -200,15 +216,18 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      const Text(
-                        'Latest Trade Ideas',
-                        style: TextStyle(
-                          color: TradeXColors.primaryText,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
+                      const Expanded(
+                        child: Text(
+                          'Latest Trade Ideas',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: TradeXColors.primaryText,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
-                      const Spacer(),
                       if (_items.isNotEmpty)
                         Text(
                           '${_items.length} loaded',

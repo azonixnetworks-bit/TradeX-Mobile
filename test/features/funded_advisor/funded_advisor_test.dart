@@ -8,6 +8,7 @@ import 'package:tradex_mobile/features/funded_advisor/domain/repositories/funded
 import 'package:tradex_mobile/features/funded_advisor/domain/usecases/funded_advisor_use_cases.dart';
 import 'package:tradex_mobile/features/funded_advisor/presentation/bloc/funded_advisor_cubit.dart';
 import 'package:tradex_mobile/features/funded_advisor/presentation/funded_advisor_module.dart';
+import 'package:tradex_mobile/features/home/domain/no_trade_zone_warning.dart';
 
 void main() {
   test('catalog model parses backend values without inventing partners', () {
@@ -48,7 +49,10 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData.dark(),
-        home: FundedAdvisorScreen(useCases: FundedAdvisorUseCases(repository)),
+        home: FundedAdvisorScreen(
+          useCases: FundedAdvisorUseCases(repository),
+          warningSource: const _ActiveWarningSource(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -74,7 +78,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('No Trade Zone Rules'), findsOneWidget);
+    expect(find.text("Don't Trade in Funded Accounts"), findsOneWidget);
     expect(find.text('Two Step'), findsWidgets);
+    await tester.drag(find.byType(ListView).last, const Offset(0, -450));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Do not open around CPI.'));
     await tester.pumpAndSettle();
 
@@ -95,7 +102,10 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData.dark(),
-        home: FundedAdvisorScreen(useCases: FundedAdvisorUseCases(repository)),
+        home: FundedAdvisorScreen(
+          useCases: FundedAdvisorUseCases(repository),
+          warningSource: const _NoWarningSource(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -106,6 +116,35 @@ void main() {
       findsOneWidget,
     );
   });
+}
+
+final class _NoWarningSource implements NoTradeWarningSource {
+  const _NoWarningSource();
+
+  @override
+  Future<List<EconomicNewsSnapshot>> load({bool forceRefresh = false}) async =>
+      const <EconomicNewsSnapshot>[];
+}
+
+final class _ActiveWarningSource implements NoTradeWarningSource {
+  const _ActiveWarningSource();
+
+  @override
+  Future<List<EconomicNewsSnapshot>> load({bool forceRefresh = false}) async {
+    final now = DateTime.now().toUtc();
+    return <EconomicNewsSnapshot>[
+      EconomicNewsSnapshot(
+        uuid: 'active-news',
+        title: 'US CPI',
+        currency: 'USD',
+        impact: 'HIGH',
+        status: 'SCHEDULED',
+        scheduledAtUtc: now.add(const Duration(minutes: 5)),
+        affectedPairs: const <String>['XAUUSD'],
+        observedAtUtc: now,
+      ),
+    ];
+  }
 }
 
 final class _FakeFundedRepository implements FundedAdvisorRepository {

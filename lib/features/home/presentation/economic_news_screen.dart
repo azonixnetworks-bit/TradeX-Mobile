@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../shared/widgets/no_trade_zone_warning.dart';
 import '../data/market_news_repository.dart';
 import 'bloc/economic_news_cubit.dart';
 
@@ -315,6 +316,10 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
                         height: 1.15,
                         fontWeight: FontWeight.w900,
                       ),
+                    ),
+                    EconomicNewsTradeWarning(
+                      event: item.toWarningSnapshot(),
+                      now: now,
                     ),
                     const SizedBox(height: 5),
                     Row(

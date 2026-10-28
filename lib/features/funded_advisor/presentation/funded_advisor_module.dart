@@ -4,20 +4,30 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../shared/widgets/no_trade_zone_warning.dart';
+import '../../home/domain/no_trade_zone_warning.dart';
 import '../domain/entities/funded_advisor_entities.dart';
 import '../domain/usecases/funded_advisor_use_cases.dart';
 import 'bloc/funded_advisor_cubit.dart';
 import 'funded_advisor_widgets.dart';
 
 class FundedAdvisorScreen extends StatelessWidget {
-  const FundedAdvisorScreen({super.key, required this.useCases});
+  const FundedAdvisorScreen({
+    super.key,
+    required this.useCases,
+    required this.warningSource,
+  });
 
   final FundedAdvisorUseCases useCases;
+  final NoTradeWarningSource warningSource;
 
   @override
-  Widget build(BuildContext context) => BlocProvider<FundedAdvisorCubit>(
-    create: (_) => FundedAdvisorCubit(useCases)..initialize(),
-    child: const _FundedCompaniesScreen(),
+  Widget build(BuildContext context) => RepositoryProvider.value(
+    value: warningSource,
+    child: BlocProvider<FundedAdvisorCubit>(
+      create: (_) => FundedAdvisorCubit(useCases)..initialize(),
+      child: const _FundedCompaniesScreen(),
+    ),
   );
 }
 
@@ -662,6 +672,15 @@ class FundedNoTradeRulesScreen extends StatelessWidget {
         title: 'No Trade Zone Rules',
         subtitle: 'Official news restrictions for your selected program.',
         children: [
+          NoTradeZoneWarningBanner(
+            source: context.read<NoTradeWarningSource>(),
+            applicableSymbolsOrCurrencies: rules.expand(
+              (rule) => <String>[
+                ...rule.restrictedCurrencies,
+                ...rule.restrictedInstruments,
+              ],
+            ),
+          ),
           _CompactPartnerHeader(partner: partner),
           const SizedBox(height: 12),
           if (state.selectedChallengeType != null ||
@@ -1080,15 +1099,18 @@ class _MissingPartnerPage extends StatelessWidget {
   );
 }
 
-Future<void> _open(BuildContext context, Widget page) =>
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => BlocProvider.value(
-          value: context.read<FundedAdvisorCubit>(),
-          child: page,
-        ),
+Future<void> _open(BuildContext context, Widget page) {
+  final warningSource = context.read<NoTradeWarningSource>();
+  final cubit = context.read<FundedAdvisorCubit>();
+  return Navigator.of(context).push<void>(
+    MaterialPageRoute<void>(
+      builder: (_) => RepositoryProvider.value(
+        value: warningSource,
+        child: BlocProvider.value(value: cubit, child: page),
       ),
-    );
+    ),
+  );
+}
 
 Future<void> _launch(String value) async {
   final uri = Uri.tryParse(value);
