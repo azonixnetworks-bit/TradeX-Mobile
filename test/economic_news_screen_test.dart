@@ -130,10 +130,48 @@ void main() {
     expect(find.text('Low Impact'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('high-impact event card shows the funded-account warning', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+    final store = SecureSessionStore();
+    final api = _NewsApiClient(
+      store,
+      DeviceIdentity(store),
+      highDelay: const Duration(minutes: 5),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: EconomicNewsScreen(apiClient: api),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text("Don't Trade in Funded Accounts"), findsOneWidget);
+    expect(
+      find.text(
+        'High-impact economic news is active. Avoid trading on funded accounts during this period.',
+      ),
+      findsOneWidget,
+    );
+  });
 }
 
 class _NewsApiClient extends TradeXApiClient {
-  _NewsApiClient(super.sessionStore, super.deviceIdentity);
+  _NewsApiClient(
+    super.sessionStore,
+    super.deviceIdentity, {
+    this.highDelay = const Duration(hours: 6),
+  });
+
+  final Duration highDelay;
 
   @override
   Future<Map<String, dynamic>> getJson(String path) async {
@@ -185,7 +223,7 @@ class _NewsApiClient extends TradeXApiClient {
     'actual': id == 'high' ? '2.9%' : null,
     'scheduled_at_utc': DateTime.now()
         .toUtc()
-        .add(const Duration(hours: 6))
+        .add(id == 'high' ? highDelay : const Duration(hours: 6))
         .toIso8601String(),
     'source': <String, dynamic>{'name': 'Trading Economics'},
     'affected_pairs': <Map<String, dynamic>>[

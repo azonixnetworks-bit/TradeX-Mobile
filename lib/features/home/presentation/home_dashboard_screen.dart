@@ -21,6 +21,7 @@ import '../../../core/preferences/app_preferences.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../../../core/theme/tradex_icons.dart';
 import '../data/trade_ideas_repository.dart';
+import '../data/market_news_warning_source.dart';
 import '../data/learning_repository.dart';
 import '../data/market_news_repository.dart';
 import '../../profile/presentation/trusted_devices_screen.dart';
@@ -3241,8 +3242,10 @@ class _TradeIdeasTab extends StatelessWidget {
       title: 'Trade Ideas',
       introduction: 'Explore TradeX market-analysis tools. Protected prices, levels, charts and full analysis are requested only after the server confirms your membership.',
       protectedFeatures: [featureById('trade-idea-details')],
-      activeBuilder: (_) =>
-          TradeIdeasScreen(repository: TradeIdeaRepository(apiClient)),
+      activeBuilder: (_) => TradeIdeasScreen(
+        repository: TradeIdeaRepository(apiClient),
+        warningSource: MarketNewsWarningSource(MarketNewsRepository(apiClient)),
+      ),
     );
   }
 }
