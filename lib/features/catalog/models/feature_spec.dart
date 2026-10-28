@@ -108,6 +108,14 @@ const tradeXFeatureSpecs = <FeatureSpec>[
     endpoint: '/api/v1/funded-account-advisor',
   ),
   FeatureSpec(
+    id: 'risk-reward-calculator',
+    group: 'Journal & Tools',
+    title: 'Risk Reward Calculator',
+    subtitle: 'Position size, margin, stocks and dividend planning',
+    icon: Icons.balance_rounded,
+    endpoint: '/api/v1/trading-tools/risk-reward/catalog',
+  ),
+  FeatureSpec(
     id: 'copy-dashboard',
     group: 'Copy Trading',
     title: 'Copy Trading Dashboard',
