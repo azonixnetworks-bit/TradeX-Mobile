@@ -21,6 +21,8 @@ import '../../journal/data/trade_journal_repository.dart';
 import '../../journal/presentation/trade_journal_home_screen.dart';
 import '../../journal/presentation/trade_journal_insights_screens.dart';
 import '../../journal/presentation/trade_journal_trade_screens.dart';
+import '../../risk_reward/presentation/risk_reward_module.dart';
+import '../../risk_reward/risk_reward_dependencies.dart';
 import '../../support/presentation/support_module.dart';
 import '../../support/support_dependencies.dart';
 import '../models/feature_spec.dart';
@@ -87,6 +89,9 @@ Future<void> openTradeXFeature(
     'funded-advisor' => FundedAdvisorScreen(
       useCases: FundedAdvisorDependencies(apiClient).useCases,
       warningSource: MarketNewsWarningSource(MarketNewsRepository(apiClient)),
+    ),
+    'risk-reward-calculator' => RiskRewardHomeScreen(
+      repository: RiskRewardDependencies(apiClient).repository,
     ),
     'help-faq' || 'contact-support' => SupportHomeScreen(
       useCases: SupportDependencies(apiClient).useCases,

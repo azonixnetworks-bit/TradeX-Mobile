@@ -10,10 +10,10 @@ import 'package:tradex_mobile/features/catalog/presentation/secure_workflow_scre
 
 void main() {
   test('catalog contains every planned missing screen exactly once', () {
-    expect(tradeXFeatureSpecs, hasLength(39));
+    expect(tradeXFeatureSpecs, hasLength(40));
     expect(
       tradeXFeatureSpecs.map((feature) => feature.id).toSet(),
-      hasLength(39),
+      hasLength(40),
     );
   });
 

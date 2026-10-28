@@ -552,6 +552,7 @@ class TradeXApiClient {
         path.startsWith('/api/v1/education/') ||
         path.startsWith('/api/v1/trade-journal') ||
         path.startsWith('/api/v1/trading-routine') ||
+        path.startsWith('/api/v1/trading-tools/risk-reward/catalog') ||
         path.startsWith('/api/v1/legal/');
   }
 
