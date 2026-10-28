@@ -3,57 +3,59 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final featureRoot = Directory('lib/features/support');
+  for (final feature in const ['support', 'copy_trading']) {
+    final featureRoot = Directory('lib/features/$feature');
 
-  test('support domain is framework and infrastructure independent', () {
-    final domainFiles = _dartFiles(Directory('${featureRoot.path}/domain'));
-    expect(domainFiles, isNotEmpty);
+    test('$feature domain is framework and infrastructure independent', () {
+      final domainFiles = _dartFiles(Directory('${featureRoot.path}/domain'));
+      expect(domainFiles, isNotEmpty);
 
-    for (final file in domainFiles) {
-      final source = file.readAsStringSync();
-      expect(
-        source,
-        isNot(contains('package:flutter/')),
-        reason: '${file.path} must not depend on Flutter',
-      );
-      expect(
-        source,
-        isNot(contains('/data/')),
-        reason: '${file.path} must not depend on the data layer',
-      );
-      expect(
-        source,
-        isNot(contains('/presentation/')),
-        reason: '${file.path} must not depend on presentation',
-      );
-      expect(
-        source,
-        isNot(contains('TradeXApiClient')),
-        reason: '${file.path} must not know the API client',
-      );
-    }
-  });
+      for (final file in domainFiles) {
+        final source = file.readAsStringSync();
+        expect(
+          source,
+          isNot(contains('package:flutter/')),
+          reason: '${file.path} must not depend on Flutter',
+        );
+        expect(
+          source,
+          isNot(contains('/data/')),
+          reason: '${file.path} must not depend on the data layer',
+        );
+        expect(
+          source,
+          isNot(contains('/presentation/')),
+          reason: '${file.path} must not depend on presentation',
+        );
+        expect(
+          source,
+          isNot(contains('TradeXApiClient')),
+          reason: '${file.path} must not know the API client',
+        );
+      }
+    });
 
-  test('support presentation does not import data or network clients', () {
-    final presentationFiles = _dartFiles(
-      Directory('${featureRoot.path}/presentation'),
-    );
-    expect(presentationFiles, isNotEmpty);
+    test('$feature presentation does not import data or network clients', () {
+      final presentationFiles = _dartFiles(
+        Directory('${featureRoot.path}/presentation'),
+      );
+      expect(presentationFiles, isNotEmpty);
 
-    for (final file in presentationFiles) {
-      final source = file.readAsStringSync();
-      expect(
-        source,
-        isNot(contains('../data/')),
-        reason: '${file.path} must use domain contracts',
-      );
-      expect(
-        source,
-        isNot(contains('TradeXApiClient')),
-        reason: '${file.path} must receive domain use cases',
-      );
-    }
-  });
+      for (final file in presentationFiles) {
+        final source = file.readAsStringSync();
+        expect(
+          source,
+          isNot(contains('../data/')),
+          reason: '${file.path} must use domain contracts',
+        );
+        expect(
+          source,
+          isNot(contains('TradeXApiClient')),
+          reason: '${file.path} must receive domain use cases',
+        );
+      }
+    });
+  }
 }
 
 List<File> _dartFiles(Directory directory) => directory

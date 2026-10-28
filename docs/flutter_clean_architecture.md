@@ -26,7 +26,7 @@ presentation -> domain <- data
 1. Baseline analyzer and full tests.
 2. Shared use-case contract and architecture dependency tests.
 3. Support (migrated).
-4. Copy Trading.
+4. Copy Trading (migrated).
 5. Affiliate.
 6. Learn.
 7. Trade Ideas.

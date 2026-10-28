@@ -3,28 +3,22 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/api_exception.dart';
-import '../../../core/network/tradex_api_client.dart';
-import '../data/copy_trading_repository.dart';
+import '../../../core/usecases/use_case.dart';
+import '../domain/entities/copy_trading_entities.dart';
+import '../domain/usecases/copy_trading_use_cases.dart';
 import 'copy_trading_widgets.dart';
 
 class CopyTradingHomeScreen extends StatefulWidget {
-  const CopyTradingHomeScreen({
-    super.key,
-    required this.apiClient,
-    this.repository,
-  });
+  const CopyTradingHomeScreen({super.key, required this.useCases});
 
-  final TradeXApiClient apiClient;
-  final CopyTradingRepository? repository;
+  final CopyTradingUseCases useCases;
 
   @override
   State<CopyTradingHomeScreen> createState() => _CopyTradingHomeScreenState();
 }
 
 class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
-  late final CopyTradingRepository _repository =
-      widget.repository ?? CopyTradingRepository(widget.apiClient);
-  late Future<CopyTradeJson> _future;
+  late Future<CopyTradingDashboard> _future;
 
   @override
   void initState() {
@@ -32,7 +26,7 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
     _reload();
   }
 
-  void _reload() => _future = _repository.bootstrap();
+  void _reload() => _future = widget.useCases.getDashboard(const NoParams());
 
   Future<void> _refresh() async {
     setState(_reload);
@@ -46,7 +40,7 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<CopyTradeJson>(
+  Widget build(BuildContext context) => FutureBuilder<CopyTradingDashboard>(
     future: _future,
     builder: (context, snapshot) {
       if (snapshot.connectionState != ConnectionState.done) {
@@ -58,19 +52,11 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
           onRetry: () => setState(_reload),
         );
       }
-      final data = snapshot.data ?? const <String, dynamic>{};
-      final accounts = copyTradeList(data['broker_accounts']);
-      final active = accounts.where((a) => copyAccountStatus(a) == 'ACTIVE');
-      final pending = accounts.where(
-        (a) => const {
-          'PENDING',
-          'NEEDS_RESUBMISSION',
-          'ESCALATED',
-        }.contains(copyAccountStatus(a)),
-      );
-      final verified = accounts.where(
-        (a) => const {'VERIFIED', 'ACTIVE'}.contains(copyAccountStatus(a)),
-      );
+      final data = snapshot.data!;
+      final accounts = data.accounts;
+      final active = accounts.where((account) => account.isActive);
+      final pending = accounts.where((account) => account.needsReview);
+      final verified = accounts.where((account) => account.isVerified);
       return CopyTradingScrollPage(
         onRefresh: _refresh,
         children: [
@@ -103,9 +89,7 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
                 ),
                 const SizedBox(height: 18),
                 CopyStatusPill(
-                  status: data['copy_trade_ready'] == true
-                      ? 'ACTIVE'
-                      : data['next_step']?.toString() ?? 'NOT READY',
+                  status: data.copyTradeReady ? 'ACTIVE' : data.nextStep,
                 ),
               ],
             ),
@@ -131,7 +115,7 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
                         ? null
                         : () => _open(
                             CopyTradingLiveDashboardScreen(
-                              repository: _repository,
+                              useCases: widget.useCases,
                               account: active.first,
                             ),
                           ),
@@ -145,7 +129,7 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
                         ? null
                         : () => _open(
                             CopyTradingVerificationScreen(
-                              repository: _repository,
+                              useCases: widget.useCases,
                               account: pending.first,
                             ),
                           ),
@@ -159,7 +143,7 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
                         ? null
                         : () => _open(
                             CopyTradingBotActivationScreen(
-                              repository: _repository,
+                              useCases: widget.useCases,
                               account: verified.first,
                             ),
                           ),
@@ -176,7 +160,7 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
                 ? null
                 : () => _open(
                     CopyTradingHistorySettingsScreen(
-                      repository: _repository,
+                      useCases: widget.useCases,
                       account: accounts.first,
                     ),
                   ),
@@ -188,13 +172,13 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
               message: 'Open an eligible LIVE account through a TradeX IB link, then submit its account number.',
               action: 'Choose broker',
               onAction: () => _open(
-                CopyTradingBrokerDirectoryScreen(repository: _repository),
+                CopyTradingBrokerDirectoryScreen(useCases: widget.useCases),
               ),
             )
           else
             for (final account in accounts) ...[
               _AccountCard(
-                repository: _repository,
+                useCases: widget.useCases,
                 account: account,
                 onTap: () => _open(_destination(account)),
               ),
@@ -208,7 +192,7 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
             title: 'Open New Account',
             subtitle: 'Use an approved TradeX IB partner link.',
             onTap: () => _open(
-              CopyTradingBrokerDirectoryScreen(repository: _repository),
+              CopyTradingBrokerDirectoryScreen(useCases: widget.useCases),
             ),
           ),
           const SizedBox(height: 10),
@@ -217,7 +201,7 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
             title: 'Submit Account',
             subtitle: 'Choose the broker first to create a secure intent.',
             onTap: () => _open(
-              CopyTradingBrokerDirectoryScreen(repository: _repository),
+              CopyTradingBrokerDirectoryScreen(useCases: widget.useCases),
             ),
           ),
           const SizedBox(height: 10),
@@ -231,7 +215,7 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
                 ? null
                 : () => _open(
                     CopyTradingLiveDashboardScreen(
-                      repository: _repository,
+                      useCases: widget.useCases,
                       account: active.first,
                     ),
                   ),
@@ -241,18 +225,18 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
     },
   );
 
-  Widget _destination(CopyTradeJson account) {
+  Widget _destination(CopyTradingAccount account) {
     return switch (copyAccountStatus(account)) {
       'ACTIVE' => CopyTradingLiveDashboardScreen(
-        repository: _repository,
+        useCases: widget.useCases,
         account: account,
       ),
       'VERIFIED' => CopyTradingBotActivationScreen(
-        repository: _repository,
+        useCases: widget.useCases,
         account: account,
       ),
       _ => CopyTradingVerificationScreen(
-        repository: _repository,
+        useCases: widget.useCases,
         account: account,
       ),
     };
@@ -260,8 +244,8 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
 }
 
 class CopyTradingBrokerDirectoryScreen extends StatefulWidget {
-  const CopyTradingBrokerDirectoryScreen({super.key, required this.repository});
-  final CopyTradingRepository repository;
+  const CopyTradingBrokerDirectoryScreen({super.key, required this.useCases});
+  final CopyTradingUseCases useCases;
 
   @override
   State<CopyTradingBrokerDirectoryScreen> createState() =>
@@ -270,7 +254,7 @@ class CopyTradingBrokerDirectoryScreen extends StatefulWidget {
 
 class _CopyTradingBrokerDirectoryScreenState
     extends State<CopyTradingBrokerDirectoryScreen> {
-  late Future<List<CopyTradeJson>> _future;
+  late Future<List<CopyTradingBrokerMarket>> _future;
   String _market = 'FOREX';
   String? _workingMarket;
   final _intentMarkets = <String>{};
@@ -281,13 +265,13 @@ class _CopyTradingBrokerDirectoryScreenState
     _future = _loadBrokers();
   }
 
-  Future<List<CopyTradeJson>> _loadBrokers() async {
-    final brokers = await widget.repository.brokers();
+  Future<List<CopyTradingBrokerMarket>> _loadBrokers() async {
+    final brokers = await widget.useCases.getBrokers(const NoParams());
     final pending = await Future.wait(
       brokers.map((broker) async {
-        final marketId = broker['broker_market_uuid']?.toString();
-        if (marketId == null) return null;
-        return await widget.repository.pendingIntent(marketId) == null
+        final marketId = broker.brokerMarketUuid;
+        if (marketId.isEmpty) return null;
+        return await widget.useCases.getPendingIntent(marketId) == null
             ? null
             : marketId;
       }),
@@ -298,14 +282,14 @@ class _CopyTradingBrokerDirectoryScreenState
     return brokers;
   }
 
-  Future<void> _openBroker(CopyTradeJson broker) async {
-    final marketId = broker['broker_market_uuid']?.toString();
-    if (marketId == null || _workingMarket != null) return;
+  Future<void> _openBroker(CopyTradingBrokerMarket broker) async {
+    final marketId = broker.brokerMarketUuid;
+    if (marketId.isEmpty || _workingMarket != null) return;
     setState(() => _workingMarket = marketId);
     try {
-      final intent = await widget.repository.openBrokerAccount(broker);
-      final target = intent['open_account_via_tradex_url']?.toString();
-      if (target == null ||
+      final intent = await widget.useCases.openBrokerAccount(broker);
+      final target = intent.openAccountUrl;
+      if (target.isEmpty ||
           !await launchUrl(
             Uri.parse(target),
             mode: LaunchMode.externalApplication,
@@ -317,7 +301,7 @@ class _CopyTradingBrokerDirectoryScreenState
       await Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
           builder: (_) => CopyTradingVerificationScreen(
-            repository: widget.repository,
+            useCases: widget.useCases,
             broker: broker,
           ),
         ),
@@ -330,7 +314,9 @@ class _CopyTradingBrokerDirectoryScreenState
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<List<CopyTradeJson>>(
+  Widget build(
+    BuildContext context,
+  ) => FutureBuilder<List<CopyTradingBrokerMarket>>(
     future: _future,
     builder: (context, snapshot) {
       if (snapshot.connectionState != ConnectionState.done) {
@@ -343,9 +329,7 @@ class _CopyTradingBrokerDirectoryScreenState
         );
       }
       final brokers = snapshot.data ?? const [];
-      final visible = brokers.where(
-        (item) => item['market_category']?.toString().toUpperCase() == _market,
-      );
+      final visible = brokers.where((item) => item.marketCategory == _market);
       return CopyTradingScrollPage(
         children: [
           const CopyHeroCard(
@@ -371,18 +355,15 @@ class _CopyTradingBrokerDirectoryScreenState
           else
             for (final broker in visible) ...[
               _BrokerDirectoryCard(
-                repository: widget.repository,
+                useCases: widget.useCases,
                 broker: broker,
-                busy:
-                    _workingMarket == broker['broker_market_uuid']?.toString(),
-                hasIntent: _intentMarkets.contains(
-                  broker['broker_market_uuid']?.toString(),
-                ),
+                busy: _workingMarket == broker.brokerMarketUuid,
+                hasIntent: _intentMarkets.contains(broker.brokerMarketUuid),
                 onOpen: () => _openBroker(broker),
                 onContinue: () => Navigator.of(context).push<void>(
                   MaterialPageRoute<void>(
                     builder: (_) => CopyTradingVerificationScreen(
-                      repository: widget.repository,
+                      useCases: widget.useCases,
                       broker: broker,
                     ),
                   ),
@@ -408,14 +389,14 @@ class _CopyTradingBrokerDirectoryScreenState
 class CopyTradingVerificationScreen extends StatefulWidget {
   const CopyTradingVerificationScreen({
     super.key,
-    required this.repository,
+    required this.useCases,
     this.broker,
     this.account,
   });
 
-  final CopyTradingRepository repository;
-  final CopyTradeJson? broker;
-  final CopyTradeJson? account;
+  final CopyTradingUseCases useCases;
+  final CopyTradingBrokerMarket? broker;
+  final CopyTradingAccount? account;
 
   @override
   State<CopyTradingVerificationScreen> createState() =>
@@ -426,7 +407,7 @@ class _CopyTradingVerificationScreenState
     extends State<CopyTradingVerificationScreen> {
   final _key = GlobalKey<FormState>();
   final _accountNumber = TextEditingController();
-  CopyTradeJson? _account;
+  CopyTradingAccount? _account;
   bool _working = false;
 
   @override
@@ -447,13 +428,17 @@ class _CopyTradingVerificationScreenState
     try {
       final existing = _account;
       final result = existing != null
-          ? await widget.repository.resubmitBrokerAccount(
-              accountId: copyAccountId(existing),
-              accountNumber: _accountNumber.text.trim(),
+          ? await widget.useCases.resubmitBrokerAccount(
+              ResubmitCopyTradingAccountParams(
+                accountId: existing.uuid,
+                accountNumber: _accountNumber.text.trim(),
+              ),
             )
-          : await widget.repository.submitBrokerAccount(
-              marketId: widget.broker!['broker_market_uuid'].toString(),
-              accountNumber: _accountNumber.text.trim(),
+          : await widget.useCases.submitBrokerAccount(
+              SubmitCopyTradingAccountParams(
+                marketId: widget.broker!.brokerMarketUuid,
+                accountNumber: _accountNumber.text.trim(),
+              ),
             );
       if (!mounted) return;
       setState(() => _account = result);
@@ -468,20 +453,12 @@ class _CopyTradingVerificationScreenState
   @override
   Widget build(BuildContext context) {
     final account = _account;
-    final broker = account == null
-        ? widget.broker ?? const <String, dynamic>{}
-        : copyAccountBroker(account);
-    final brokerName =
-        broker['broker_name']?.toString() ??
-        broker['name']?.toString() ??
-        'Broker';
+    final broker = account == null ? widget.broker! : account.broker;
+    final brokerName = broker.brokerName;
     final market = account == null
-        ? broker['market_category']?.toString() ?? 'cTrader'
-        : copyAccountMarket(account);
-    final currency =
-        broker['required_currency']?.toString() ??
-        account?['verified_currency']?.toString() ??
-        'Configured by broker';
+        ? broker.marketCategory
+        : account.marketCategory;
+    final currency = account?.verifiedCurrency ?? broker.requiredCurrency;
     final status = account == null
         ? 'ACCOUNT DETAILS'
         : copyAccountStatus(account);
@@ -503,9 +480,9 @@ class _CopyTradingVerificationScreenState
           child: Row(
             children: [
               CopyBrokerLogo(
-                repository: widget.repository,
+                useCases: widget.useCases,
                 name: brokerName,
-                logoUrl: broker['logo_url']?.toString(),
+                logoUrl: broker.logoUrl,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -588,7 +565,7 @@ class _CopyTradingVerificationScreenState
                 ? Icons.verified_rounded
                 : Icons.hourglass_top_rounded,
             title: status.replaceAll('_', ' '),
-            message: account['status_reason']?.toString() ?? 'TradeX is keeping verification and activation as separate security checks.',
+            message: account.statusReason ?? 'TradeX is keeping verification and activation as separate security checks.',
           ),
         const SizedBox(height: 12),
         _VerificationTimeline(status: status),
@@ -607,11 +584,11 @@ class _CopyTradingVerificationScreenState
 class CopyTradingBotActivationScreen extends StatefulWidget {
   const CopyTradingBotActivationScreen({
     super.key,
-    required this.repository,
+    required this.useCases,
     required this.account,
   });
-  final CopyTradingRepository repository;
-  final CopyTradeJson account;
+  final CopyTradingUseCases useCases;
+  final CopyTradingAccount account;
 
   @override
   State<CopyTradingBotActivationScreen> createState() =>
@@ -620,16 +597,16 @@ class CopyTradingBotActivationScreen extends StatefulWidget {
 
 class _CopyTradingBotActivationScreenState
     extends State<CopyTradingBotActivationScreen> {
-  late Future<CopyTradeJson> _future;
+  late Future<CopyTradingActivation> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = widget.repository.activation(copyAccountId(widget.account));
+    _future = widget.useCases.getActivation(widget.account.uuid);
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<CopyTradeJson>(
+  Widget build(BuildContext context) => FutureBuilder<CopyTradingActivation>(
     future: _future,
     builder: (context, snapshot) {
       if (snapshot.connectionState != ConnectionState.done) {
@@ -639,18 +616,15 @@ class _CopyTradingBotActivationScreenState
         return CopyErrorState(
           message: _error(snapshot.error),
           onRetry: () => setState(
-            () => _future = widget.repository.activation(
-              copyAccountId(widget.account),
-            ),
+            () => _future = widget.useCases.getActivation(widget.account.uuid),
           ),
         );
       }
-      final activation = snapshot.data ?? const <String, dynamic>{};
-      final state =
-          activation['state']?.toString() ??
-          widget.account['activation_state']?.toString() ??
-          'NOT ELIGIBLE';
-      final ready = activation['copy_trade_ready'] == true;
+      final activation = snapshot.data!;
+      final state = activation.state.isEmpty
+          ? widget.account.activationState
+          : activation.state;
+      final ready = activation.copyTradeReady;
       return CopyTradingScrollPage(
         children: [
           CopyHeroCard(
@@ -658,7 +632,7 @@ class _CopyTradingBotActivationScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _CompactAccountHeader(
-                  repository: widget.repository,
+                  useCases: widget.useCases,
                   account: widget.account,
                 ),
                 const SizedBox(height: 22),
@@ -769,18 +743,18 @@ class _CopyTradingBotActivationScreenState
 class CopyTradingLiveDashboardScreen extends StatelessWidget {
   const CopyTradingLiveDashboardScreen({
     super.key,
-    required this.repository,
+    required this.useCases,
     required this.account,
   });
-  final CopyTradingRepository repository;
-  final CopyTradeJson account;
+  final CopyTradingUseCases useCases;
+  final CopyTradingAccount account;
 
   @override
   Widget build(BuildContext context) => CopyTradingScrollPage(
     children: [
       CopySectionCard(
         highlight: true,
-        child: _CompactAccountHeader(repository: repository, account: account),
+        child: _CompactAccountHeader(useCases: useCases, account: account),
       ),
       const SizedBox(height: 14),
       const CopySectionHeading(
@@ -833,7 +807,7 @@ class CopyTradingLiveDashboardScreen extends StatelessWidget {
         onPressed: () => Navigator.of(context).push<void>(
           MaterialPageRoute<void>(
             builder: (_) => CopyTradingHistorySettingsScreen(
-              repository: repository,
+              useCases: useCases,
               account: account,
             ),
           ),
@@ -846,11 +820,11 @@ class CopyTradingLiveDashboardScreen extends StatelessWidget {
 class CopyTradingHistorySettingsScreen extends StatefulWidget {
   const CopyTradingHistorySettingsScreen({
     super.key,
-    required this.repository,
+    required this.useCases,
     required this.account,
   });
-  final CopyTradingRepository repository;
-  final CopyTradeJson account;
+  final CopyTradingUseCases useCases;
+  final CopyTradingAccount account;
 
   @override
   State<CopyTradingHistorySettingsScreen> createState() =>
@@ -895,7 +869,7 @@ class _CopyTradingHistorySettingsScreenState
       const SizedBox(height: 14),
       CopyHeroCard(
         child: _CompactAccountHeader(
-          repository: widget.repository,
+          useCases: widget.useCases,
           account: widget.account,
         ),
       ),
@@ -987,26 +961,26 @@ class _HomeMetric extends StatelessWidget {
 
 class _AccountCard extends StatelessWidget {
   const _AccountCard({
-    required this.repository,
+    required this.useCases,
     required this.account,
     required this.onTap,
   });
-  final CopyTradingRepository repository;
-  final CopyTradeJson account;
+  final CopyTradingUseCases useCases;
+  final CopyTradingAccount account;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final broker = copyAccountBroker(account);
-    final name = broker['name']?.toString() ?? 'cTrader Broker';
+    final name = broker.brokerName;
     return CopySectionCard(
       onTap: onTap,
       child: Row(
         children: [
           CopyBrokerLogo(
-            repository: repository,
+            useCases: useCases,
             name: name,
-            logoUrl: broker['logo_url']?.toString(),
+            logoUrl: broker.logoUrl,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1023,7 +997,7 @@ class _AccountCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${copyAccountMarket(account)} · ${account['account_number_masked'] ?? 'Protected'}',
+                  '${account.marketCategory} · ${account.accountNumberMasked}',
                   style: const TextStyle(color: copyMuted, fontSize: 12),
                 ),
                 const SizedBox(height: 5),
@@ -1144,15 +1118,15 @@ class _MarketSelector extends StatelessWidget {
 
 class _BrokerDirectoryCard extends StatelessWidget {
   const _BrokerDirectoryCard({
-    required this.repository,
+    required this.useCases,
     required this.broker,
     required this.busy,
     required this.hasIntent,
     required this.onOpen,
     required this.onContinue,
   });
-  final CopyTradingRepository repository;
-  final CopyTradeJson broker;
+  final CopyTradingUseCases useCases;
+  final CopyTradingBrokerMarket broker;
   final bool busy;
   final bool hasIntent;
   final VoidCallback onOpen;
@@ -1160,16 +1134,16 @@ class _BrokerDirectoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = broker['broker_name']?.toString() ?? 'Broker';
+    final name = broker.brokerName;
     return CopySectionCard(
       child: Column(
         children: [
           Row(
             children: [
               CopyBrokerLogo(
-                repository: repository,
+                useCases: useCases,
                 name: name,
-                logoUrl: broker['logo_url']?.toString(),
+                logoUrl: broker.logoUrl,
                 size: 64,
               ),
               const SizedBox(width: 12),
@@ -1186,7 +1160,7 @@ class _BrokerDirectoryCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${broker['market_category'] ?? '—'} · ${broker['required_currency'] ?? '—'}',
+                      '${broker.marketCategory} · ${broker.requiredCurrency}',
                       style: const TextStyle(color: copyMuted),
                     ),
                     const SizedBox(height: 5),
@@ -1430,23 +1404,20 @@ class _ReadOnlyField extends StatelessWidget {
 }
 
 class _CompactAccountHeader extends StatelessWidget {
-  const _CompactAccountHeader({
-    required this.repository,
-    required this.account,
-  });
-  final CopyTradingRepository repository;
-  final CopyTradeJson account;
+  const _CompactAccountHeader({required this.useCases, required this.account});
+  final CopyTradingUseCases useCases;
+  final CopyTradingAccount account;
 
   @override
   Widget build(BuildContext context) {
     final broker = copyAccountBroker(account);
-    final name = broker['name']?.toString() ?? 'cTrader Account';
+    final name = broker.brokerName;
     return Row(
       children: [
         CopyBrokerLogo(
-          repository: repository,
+          useCases: useCases,
           name: name,
-          logoUrl: broker['logo_url']?.toString(),
+          logoUrl: broker.logoUrl,
           size: 60,
         ),
         const SizedBox(width: 12),
@@ -1464,7 +1435,7 @@ class _CompactAccountHeader extends StatelessWidget {
                 ),
               ),
               Text(
-                '${copyAccountMarket(account)} · ${account['account_number_masked'] ?? 'Protected'}',
+                '${account.marketCategory} · ${account.accountNumberMasked}',
                 style: const TextStyle(color: copyMuted),
               ),
               const Text(

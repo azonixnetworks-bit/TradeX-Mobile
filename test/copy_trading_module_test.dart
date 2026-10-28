@@ -6,7 +6,10 @@ import 'package:tradex_mobile/core/auth/secure_session_store.dart';
 import 'package:tradex_mobile/core/device/device_identity.dart';
 import 'package:tradex_mobile/core/network/tradex_api_client.dart';
 import 'package:tradex_mobile/core/theme/tradex_theme.dart';
-import 'package:tradex_mobile/features/copy_trading/data/copy_trading_repository.dart';
+import 'package:tradex_mobile/features/copy_trading/copy_trading_dependencies.dart';
+import 'package:tradex_mobile/features/copy_trading/data/datasources/copy_trading_intent_store.dart';
+import 'package:tradex_mobile/features/copy_trading/data/models/copy_trading_models.dart';
+import 'package:tradex_mobile/features/copy_trading/domain/usecases/copy_trading_use_cases.dart';
 import 'package:tradex_mobile/features/copy_trading/presentation/copy_trading_module.dart';
 
 class _FakeCopyTradeApi extends TradeXApiClient {
@@ -112,18 +115,23 @@ void main() {
     () async {
       final api = _FakeCopyTradeApi();
       final intents = _MemoryIntentStore();
-      final repository = CopyTradingRepository(api, intentStore: intents);
+      final useCases = CopyTradingDependencies(
+        api,
+        intentStore: intents,
+      ).useCases;
       await intents.write('market-1', {
         'onboarding_intent_uuid': 'intent-1',
         'expires_at': '2099-01-01T00:00:00Z',
       });
 
-      final account = await repository.submitBrokerAccount(
-        marketId: 'market-1',
-        accountNumber: '12345678',
+      final account = await useCases.submitBrokerAccount(
+        const SubmitCopyTradingAccountParams(
+          marketId: 'market-1',
+          accountNumber: '12345678',
+        ),
       );
 
-      expect(account['uuid'], 'account-1');
+      expect(account.uuid, 'account-1');
       expect(api.requests, contains('POST /api/v1/copy-trade/broker-accounts'));
       expect(await intents.read('market-1'), isNull);
     },
@@ -137,15 +145,15 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final api = _FakeCopyTradeApi();
-      final repository = CopyTradingRepository(
+      final useCases = CopyTradingDependencies(
         api,
         intentStore: _MemoryIntentStore(),
-      );
+      ).useCases;
 
       await tester.pumpWidget(
         MaterialApp(
           theme: TradeXTheme.dark,
-          home: CopyTradingHomeScreen(apiClient: api, repository: repository),
+          home: CopyTradingHomeScreen(useCases: useCases),
         ),
       );
       await pumpNetworkFrame(tester);
@@ -165,42 +173,28 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final api = _FakeCopyTradeApi();
-    final repository = CopyTradingRepository(
+    final useCases = CopyTradingDependencies(
       api,
       intentStore: _MemoryIntentStore(),
-    );
+    ).useCases;
+    final account = CopyTradingAccountModel.fromJson(_account).toEntity();
     final screens = <(Widget, String)>[
+      (CopyTradingHomeScreen(useCases: useCases), 'Official cTrader'),
+      (CopyTradingBrokerDirectoryScreen(useCases: useCases), 'Choose Your'),
       (
-        CopyTradingHomeScreen(apiClient: api, repository: repository),
-        'Official cTrader',
-      ),
-      (CopyTradingBrokerDirectoryScreen(repository: repository), 'Choose Your'),
-      (
-        CopyTradingVerificationScreen(
-          repository: repository,
-          account: _account,
-        ),
+        CopyTradingVerificationScreen(useCases: useCases, account: account),
         'Account',
       ),
       (
-        CopyTradingBotActivationScreen(
-          repository: repository,
-          account: _account,
-        ),
+        CopyTradingBotActivationScreen(useCases: useCases, account: account),
         'Bot Activation Unavailable',
       ),
       (
-        CopyTradingLiveDashboardScreen(
-          repository: repository,
-          account: _account,
-        ),
+        CopyTradingLiveDashboardScreen(useCases: useCases, account: account),
         'Live telemetry unavailable',
       ),
       (
-        CopyTradingHistorySettingsScreen(
-          repository: repository,
-          account: _account,
-        ),
+        CopyTradingHistorySettingsScreen(useCases: useCases, account: account),
         'Trade history unavailable',
       ),
     ];
