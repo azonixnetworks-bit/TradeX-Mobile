@@ -579,6 +579,13 @@ class ModuleLessonsScreen extends StatelessWidget {
         final lessons = LearnRepository.list(data['lessons']);
         return ListView(
           children: [
+            if (_thumbnailValue(module).isNotEmpty) ...[
+              CourseThumbnail(
+                thumbnailPath: _thumbnailValue(module),
+                height: 180,
+              ),
+              const SizedBox(height: 14),
+            ],
             _InfoCard(
               title: LearnRepository.text(module['title'], 'Module'),
               body: LearnRepository.text(
@@ -671,6 +678,14 @@ class _UniversalLessonViewerScreenState
         final videos = LearnRepository.list(data['videos']);
         return ListView(
           children: [
+            if (_thumbnailValue(lesson).isNotEmpty) ...[
+              CourseThumbnail(
+                thumbnailPath: _thumbnailValue(lesson),
+                height: 190,
+                showPlay: videos.isNotEmpty,
+              ),
+              const SizedBox(height: 16),
+            ],
             Text(
               LearnRepository.text(lesson['title'], 'TradeX Lesson'),
               style: Theme.of(context).textTheme.headlineSmall
@@ -1906,20 +1921,26 @@ class _ModuleCard extends StatelessWidget {
   final JsonMap module;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => _PremiumCard(
-    child: ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(
-        LearnRepository.text(module['title'], 'Module'),
-        style: const TextStyle(fontWeight: FontWeight.w800),
+  Widget build(BuildContext context) {
+    final thumbnail = _thumbnailValue(module);
+    return _PremiumCard(
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: thumbnail.isEmpty
+            ? const Icon(Icons.view_module_rounded, color: _gold, size: 32)
+            : CourseThumbnail(thumbnailPath: thumbnail, width: 72, height: 58),
+        title: Text(
+          LearnRepository.text(module['title'], 'Module'),
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        subtitle: Text(
+          '${LearnRepository.number(module['lesson_count'])} lessons',
+        ),
+        trailing: const Icon(Icons.chevron_right, color: _gold),
+        onTap: onTap,
       ),
-      subtitle: Text(
-        '${LearnRepository.number(module['lesson_count'])} lessons',
-      ),
-      trailing: const Icon(Icons.chevron_right, color: _gold),
-      onTap: onTap,
-    ),
-  );
+    );
+  }
 }
 
 class _LessonCard extends StatelessWidget {
@@ -1930,21 +1951,29 @@ class _LessonCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final locked = LearnRepository.flag(lesson['is_locked']);
     final progress = LearnRepository.map(lesson['progress']);
+    final thumbnail = _thumbnailValue(lesson);
     return _PremiumCard(
       child: ListTile(
         contentPadding: EdgeInsets.zero,
-        leading: Icon(
-          locked
-              ? Icons.lock
-              : LearnRepository.text(progress['status']) == 'COMPLETED'
-              ? Icons.check_circle
-              : Icons.play_circle_outline,
-          color: locked
-              ? _gold
-              : LearnRepository.text(progress['status']) == 'COMPLETED'
-              ? TradeXColors.success
-              : Theme.of(context).colorScheme.onSurface,
-        ),
+        leading: thumbnail.isNotEmpty
+            ? CourseThumbnail(
+                thumbnailPath: thumbnail,
+                width: 72,
+                height: 58,
+                showPlay: !locked,
+              )
+            : Icon(
+                locked
+                    ? Icons.lock
+                    : LearnRepository.text(progress['status']) == 'COMPLETED'
+                    ? Icons.check_circle
+                    : Icons.play_circle_outline,
+                color: locked
+                    ? _gold
+                    : LearnRepository.text(progress['status']) == 'COMPLETED'
+                    ? TradeXColors.success
+                    : Theme.of(context).colorScheme.onSurface,
+              ),
         title: Text(LearnRepository.text(lesson['title'], 'Lesson')),
         subtitle: Text(
           LearnRepository.flag(lesson['is_preview'])
@@ -1955,6 +1984,11 @@ class _LessonCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _thumbnailValue(JsonMap item) {
+  final url = LearnRepository.text(item['thumbnail_url']);
+  return url.isNotEmpty ? url : LearnRepository.text(item['thumbnail_path']);
 }
 
 class _ProgressSummary extends StatelessWidget {
