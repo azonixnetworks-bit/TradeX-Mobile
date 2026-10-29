@@ -122,8 +122,10 @@ class FundedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = Ink(
-      padding: padding,
+    const radius = BorderRadius.all(Radius.circular(20));
+    final content = Padding(padding: padding, child: child);
+
+    return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -132,7 +134,7 @@ class FundedCard extends StatelessWidget {
               ? const [Color(0xFF1B180D), TradeXColors.surface]
               : const [TradeXColors.surfaceRaised, TradeXColors.surface],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: radius,
         border: Border.all(
           color: gold
               ? TradeXColors.gold.withValues(alpha: .72)
@@ -147,13 +149,14 @@ class FundedCard extends StatelessWidget {
               ]
             : null,
       ),
-      child: child,
-    );
-    if (onTap == null) return content;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: content,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: onTap == null
+            ? content
+            : InkWell(onTap: onTap, borderRadius: radius, child: content),
+      ),
     );
   }
 }

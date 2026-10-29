@@ -86,6 +86,9 @@ class _FundedCompaniesScreenState extends State<_FundedCompaniesScreen>
           ),
         ],
         children: [
+          NoTradeZoneWarningBanner(
+            source: context.read<NoTradeWarningSource>(),
+          ),
           if (state.message != null) ...[
             FundedStatusNotice(message: state.message!),
             const SizedBox(height: 12),
@@ -282,6 +285,10 @@ class FundedCompanyDetailsScreen extends StatelessWidget {
         title: 'Company Details',
         subtitle: 'Review verified partner information.',
         children: [
+          NoTradeZoneWarningBanner(
+            source: context.read<NoTradeWarningSource>(),
+            applicableSymbolsOrCurrencies: _partnerWarningScope(partner),
+          ),
           FundedCard(
             gold: true,
             child: Column(
@@ -308,6 +315,39 @@ class FundedCompanyDetailsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           _LinkGrid(partner: partner),
+          const SizedBox(height: 14),
+          FundedCard(
+            gold: true,
+            onTap: () => _open(context, const FundedNoTradeRulesScreen()),
+            child: const Row(
+              children: [
+                Icon(Icons.shield_outlined, color: fundedGold, size: 28),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'No Trade Zone',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      SizedBox(height: 3),
+                      Text(
+                        'View live high-impact news warnings and this company\'s official restrictions.',
+                        style: TextStyle(
+                          color: fundedMuted,
+                          fontSize: 12,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8),
+                Icon(Icons.chevron_right_rounded, color: fundedGold),
+              ],
+            ),
+          ),
           if (partner.offerText != null) ...[
             const SizedBox(height: 14),
             FundedCard(
@@ -1131,6 +1171,16 @@ String _titleCase(String value) => value
     .where((word) => word.isNotEmpty)
     .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
     .join(' ');
+
+Iterable<String> _partnerWarningScope(FundedPartner partner) => partner.rules
+    .expand(
+      (rule) => <String>[
+        ...rule.restrictedCurrencies,
+        ...rule.restrictedInstruments,
+      ],
+    )
+    .where((value) => value.trim().isNotEmpty)
+    .toSet();
 
 String _date(DateTime value) {
   final local = value.toLocal();
