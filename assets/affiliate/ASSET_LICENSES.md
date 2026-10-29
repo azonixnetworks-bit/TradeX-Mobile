@@ -41,3 +41,7 @@ The brand SVGs are kept in their recognizable official colors and are never used
 ## TradeX Affiliate Dashboard component pack
 
 The files prefixed with `illustrations/dashboard_` were supplied by the TradeX product owner in `TradeX_Affiliate_20_Transparent_Components.zip` on 2026-10-25. They are used only on the Affiliate Dashboard as visual artwork; all dynamic values and interactions remain native Flutter components.
+
+## TradeX referral share-card asset pack
+
+The transparent PNG files under `referral/` were supplied by the TradeX product owner in `TRADEX_Referral_Transparent_Assets.zip` on 2026-10-29. The share card uses the supplied generic branding, title, icon and badge artwork. The pack's visual-only QR and hardcoded sample referral-code panel are intentionally excluded; the app continues to render the authenticated customer's real referral code and a scannable QR from the live referral URL.

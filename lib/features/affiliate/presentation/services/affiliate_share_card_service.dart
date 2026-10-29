@@ -115,39 +115,36 @@ class AffiliateShareCardService {
     );
 
     final logo = await _loadAsset(
-      'assets/branding/trade_x_final_logo.png',
-      targetWidth: 310,
+      'assets/affiliate/referral/01_TRADEX_Logo.png',
+      targetWidth: 320,
     );
     paintImage(
       canvas: canvas,
-      rect: const Rect.fromLTWH(385, 70, 310, 240),
+      rect: const Rect.fromLTWH(380, 52, 320, 302),
       image: logo,
       fit: BoxFit.contain,
       filterQuality: FilterQuality.high,
     );
     logo.dispose();
 
-    _paintText(
+    await _paintAsset(
       canvas,
-      'PREMIUM AFFILIATE EARNINGS',
-      const Rect.fromLTWH(100, 310, 880, 48),
-      fontSize: 24,
-      fontWeight: FontWeight.w700,
-      color: const Color(0xFFC8D4E6),
-      letterSpacing: 6,
+      'assets/affiliate/referral/02_Premium_Affiliate_Earnings_Title.png',
+      const Rect.fromLTWH(146, 316, 788, 124),
+      targetWidth: 788,
     );
     _paintText(
       canvas,
       clientName.toUpperCase(),
-      const Rect.fromLTWH(120, 380, 840, 70),
-      fontSize: 38,
+      const Rect.fromLTWH(120, 442, 840, 64),
+      fontSize: 34,
       fontWeight: FontWeight.w900,
       color: Colors.white,
       letterSpacing: 1.5,
     );
 
     final valueBadge = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(250, 458, 580, 68),
+      const Rect.fromLTWH(250, 518, 580, 62),
       const Radius.circular(34),
     );
     canvas.drawRRect(valueBadge, Paint()..color = const Color(0xB3111615));
@@ -161,23 +158,30 @@ class AffiliateShareCardService {
     _paintText(
       canvas,
       'HIGH-VALUE PARTNER  •  $commissionRate% COMMISSION',
-      const Rect.fromLTWH(270, 472, 540, 40),
+      const Rect.fromLTWH(270, 529, 540, 38),
       fontSize: 18,
       fontWeight: FontWeight.w800,
       color: const Color(0xFFFFDE73),
       letterSpacing: 1,
     );
 
+    await _paintAsset(
+      canvas,
+      'assets/affiliate/referral/05_Gold_Growth_Arrow.png',
+      const Rect.fromLTWH(785, 388, 220, 268),
+      targetWidth: 220,
+    );
+
     final incomePanel = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(70, 570, 940, 850),
+      const Rect.fromLTWH(70, 610, 940, 820),
       const Radius.circular(46),
     );
     canvas.drawRRect(
       incomePanel,
       Paint()
         ..shader = ui.Gradient.linear(
-          const Offset(70, 570),
-          const Offset(1010, 1420),
+          const Offset(70, 610),
+          const Offset(1010, 1430),
           const [Color(0xE61B242B), Color(0xF208111A), Color(0xE6221805)],
           const [0, .55, 1],
         ),
@@ -188,42 +192,36 @@ class AffiliateShareCardService {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3
         ..shader = ui.Gradient.linear(
-          const Offset(70, 570),
-          const Offset(1010, 1420),
+          const Offset(70, 610),
+          const Offset(1010, 1430),
           const [Color(0xFFFFE39A), Color(0xFF9B6A09), Color(0xFFFFCC35)],
           const [0, .5, 1],
         ),
     );
 
-    _paintText(
+    await _paintAsset(
       canvas,
-      'LIFETIME VERIFIED EARNINGS',
-      const Rect.fromLTWH(120, 625, 840, 48),
-      fontSize: 27,
-      fontWeight: FontWeight.w700,
-      color: const Color(0xFFD7E0ED),
-      letterSpacing: 2,
+      'assets/affiliate/referral/13_Lifetime_Earnings_Badge.png',
+      const Rect.fromLTWH(120, 650, 280, 123),
+      targetWidth: 280,
     );
     _paintText(
       canvas,
       earnings,
-      const Rect.fromLTWH(105, 690, 870, 130),
+      const Rect.fromLTWH(340, 650, 610, 123),
       fontSize: 88,
       fontWeight: FontWeight.w900,
       color: const Color(0xFFFFD66B),
     );
-    _paintText(
+    await _paintAsset(
       canvas,
-      'REAL REFERRALS  •  REAL EARNINGS',
-      const Rect.fromLTWH(130, 820, 820, 42),
-      fontSize: 20,
-      fontWeight: FontWeight.w700,
-      color: const Color(0xFF29DFA7),
-      letterSpacing: 3,
+      'assets/affiliate/referral/15_Real_Referrals_Badge.png',
+      const Rect.fromLTWH(385, 792, 310, 128),
+      targetWidth: 310,
     );
 
     final codePanel = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(105, 895, 630, 126),
+      const Rect.fromLTWH(105, 930, 630, 126),
       const Radius.circular(28),
     );
     canvas.drawRRect(codePanel, Paint()..color = const Color(0xD50A1116));
@@ -234,10 +232,16 @@ class AffiliateShareCardService {
         ..strokeWidth = 2
         ..color = const Color(0xFFE2B53A),
     );
+    await _paintAsset(
+      canvas,
+      'assets/affiliate/referral/06_Share_Icon.png',
+      const Rect.fromLTWH(120, 948, 82, 86),
+      targetWidth: 82,
+    );
     _paintText(
       canvas,
       'REFERRAL CODE',
-      const Rect.fromLTWH(140, 912, 560, 30),
+      const Rect.fromLTWH(210, 947, 490, 30),
       fontSize: 17,
       fontWeight: FontWeight.w700,
       color: const Color(0xFFAFC0D5),
@@ -246,7 +250,7 @@ class AffiliateShareCardService {
     _paintText(
       canvas,
       referralCode,
-      const Rect.fromLTWH(130, 950, 580, 50),
+      const Rect.fromLTWH(205, 985, 500, 50),
       fontSize: 31,
       fontWeight: FontWeight.w900,
       color: const Color(0xFFFFD55C),
@@ -255,7 +259,7 @@ class AffiliateShareCardService {
 
     final qrData = referralUrl.isEmpty ? referralCode : referralUrl;
     final qrPanel = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(770, 875, 178, 178),
+      const Rect.fromLTWH(770, 910, 178, 178),
       const Radius.circular(22),
     );
     canvas.drawRRect(qrPanel, Paint()..color = Colors.white);
@@ -274,43 +278,61 @@ class AffiliateShareCardService {
     ).toImage(154);
     paintImage(
       canvas: canvas,
-      rect: const Rect.fromLTWH(782, 887, 154, 154),
+      rect: const Rect.fromLTWH(782, 922, 154, 154),
       image: qrImage,
       fit: BoxFit.contain,
       filterQuality: FilterQuality.none,
     );
     qrImage.dispose();
 
+    final inviteIcon = await _loadAsset(
+      'assets/affiliate/referral/07_Invite_Icon.png',
+      targetWidth: 84,
+    );
+    final growthIcon = await _loadAsset(
+      'assets/affiliate/referral/08_Growth_Icon.png',
+      targetWidth: 84,
+    );
+    final earningsIcon = await _loadAsset(
+      'assets/affiliate/referral/09_Earnings_Icon.png',
+      targetWidth: 84,
+    );
     _paintMetricPanel(
       canvas,
-      const Rect.fromLTWH(105, 1085, 260, 170),
+      const Rect.fromLTWH(105, 1120, 260, 170),
       label: 'TOTAL REFERRALS',
       value: '$totalReferrals',
+      icon: inviteIcon,
     );
     _paintMetricPanel(
       canvas,
-      const Rect.fromLTWH(410, 1085, 260, 170),
+      const Rect.fromLTWH(410, 1120, 260, 170),
       label: 'CONVERSION RATE',
       value: '${conversion.toStringAsFixed(1)}%',
+      icon: growthIcon,
     );
     _paintMetricPanel(
       canvas,
-      const Rect.fromLTWH(715, 1085, 260, 170),
+      const Rect.fromLTWH(715, 1120, 260, 170),
       label: 'AVG / SALE',
       value: averageEarningsPerSale,
       accent: true,
+      icon: earningsIcon,
     );
+    inviteIcon.dispose();
+    growthIcon.dispose();
+    earningsIcon.dispose();
 
     final verifiedPanel = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(105, 1290, 870, 92),
+      const Rect.fromLTWH(105, 1312, 870, 90),
       const Radius.circular(24),
     );
     canvas.drawRRect(
       verifiedPanel,
       Paint()
         ..shader = ui.Gradient.linear(
-          const Offset(105, 1290),
-          const Offset(975, 1382),
+          const Offset(105, 1312),
+          const Offset(975, 1402),
           const [Color(0xB13B270A), Color(0xD3111515), Color(0xB13B270A)],
           const [0, .5, 1],
         ),
@@ -322,12 +344,17 @@ class AffiliateShareCardService {
         ..strokeWidth = 2
         ..color = const Color(0xFFB98B20),
     );
-    _paintTrustShield(canvas, const Offset(145, 1297));
+    await _paintAsset(
+      canvas,
+      'assets/affiliate/referral/14_Verified_Affiliate_Badge.png',
+      const Rect.fromLTWH(120, 1290, 285, 130),
+      targetWidth: 285,
+    );
     _paintText(
       canvas,
-      'VERIFIED ${currentLevel.toUpperCase()} AFFILIATE',
-      const Rect.fromLTWH(220, 1307, 700, 40),
-      fontSize: 25,
+      '${currentLevel.toUpperCase()} • $commissionRate% COMMISSION',
+      const Rect.fromLTWH(405, 1322, 530, 38),
+      fontSize: 23,
       fontWeight: FontWeight.w900,
       color: const Color(0xFFFFE5A0),
       letterSpacing: 1,
@@ -335,46 +362,30 @@ class AffiliateShareCardService {
     _paintText(
       canvas,
       'AUTHENTIC PROFILE  •  LIVE TRADEX DATA',
-      const Rect.fromLTWH(220, 1346, 700, 25),
+      const Rect.fromLTWH(405, 1362, 530, 25),
       fontSize: 14,
       fontWeight: FontWeight.w600,
       color: const Color(0xFFC7D1DF),
       letterSpacing: 2,
     );
 
-    _paintText(
+    await _paintAsset(
       canvas,
-      'Earn. Refer. Grow.',
-      const Rect.fromLTWH(100, 1510, 880, 80),
-      fontSize: 52,
-      fontWeight: FontWeight.w700,
-      color: const Color(0xFFFFD267),
-      letterSpacing: 1,
+      'assets/affiliate/referral/03_Refer_And_Earn_Title.png',
+      const Rect.fromLTWH(165, 1490, 750, 120),
+      targetWidth: 750,
     );
-    _paintText(
+    await _paintAsset(
       canvas,
-      'MORE TRADERS  •  A BRIGHTER TOMORROW',
-      const Rect.fromLTWH(100, 1595, 880, 42),
-      fontSize: 20,
-      fontWeight: FontWeight.w600,
-      color: const Color(0xFFD4DFED),
-      letterSpacing: 4,
+      'assets/affiliate/referral/04_Grow_Together_Tagline.png',
+      const Rect.fromLTWH(166, 1610, 748, 107),
+      targetWidth: 748,
     );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(170, 1725, 740, 96),
-        const Radius.circular(48),
-      ),
-      Paint()..color = const Color(0xC90A121B),
-    );
-    _paintText(
+    await _paintAsset(
       canvas,
-      'SCAN THE QR  •  JOIN THE TRADEX COMMUNITY',
-      const Rect.fromLTWH(205, 1748, 670, 46),
-      fontSize: 19,
-      fontWeight: FontWeight.w700,
-      color: const Color(0xFFBECBE0),
-      letterSpacing: 1.4,
+      'assets/affiliate/referral/12_Gold_Affiliate_Button.png',
+      const Rect.fromLTWH(260, 1740, 560, 164),
+      targetWidth: 560,
     );
 
     final picture = recorder.endRecording();
@@ -444,6 +455,7 @@ class AffiliateShareCardService {
     required String label,
     required String value,
     bool accent = false,
+    ui.Image? icon,
   }) {
     final panel = RRect.fromRectAndRadius(rect, const Radius.circular(22));
     canvas.drawRRect(
@@ -464,10 +476,19 @@ class AffiliateShareCardService {
         ..strokeWidth = 2
         ..color = accent ? const Color(0xFFB98A1C) : const Color(0xFF334957),
     );
+    if (icon != null) {
+      paintImage(
+        canvas: canvas,
+        rect: Rect.fromLTWH(rect.left + 86, rect.top + 8, 88, 82),
+        image: icon,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+      );
+    }
     _paintText(
       canvas,
       label,
-      Rect.fromLTWH(rect.left + 15, rect.top + 26, rect.width - 30, 30),
+      Rect.fromLTWH(rect.left + 15, rect.top + 88, rect.width - 30, 27),
       fontSize: 15,
       fontWeight: FontWeight.w700,
       color: const Color(0xFFB8C7D8),
@@ -476,8 +497,8 @@ class AffiliateShareCardService {
     _paintText(
       canvas,
       value,
-      Rect.fromLTWH(rect.left + 10, rect.top + 75, rect.width - 20, 64),
-      fontSize: value.length > 9 ? 31 : 41,
+      Rect.fromLTWH(rect.left + 10, rect.top + 115, rect.width - 20, 48),
+      fontSize: value.length > 9 ? 25 : 34,
       fontWeight: FontWeight.w900,
       color: accent ? const Color(0xFFFFD25A) : Colors.white,
     );
@@ -494,6 +515,23 @@ class AffiliateShareCardService {
     } finally {
       codec.dispose();
     }
+  }
+
+  Future<void> _paintAsset(
+    Canvas canvas,
+    String path,
+    Rect rect, {
+    required int targetWidth,
+  }) async {
+    final image = await _loadAsset(path, targetWidth: targetWidth);
+    paintImage(
+      canvas: canvas,
+      rect: rect,
+      image: image,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+    );
+    image.dispose();
   }
 
   void _paintText(
@@ -526,41 +564,6 @@ class AffiliateShareCardService {
         bounds.left + (bounds.width - painter.width) / 2,
         bounds.top + (bounds.height - painter.height) / 2,
       ),
-    );
-  }
-
-  void _paintTrustShield(Canvas canvas, Offset origin) {
-    final shield = Path()
-      ..moveTo(origin.dx + 34, origin.dy)
-      ..lineTo(origin.dx + 68, origin.dy + 13)
-      ..lineTo(origin.dx + 62, origin.dy + 49)
-      ..quadraticBezierTo(
-        origin.dx + 53,
-        origin.dy + 68,
-        origin.dx + 34,
-        origin.dy + 78,
-      )
-      ..quadraticBezierTo(
-        origin.dx + 15,
-        origin.dy + 68,
-        origin.dx + 6,
-        origin.dy + 49,
-      )
-      ..lineTo(origin.dx, origin.dy + 13)
-      ..close();
-    canvas.drawPath(shield, Paint()..color = const Color(0xFFFFCB38));
-    final check = Path()
-      ..moveTo(origin.dx + 19, origin.dy + 39)
-      ..lineTo(origin.dx + 30, origin.dy + 50)
-      ..lineTo(origin.dx + 52, origin.dy + 26);
-    canvas.drawPath(
-      check,
-      Paint()
-        ..color = const Color(0xFF09100D)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 6
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
     );
   }
 }
