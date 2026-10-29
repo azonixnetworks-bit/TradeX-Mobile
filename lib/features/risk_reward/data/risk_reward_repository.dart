@@ -7,6 +7,11 @@ import '../models/risk_reward_models.dart';
 
 abstract interface class RiskRewardDataSource {
   Future<RiskRewardCatalog> catalog({bool forceRefresh = false});
+  Future<RiskRewardQuote> quote({
+    required String market,
+    required String symbol,
+    required String side,
+  });
   Future<RiskRewardResult> calculate(Map<String, dynamic> input);
   Future<DividendResult> calculateDividend(Map<String, dynamic> input);
   Future<DividendHistory> dividendHistory(String symbol);
@@ -34,6 +39,17 @@ final class RiskRewardRepository implements RiskRewardDataSource {
         : await _apiClient.getJsonCacheFirst('$_base/catalog');
     return RiskRewardCatalog.fromResponse(response);
   }
+
+  @override
+  Future<RiskRewardQuote> quote({
+    required String market,
+    required String symbol,
+    required String side,
+  }) async => RiskRewardQuote.fromResponse(
+    await _apiClient.getJson(
+      '$_base/quote?market=${Uri.encodeQueryComponent(market)}&symbol=${Uri.encodeQueryComponent(symbol)}&side=${Uri.encodeQueryComponent(side)}',
+    ),
+  );
 
   @override
   Future<RiskRewardResult> calculate(Map<String, dynamic> input) async =>

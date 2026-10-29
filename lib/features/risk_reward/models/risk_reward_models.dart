@@ -147,6 +147,39 @@ class RiskRewardResult {
       _list(data['warnings']).map((item) => item.toString()).toList();
 }
 
+class RiskRewardQuote {
+  const RiskRewardQuote({
+    required this.market,
+    required this.symbol,
+    required this.price,
+    required this.displayPrice,
+    required this.observedAt,
+    required this.provider,
+  });
+
+  final String market;
+  final String symbol;
+  final double price;
+  final String displayPrice;
+  final DateTime? observedAt;
+  final String provider;
+
+  factory RiskRewardQuote.fromResponse(Map<String, dynamic> response) {
+    final data = _map(response['data']);
+    return RiskRewardQuote(
+      market: _text(data['market']),
+      symbol: _text(data['symbol']),
+      price: _number(data['price']) ?? 0,
+      displayPrice: _text(
+        data['display_price'],
+        data['price']?.toString() ?? '',
+      ),
+      observedAt: DateTime.tryParse(_text(data['observed_at_utc'])),
+      provider: _text(data['provider']),
+    );
+  }
+}
+
 class DividendResult {
   const DividendResult(this.data);
 
