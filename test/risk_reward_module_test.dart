@@ -195,6 +195,58 @@ void main() {
     expect(entry.controller?.text, '65001.25');
   });
 
+  testWidgets(
+    'Binance Futures derives leverage from entry and stop without sending manual leverage',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repository = _FakeRiskRewardDataSource();
+      final cubit = RiskRewardCubit(repository);
+      await cubit.initialize();
+      addTearDown(cubit.close);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: TradeXTheme.dark,
+          home: BlocProvider.value(
+            value: cubit,
+            child: const CryptoRiskCalculatorScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('forex-deriv-symbol-search')),
+        'BTC',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('symbol-suggestion-BTCUSDT')));
+      await tester.pumpAndSettle();
+
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.at(0), '65000');
+      await tester.enterText(fields.at(1), '64350');
+      await tester.enterText(fields.at(2), '100');
+      await tester.pump();
+
+      expect(find.text('Calculated Leverage'), findsOneWidget);
+      expect(find.text('50x'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('Calculate'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Calculate'));
+      await tester.pumpAndSettle();
+
+      expect(repository.lastCalculation, isNot(contains('leverage')));
+      expect(repository.lastCalculation, isNot(contains('take_profit')));
+    },
+  );
+
   test('cubit uses server result and preserves optional take profit', () async {
     final repository = _FakeRiskRewardDataSource();
     final cubit = RiskRewardCubit(repository);
@@ -370,6 +422,12 @@ final class _FakeRiskRewardDataSource implements RiskRewardDataSource {
       'actual_risk': 100,
       'potential_profit': 500,
       'risk_reward_ratio': 5,
+      if (input['market'] == 'binance_futures')
+        'futures': <String, dynamic>{
+          'required_initial_margin': 200,
+          'leverage': 50,
+          'leverage_auto_calculated': true,
+        },
       'warnings': <String>['Verify live broker specifications.'],
     });
   }

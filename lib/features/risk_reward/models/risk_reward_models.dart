@@ -143,6 +143,13 @@ class RiskRewardResult {
       _number(data['required_investment_usd'] ?? data['required_investment']);
   double? get requiredMargin =>
       _number(_map(data['futures'])['required_initial_margin']);
+  int? get leverage {
+    final value = _number(_map(data['futures'])['leverage']);
+    return value?.round();
+  }
+
+  bool get leverageAutoCalculated =>
+      _map(data['futures'])['leverage_auto_calculated'] == true;
   List<String> get warnings =>
       _list(data['warnings']).map((item) => item.toString()).toList();
 }

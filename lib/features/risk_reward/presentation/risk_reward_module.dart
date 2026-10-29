@@ -504,7 +504,6 @@ class _CryptoRiskCalculatorScreenState
   String _market = 'binance_futures';
   String _side = 'BUY';
   String? _symbol;
-  int _leverage = 10;
   final _entry = TextEditingController();
   final _stop = TextEditingController();
   final _risk = TextEditingController();
@@ -542,7 +541,6 @@ class _CryptoRiskCalculatorScreenState
       _stop.text = draft['stop_loss']?.toString() ?? '';
       _risk.text = draft['risk_amount']?.toString() ?? '';
       _target.text = draft['take_profit']?.toString() ?? '';
-      _leverage = int.tryParse(draft['leverage']?.toString() ?? '') ?? 10;
       _entryFee.text = draft['entry_fee_rate_percent']?.toString() ?? '0';
       _exitFee.text = draft['exit_fee_rate_percent']?.toString() ?? '0';
       _slippage.text = draft['slippage_percent']?.toString() ?? '0';
@@ -646,6 +644,7 @@ class _CryptoRiskCalculatorScreenState
             label: 'Entry Price',
             controller: _entry,
             icon: Icons.login,
+            onChanged: (_) => setState(() {}),
           ),
           _LivePriceStatus(
             loading: _quoteLoading,
@@ -658,7 +657,15 @@ class _CryptoRiskCalculatorScreenState
             label: 'Stop Loss Price',
             controller: _stop,
             icon: Icons.shield_outlined,
+            onChanged: (_) => setState(() {}),
           ),
+          if (_market == 'binance_futures') ...[
+            _AutoLeverageCard(
+              leverage: _calculatedLeverage,
+              stopDistancePercent: _stopDistancePercent,
+            ),
+            const SizedBox(height: 12),
+          ],
           _CalculatorField(
             label: 'Risk Amount (USD)',
             controller: _risk,
@@ -670,11 +677,6 @@ class _CryptoRiskCalculatorScreenState
             icon: Icons.track_changes,
           ),
           if (_market == 'binance_futures') ...[
-            const SizedBox(height: 4),
-            _LeverageSelector(
-              value: _leverage,
-              onChanged: (value) => setState(() => _leverage = value),
-            ),
             const SizedBox(height: 10),
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
@@ -713,6 +715,7 @@ class _CryptoRiskCalculatorScreenState
                   label: 'Maintenance Margin Rate (%)',
                   controller: _maintenanceRate,
                   icon: Icons.security_rounded,
+                  onChanged: (_) => setState(() {}),
                 ),
                 _CalculatorField(
                   label: 'Maintenance Amount (USDT)',
@@ -754,7 +757,6 @@ class _CryptoRiskCalculatorScreenState
       if (_market == 'binance_futures') ...{
         'calculation_mode': 'RISK_BASED',
         'margin_mode': 'ISOLATED',
-        'leverage': _leverage,
         'entry_fee_rate_percent': _entryFee.text.trim(),
         'exit_fee_rate_percent': _exitFee.text.trim(),
         'slippage_percent': _slippage.text.trim(),
@@ -801,6 +803,34 @@ class _CryptoRiskCalculatorScreenState
             'Live price unavailable. You can enter the price manually.';
       });
     }
+  }
+
+  double? get _stopDistancePercent {
+    final entry = double.tryParse(_entry.text.trim());
+    final stop = double.tryParse(_stop.text.trim());
+    if (entry == null || stop == null || entry <= 0 || stop <= 0) return null;
+    if (_side == 'BUY' ? stop >= entry : stop <= entry) return null;
+    return ((entry - stop).abs() / entry) * 100;
+  }
+
+  int? get _calculatedLeverage {
+    final distancePercent = _stopDistancePercent;
+    if (distancePercent == null) return null;
+    final suppliedMaintenanceMargin = double.tryParse(
+      _maintenanceRate.text.trim(),
+    );
+    final maintenanceMarginPercent =
+        suppliedMaintenanceMargin != null && suppliedMaintenanceMargin > 0
+        ? suppliedMaintenanceMargin
+        : 0.5;
+    const liquidationBufferPercent = 0.5;
+    final protectedDistance =
+        (distancePercent +
+            maintenanceMarginPercent +
+            liquidationBufferPercent) /
+        100;
+    if (protectedDistance <= 0) return null;
+    return (1 / protectedDistance).floor().clamp(1, 125).toInt();
   }
 
   void _reset() {
@@ -1663,6 +1693,15 @@ class _RiskResultDetails extends StatelessWidget {
                   label: 'Required Margin',
                   value: _money(result.requiredMargin),
                 ),
+              if (result.market == 'binance_futures' && result.leverage != null)
+                _MetricTile(
+                  width: _metricWidth(constraints.maxWidth),
+                  asset: '16_gold_coin_stacks.png',
+                  label: result.leverageAutoCalculated
+                      ? 'Calculated Leverage'
+                      : 'Leverage',
+                  value: '${result.leverage}x',
+                ),
               if (result.requiredInvestment != null)
                 _MetricTile(
                   width: _metricWidth(constraints.maxWidth),
@@ -2513,12 +2552,14 @@ class _CalculatorField extends StatelessWidget {
     required this.controller,
     required this.icon,
     this.numeric = true,
+    this.onChanged,
   });
 
   final String label;
   final TextEditingController controller;
   final IconData icon;
   final bool numeric;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -2530,6 +2571,7 @@ class _CalculatorField extends StatelessWidget {
           : TextInputType.text,
       textInputAction: TextInputAction.next,
       autocorrect: false,
+      onChanged: onChanged,
       style: const TextStyle(
         color: TradeXColors.primaryText,
         fontWeight: FontWeight.w700,
@@ -2564,28 +2606,67 @@ class _CalculateButton extends StatelessWidget {
   }
 }
 
-class _LeverageSelector extends StatelessWidget {
-  const _LeverageSelector({required this.value, required this.onChanged});
+class _AutoLeverageCard extends StatelessWidget {
+  const _AutoLeverageCard({
+    required this.leverage,
+    required this.stopDistancePercent,
+  });
 
-  final int value;
-  final ValueChanged<int> onChanged;
+  final int? leverage;
+  final double? stopDistancePercent;
 
   @override
   Widget build(BuildContext context) => _GoldCard(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    child: Row(
       children: [
-        Text(
-          'Leverage ${value}x',
-          style: const TextStyle(fontWeight: FontWeight.w800),
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: TradeXColors.gold.withValues(alpha: .12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: TradeXColors.goldSoft.withValues(alpha: .55),
+            ),
+          ),
+          child: const Icon(
+            Icons.auto_graph_rounded,
+            color: TradeXColors.goldBright,
+          ),
         ),
-        Slider(
-          value: value.toDouble(),
-          min: 1,
-          max: 125,
-          divisions: 124,
-          label: '${value}x',
-          onChanged: (next) => onChanged(next.round()),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Calculated Leverage',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                leverage == null
+                    ? 'Enter a valid Entry and Stop Loss to calculate leverage.'
+                    : '${stopDistancePercent!.toStringAsFixed(2)}% stop distance • safety buffer included',
+                style: const TextStyle(
+                  color: TradeXColors.secondaryText,
+                  fontSize: 12,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          leverage == null ? '--' : '${leverage}x',
+          style: TextStyle(
+            color: leverage == null
+                ? TradeXColors.tertiaryText
+                : TradeXColors.goldBright,
+            fontSize: 25,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ],
     ),
