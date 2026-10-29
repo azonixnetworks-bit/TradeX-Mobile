@@ -1,6 +1,9 @@
 package com.azonixnetworks.tradex_mobile
 
+import android.Manifest
+import android.app.NotificationManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -16,7 +19,10 @@ import java.security.spec.ECGenParameterSpec
 class MainActivity : FlutterFragmentActivity() {
     private val channelName = "com.azonixnetworks.tradex_mobile/device_credential"
     private val lifecycleChannelName = "com.azonixnetworks.tradex_mobile/app_lifecycle"
+    private val notificationsChannelName = "com.azonixnetworks.tradex_mobile/notifications"
+    private val notificationPermissionRequestCode = 2401
     private val aliasPrefix = "tradex.quick.login."
+    private var notificationPermissionResult: MethodChannel.Result? = null
 
     override fun provideFlutterEngine(context: Context): FlutterEngine =
         TradeXApplication.getOrCreateFlutterEngine(context)
@@ -75,6 +81,61 @@ class MainActivity : FlutterFragmentActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, notificationsChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "status" -> result.success(notificationPermissionStatus())
+                    "request" -> requestNotificationPermission(result)
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == notificationPermissionRequestCode) {
+            notificationPermissionResult?.success(notificationPermissionStatus())
+            notificationPermissionResult = null
+        }
+    }
+
+    private fun requestNotificationPermission(result: MethodChannel.Result) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            result.success(notificationPermissionStatus())
+            return
+        }
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+            result.success("granted")
+            return
+        }
+        notificationPermissionResult?.error(
+            "REQUEST_REPLACED",
+            "A newer notification permission request replaced this request.",
+            null
+        )
+        notificationPermissionResult = result
+        requestPermissions(
+            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+            notificationPermissionRequestCode
+        )
+    }
+
+    private fun notificationPermissionStatus(): String {
+        val manager = getSystemService(NotificationManager::class.java)
+        if (!manager.areNotificationsEnabled()) return "denied"
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return "granted"
+        return if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+            "granted"
+        } else if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+            "denied"
+        } else {
+            "notDetermined"
+        }
     }
 
     private fun createCredential(
