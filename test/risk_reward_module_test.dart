@@ -104,6 +104,11 @@ void main() {
       await tester.tap(find.text('Crypto CFD'));
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.textContaining('Margin is shown only when'),
+        240,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.textContaining('Margin is shown only when'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('crypto-risk-calculator')),
@@ -111,6 +116,84 @@ void main() {
       );
     },
   );
+
+  testWidgets('forex symbol search selects a suggestion and fills live entry', (
+    tester,
+  ) async {
+    final repository = _FakeRiskRewardDataSource();
+    final cubit = RiskRewardCubit(repository);
+    await cubit.initialize();
+    addTearDown(cubit.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: BlocProvider.value(
+          value: cubit,
+          child: const ForexDerivCalculatorScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('forex-deriv-symbol-search')),
+      'GBP',
+    );
+    await tester.pump();
+    expect(find.text('GBPUSD'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('symbol-suggestion-GBPUSD')));
+    await tester.pumpAndSettle();
+
+    final entry = tester.widget<TextFormField>(
+      find.byType(TextFormField).first,
+    );
+    expect(entry.controller?.text, '1.23456');
+    expect(find.textContaining('Entry price remains editable'), findsOneWidget);
+  });
+
+  testWidgets('both crypto modes search coins and fill editable live entry', (
+    tester,
+  ) async {
+    final repository = _FakeRiskRewardDataSource();
+    final cubit = RiskRewardCubit(repository);
+    await cubit.initialize();
+    addTearDown(cubit.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: BlocProvider.value(
+          value: cubit,
+          child: const CryptoRiskCalculatorScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('forex-deriv-symbol-search')),
+      'ETH',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('symbol-suggestion-ETHUSDT')));
+    await tester.pumpAndSettle();
+    var entry = tester.widget<TextFormField>(find.byType(TextFormField).first);
+    expect(entry.controller?.text, '65000.50');
+
+    await tester.tap(find.text('Crypto CFD'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('forex-deriv-symbol-search')),
+      'ETH',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('symbol-suggestion-ETHUSD')));
+    await tester.pumpAndSettle();
+    entry = tester.widget<TextFormField>(find.byType(TextFormField).first);
+    expect(entry.controller?.text, '65001.25');
+  });
 
   test('cubit uses server result and preserves optional take profit', () async {
     final repository = _FakeRiskRewardDataSource();
@@ -173,6 +256,11 @@ final class _FakeRiskRewardDataSource implements RiskRewardDataSource {
             name: 'Euro / US Dollar',
             data: <String, dynamic>{},
           ),
+          RiskRewardInstrument(
+            symbol: 'GBPUSD',
+            name: 'British Pound / US Dollar',
+            data: <String, dynamic>{},
+          ),
         ],
         data: const <String, dynamic>{},
       ),
@@ -199,6 +287,11 @@ final class _FakeRiskRewardDataSource implements RiskRewardDataSource {
             name: 'Bitcoin / USDT',
             data: <String, dynamic>{},
           ),
+          RiskRewardInstrument(
+            symbol: 'ETHUSDT',
+            name: 'Ethereum / USDT',
+            data: <String, dynamic>{},
+          ),
         ],
         data: const <String, dynamic>{},
       ),
@@ -210,6 +303,11 @@ final class _FakeRiskRewardDataSource implements RiskRewardDataSource {
           RiskRewardInstrument(
             symbol: 'BTCUSD',
             name: 'Bitcoin / US Dollar',
+            data: <String, dynamic>{},
+          ),
+          RiskRewardInstrument(
+            symbol: 'ETHUSD',
+            name: 'Ethereum / US Dollar',
             data: <String, dynamic>{},
           ),
         ],
@@ -236,6 +334,27 @@ final class _FakeRiskRewardDataSource implements RiskRewardDataSource {
   @override
   Future<RiskRewardCatalog> catalog({bool forceRefresh = false}) async =>
       catalogValue;
+
+  @override
+  Future<RiskRewardQuote> quote({
+    required String market,
+    required String symbol,
+    required String side,
+  }) async {
+    final displayPrice = switch (market) {
+      'binance_futures' => '65000.50',
+      'crypto' => '65001.25',
+      _ => '1.23456',
+    };
+    return RiskRewardQuote(
+      market: market,
+      symbol: symbol,
+      price: double.parse(displayPrice),
+      displayPrice: displayPrice,
+      observedAt: DateTime.utc(2026, 10, 29),
+      provider: 'TEST',
+    );
+  }
 
   @override
   Future<RiskRewardResult> calculate(Map<String, dynamic> input) async {

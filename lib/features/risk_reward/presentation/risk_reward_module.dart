@@ -290,6 +290,10 @@ class _ForexDerivCalculatorScreenState
   final _stop = TextEditingController();
   final _risk = TextEditingController();
   final _target = TextEditingController();
+  bool _quoteLoading = false;
+  String? _quoteError;
+  RiskRewardQuote? _liveQuote;
+  int _quoteRequest = 0;
   Map<String, dynamic>? _lastInput;
 
   @override
@@ -313,6 +317,9 @@ class _ForexDerivCalculatorScreenState
       _risk.text = draft['risk_amount']?.toString() ?? '';
       _target.text = draft['take_profit']?.toString() ?? '';
     });
+    if (_symbol != null) {
+      unawaited(_loadLivePrice(_symbol!));
+    }
   }
 
   @override
@@ -329,9 +336,8 @@ class _ForexDerivCalculatorScreenState
     final catalog = context.watch<RiskRewardCubit>().state.catalog!;
     final market = catalog.markets[_market];
     final instruments = market?.instruments ?? const <RiskRewardInstrument>[];
-    _symbol ??= instruments.isEmpty ? null : instruments.first.symbol;
     if (_symbol != null && !instruments.any((item) => item.symbol == _symbol)) {
-      _symbol = instruments.isEmpty ? null : instruments.first.symbol;
+      _symbol = null;
     }
     return _FeaturePage(
       child: ListView(
@@ -351,27 +357,58 @@ class _ForexDerivCalculatorScreenState
             onSelected: (value) => setState(() {
               _market = value;
               _symbol = null;
+              _entry.clear();
+              _quoteRequest++;
+              _quoteLoading = false;
+              _quoteError = null;
+              _liveQuote = null;
               context.read<RiskRewardCubit>().clearResult();
             }),
           ),
           const SizedBox(height: 16),
-          _InstrumentDropdown(
-            label: 'Symbol',
-            value: _symbol,
+          _InstrumentSearchField(
+            key: ValueKey('symbol-search-$_market'),
+            selected: _instrumentBySymbol(instruments, _symbol),
             instruments: instruments,
-            onChanged: (value) => setState(() => _symbol = value),
+            onQueryChanged: () {
+              if (_symbol == null) return;
+              setState(() {
+                _symbol = null;
+                _quoteRequest++;
+                _quoteLoading = false;
+                _quoteError = null;
+                _liveQuote = null;
+              });
+            },
+            onSelected: (instrument) {
+              setState(() {
+                _symbol = instrument.symbol;
+                _quoteError = null;
+              });
+              unawaited(_loadLivePrice(instrument.symbol));
+            },
           ),
           const SizedBox(height: 14),
           _TradeSideControl(
             selected: _side,
-            onSelected: (value) => setState(() => _side = value),
+            onSelected: (value) {
+              setState(() => _side = value);
+              if (_symbol != null) unawaited(_loadLivePrice(_symbol!));
+            },
           ),
           const SizedBox(height: 14),
           _CalculatorField(
-            label: 'Entry Price',
+            label: 'Entry Price (Live, editable)',
             controller: _entry,
             icon: Icons.login,
           ),
+          _LivePriceStatus(
+            loading: _quoteLoading,
+            quote: _liveQuote,
+            error: _quoteError,
+            onRefresh: _symbol == null ? null : () => _loadLivePrice(_symbol!),
+          ),
+          const SizedBox(height: 12),
           _CalculatorField(
             label: 'Stop Loss Price',
             controller: _stop,
@@ -395,6 +432,36 @@ class _ForexDerivCalculatorScreenState
         ],
       ),
     );
+  }
+
+  Future<void> _loadLivePrice(String symbol) async {
+    final request = ++_quoteRequest;
+    setState(() {
+      _quoteLoading = true;
+      _quoteError = null;
+    });
+
+    try {
+      final quote = await context.read<RiskRewardCubit>().repository.quote(
+        market: _market,
+        symbol: symbol,
+        side: _side,
+      );
+      if (!mounted || request != _quoteRequest || _symbol != symbol) return;
+      _entry.text = quote.displayPrice;
+      setState(() {
+        _quoteLoading = false;
+        _liveQuote = quote;
+      });
+    } catch (_) {
+      if (!mounted || request != _quoteRequest || _symbol != symbol) return;
+      setState(() {
+        _quoteLoading = false;
+        _liveQuote = null;
+        _quoteError =
+            'Live price unavailable. You can enter the price manually.';
+      });
+    }
   }
 
   Future<void> _calculate(BuildContext context) async {
@@ -450,6 +517,10 @@ class _CryptoRiskCalculatorScreenState
   final _maintenanceRate = TextEditingController();
   final _maintenanceAmount = TextEditingController();
   final _walletBalance = TextEditingController();
+  bool _quoteLoading = false;
+  String? _quoteError;
+  RiskRewardQuote? _liveQuote;
+  int _quoteRequest = 0;
   Map<String, dynamic>? _lastInput;
 
   @override
@@ -483,6 +554,9 @@ class _CryptoRiskCalculatorScreenState
       _walletBalance.text =
           draft['liquidation_wallet_balance']?.toString() ?? '';
     });
+    if (_symbol != null) {
+      unawaited(_loadLivePrice(_symbol!));
+    }
   }
 
   @override
@@ -507,9 +581,8 @@ class _CryptoRiskCalculatorScreenState
     final catalog = context.watch<RiskRewardCubit>().state.catalog!;
     final instruments =
         catalog.markets[_market]?.instruments ?? const <RiskRewardInstrument>[];
-    _symbol ??= instruments.isEmpty ? null : instruments.first.symbol;
     if (_symbol != null && !instruments.any((item) => item.symbol == _symbol)) {
-      _symbol = instruments.isEmpty ? null : instruments.first.symbol;
+      _symbol = null;
     }
     return _FeaturePage(
       child: ListView(
@@ -529,20 +602,44 @@ class _CryptoRiskCalculatorScreenState
             onSelected: (value) => setState(() {
               _market = value;
               _symbol = null;
+              _entry.clear();
+              _quoteRequest++;
+              _quoteLoading = false;
+              _quoteError = null;
+              _liveQuote = null;
               context.read<RiskRewardCubit>().clearResult();
             }),
           ),
           const SizedBox(height: 16),
-          _InstrumentDropdown(
-            label: 'Symbol',
-            value: _symbol,
+          _InstrumentSearchField(
+            key: ValueKey('crypto-symbol-search-$_market'),
+            selected: _instrumentBySymbol(instruments, _symbol),
             instruments: instruments,
-            onChanged: (value) => setState(() => _symbol = value),
+            onQueryChanged: () {
+              if (_symbol == null) return;
+              setState(() {
+                _symbol = null;
+                _quoteRequest++;
+                _quoteLoading = false;
+                _quoteError = null;
+                _liveQuote = null;
+              });
+            },
+            onSelected: (instrument) {
+              setState(() {
+                _symbol = instrument.symbol;
+                _quoteError = null;
+              });
+              unawaited(_loadLivePrice(instrument.symbol));
+            },
           ),
           const SizedBox(height: 14),
           _TradeSideControl(
             selected: _side,
-            onSelected: (value) => setState(() => _side = value),
+            onSelected: (value) {
+              setState(() => _side = value);
+              if (_symbol != null) unawaited(_loadLivePrice(_symbol!));
+            },
           ),
           const SizedBox(height: 14),
           _CalculatorField(
@@ -550,6 +647,13 @@ class _CryptoRiskCalculatorScreenState
             controller: _entry,
             icon: Icons.login,
           ),
+          _LivePriceStatus(
+            loading: _quoteLoading,
+            quote: _liveQuote,
+            error: _quoteError,
+            onRefresh: _symbol == null ? null : () => _loadLivePrice(_symbol!),
+          ),
+          const SizedBox(height: 12),
           _CalculatorField(
             label: 'Stop Loss Price',
             controller: _stop,
@@ -667,6 +771,36 @@ class _CryptoRiskCalculatorScreenState
     _lastInput = input;
     await cubit.repository.saveDraft('crypto', input);
     if (mounted) await cubit.calculate(input);
+  }
+
+  Future<void> _loadLivePrice(String symbol) async {
+    final request = ++_quoteRequest;
+    setState(() {
+      _quoteLoading = true;
+      _quoteError = null;
+    });
+
+    try {
+      final quote = await context.read<RiskRewardCubit>().repository.quote(
+        market: _market,
+        symbol: symbol,
+        side: _side,
+      );
+      if (!mounted || request != _quoteRequest || _symbol != symbol) return;
+      _entry.text = quote.displayPrice;
+      setState(() {
+        _quoteLoading = false;
+        _liveQuote = quote;
+      });
+    } catch (_) {
+      if (!mounted || request != _quoteRequest || _symbol != symbol) return;
+      setState(() {
+        _quoteLoading = false;
+        _liveQuote = null;
+        _quoteError =
+            'Live price unavailable. You can enter the price manually.';
+      });
+    }
   }
 
   void _reset() {
@@ -1968,40 +2102,259 @@ class _SegmentedControl extends StatelessWidget {
   );
 }
 
-class _InstrumentDropdown extends StatelessWidget {
-  const _InstrumentDropdown({
-    required this.label,
-    required this.value,
+RiskRewardInstrument? _instrumentBySymbol(
+  List<RiskRewardInstrument> instruments,
+  String? symbol,
+) {
+  if (symbol == null) return null;
+  for (final instrument in instruments) {
+    if (instrument.symbol == symbol) return instrument;
+  }
+  return null;
+}
+
+class _InstrumentSearchField extends StatefulWidget {
+  const _InstrumentSearchField({
+    super.key,
+    required this.selected,
     required this.instruments,
-    required this.onChanged,
+    required this.onQueryChanged,
+    required this.onSelected,
   });
 
-  final String label;
-  final String? value;
+  final RiskRewardInstrument? selected;
   final List<RiskRewardInstrument> instruments;
-  final ValueChanged<String?> onChanged;
+  final VoidCallback onQueryChanged;
+  final ValueChanged<RiskRewardInstrument> onSelected;
 
   @override
-  Widget build(BuildContext context) => DropdownButtonFormField<String>(
-    initialValue: instruments.any((item) => item.symbol == value)
-        ? value
-        : null,
-    isExpanded: true,
-    dropdownColor: TradeXColors.surfaceRaised,
-    decoration: _inputDecoration(label, Icons.currency_exchange_rounded),
-    items: instruments
-        .map(
-          (item) => DropdownMenuItem(
-            value: item.symbol,
+  State<_InstrumentSearchField> createState() => _InstrumentSearchFieldState();
+}
+
+class _InstrumentSearchFieldState extends State<_InstrumentSearchField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.selected?.symbol ?? '');
+    _focusNode = FocusNode()..addListener(_onFocusChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant _InstrumentSearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final next = widget.selected?.symbol ?? '';
+    if (next.isNotEmpty && _controller.text != next) {
+      _controller.value = TextEditingValue(
+        text: next,
+        selection: TextSelection.collapsed(offset: next.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChanged() {
+    if (mounted) setState(() {});
+  }
+
+  List<RiskRewardInstrument> get _suggestions {
+    final query = _controller.text.trim().toLowerCase();
+    if (!_focusNode.hasFocus || query.isEmpty) {
+      return const <RiskRewardInstrument>[];
+    }
+    return widget.instruments
+        .where(
+          (item) =>
+              item.symbol.toLowerCase().contains(query) ||
+              item.name.toLowerCase().contains(query),
+        )
+        .take(8)
+        .toList(growable: false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final suggestions = _suggestions;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          key: const ValueKey('forex-deriv-symbol-search'),
+          controller: _controller,
+          focusNode: _focusNode,
+          textCapitalization: TextCapitalization.characters,
+          textInputAction: TextInputAction.search,
+          autocorrect: false,
+          enableSuggestions: false,
+          onChanged: (_) {
+            widget.onQueryChanged();
+            setState(() {});
+          },
+          decoration:
+              _inputDecoration(
+                'Type symbol or market name',
+                Icons.search_rounded,
+              ).copyWith(
+                suffixIcon: _controller.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear symbol',
+                        onPressed: () {
+                          _controller.clear();
+                          widget.onQueryChanged();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+              ),
+        ),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 160),
+          child: suggestions.isEmpty
+              ? const SizedBox.shrink()
+              : Container(
+                  key: ValueKey(_controller.text.toLowerCase()),
+                  margin: const EdgeInsets.only(top: 8),
+                  constraints: const BoxConstraints(maxHeight: 288),
+                  decoration: BoxDecoration(
+                    color: TradeXColors.surfaceRaised,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: TradeXColors.borderStrong),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x55000000),
+                        blurRadius: 14,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    shrinkWrap: true,
+                    itemCount: suggestions.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final item = suggestions[index];
+                      return Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          key: ValueKey('symbol-suggestion-${item.symbol}'),
+                          dense: true,
+                          leading: const Icon(
+                            Icons.show_chart_rounded,
+                            color: TradeXColors.gold,
+                          ),
+                          title: Text(
+                            item.symbol,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          subtitle: Text(
+                            item.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () {
+                            _controller.value = TextEditingValue(
+                              text: item.symbol,
+                              selection: TextSelection.collapsed(
+                                offset: item.symbol.length,
+                              ),
+                            );
+                            _focusNode.unfocus();
+                            widget.onSelected(item);
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LivePriceStatus extends StatelessWidget {
+  const _LivePriceStatus({
+    required this.loading,
+    required this.quote,
+    required this.error,
+    required this.onRefresh,
+  });
+
+  final bool loading;
+  final RiskRewardQuote? quote;
+  final String? error;
+  final VoidCallback? onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = error != null
+        ? TradeXColors.error
+        : quote != null
+        ? TradeXColors.success
+        : TradeXColors.secondaryText;
+    final message = loading
+        ? 'Loading current market price…'
+        : error ??
+              (quote == null
+                  ? 'Select a symbol to load its current price.'
+                  : 'Live ${quote!.symbol}: ${quote!.displayPrice} • Entry price remains editable');
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 9, 6, 9),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: .35)),
+      ),
+      child: Row(
+        children: [
+          if (loading)
+            const SizedBox.square(
+              dimension: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            Icon(
+              error != null
+                  ? Icons.cloud_off_rounded
+                  : Icons.currency_exchange_rounded,
+              size: 18,
+              color: color,
+            ),
+          const SizedBox(width: 9),
+          Expanded(
             child: Text(
-              '${item.symbol}  •  ${item.name}',
-              overflow: TextOverflow.ellipsis,
+              message,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
-        )
-        .toList(growable: false),
-    onChanged: instruments.isEmpty ? null : onChanged,
-  );
+          if (!loading && onRefresh != null)
+            IconButton(
+              tooltip: 'Refresh live price',
+              visualDensity: VisualDensity.compact,
+              onPressed: onRefresh,
+              icon: const Icon(Icons.refresh_rounded, size: 19),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _StockDropdown extends StatelessWidget {
