@@ -58,11 +58,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Funded Companies'), findsOneWidget);
+    expect(find.text("Don't Trade in Funded Accounts"), findsOneWidget);
+    await tester.drag(find.byType(ListView).last, const Offset(0, -420));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Test Funding Ltd'));
     expect(find.text('Test Funding Ltd'), findsOneWidget);
     await tester.tap(find.text('Test Funding Ltd'));
     await tester.pumpAndSettle();
 
     expect(find.text('Company Details'), findsOneWidget);
+    expect(find.text("Don't Trade in Funded Accounts"), findsOneWidget);
+    await tester.drag(find.byType(ListView).last, const Offset(0, -420));
+    await tester.pumpAndSettle();
+    expect(find.text('No Trade Zone'), findsOneWidget);
     await tester.drag(find.byType(ListView).last, const Offset(0, -900));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Choose Account Options'));
