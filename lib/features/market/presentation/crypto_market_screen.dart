@@ -447,8 +447,8 @@ class _SnapshotGrid extends StatelessWidget {
           supportingText: 'Live Binance volume',
           iconAsset: 'assets/crypto_market/cards/volume_coins.svg',
           chartAsset: 'assets/crypto_market/cards/volume_sparkline.svg',
-          accent: const Color(0xFF28A8FF),
-          gradient: const [Color(0xFF073B72), Color(0xFF0A1E34)],
+          accent: TradeXColors.gold,
+          gradient: const [TradeXColors.surfaceRaised, TradeXColors.surface],
         ),
         _MarketMetricCard(
           label: 'Average Change',
@@ -463,8 +463,8 @@ class _SnapshotGrid extends StatelessWidget {
               ? const Color(0xFF00E6A5)
               : const Color(0xFFFF4869),
           gradient: averageIsPositive
-              ? const [Color(0xFF064F4B), Color(0xFF082421)]
-              : const [Color(0xFF561629), Color(0xFF260E1A)],
+              ? const [TradeXColors.surfaceRaised, TradeXColors.surface]
+              : const [TradeXColors.surfaceRaised, TradeXColors.surface],
           trendUp: averageIsPositive,
         ),
         _MarketMetricCard(
@@ -474,7 +474,7 @@ class _SnapshotGrid extends StatelessWidget {
           iconAsset: 'assets/crypto_market/cards/gainers.svg',
           chartAsset: 'assets/crypto_market/cards/gainers_bars.svg',
           accent: const Color(0xFF00E6A5),
-          gradient: const [Color(0xFF064F4B), Color(0xFF082421)],
+          gradient: const [TradeXColors.surfaceRaised, TradeXColors.surface],
         ),
         _MarketMetricCard(
           label: 'Losers',
@@ -483,7 +483,7 @@ class _SnapshotGrid extends StatelessWidget {
           iconAsset: 'assets/crypto_market/cards/losers.svg',
           chartAsset: 'assets/crypto_market/cards/losers_bars.svg',
           accent: const Color(0xFFFF4869),
-          gradient: const [Color(0xFF561629), Color(0xFF260E1A)],
+          gradient: const [TradeXColors.surfaceRaised, TradeXColors.surface],
           trendUp: false,
         ),
       ],
@@ -942,7 +942,7 @@ class _CryptoTradeIdeaCard extends StatelessWidget {
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF132132), Color(0xFF0C151F)],
+                colors: [TradeXColors.surfaceRaised, TradeXColors.surface],
               ),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: directionColor.withValues(alpha: .35)),
@@ -1241,7 +1241,7 @@ class _CryptoSearchSuggestions extends StatelessWidget {
     decoration: BoxDecoration(
       color: const Color(0xFF0D1928),
       borderRadius: BorderRadius.circular(13),
-      border: Border.all(color: const Color(0xFF273A52)),
+      border: Border.all(color: TradeXColors.border),
       boxShadow: const [
         BoxShadow(
           color: Color(0x33000000),
@@ -1529,7 +1529,7 @@ class _CoinRow extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF102034), Color(0xFF0D1A2A)],
+              colors: [TradeXColors.surfaceRaised, TradeXColors.surface],
             ),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0xFF273A52)),
