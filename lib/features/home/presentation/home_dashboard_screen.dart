@@ -644,14 +644,15 @@ class _CompactServicesGrid extends StatelessWidget {
   }
 
   Color _serviceAccent(String group) => switch (group) {
-    'Home & Market' => const Color(0xFF39B9FF),
-    'Trade Ideas' => const Color(0xFFFFB83D),
-    'Journal & Tools' => const Color(0xFF22D89C),
-    'Copy Trading' => const Color(0xFF9B8CFF),
-    'Membership & Payments' => const Color(0xFFFF9A4D),
-    'Affiliate & Referrals' => const Color(0xFF48C9E8),
-    'Profile & Security' => const Color(0xFF7FA8FF),
-    _ => TradeXColors.goldBright,
+    'Home & Market' => TradeXColors.gold,
+    'Trade Ideas' => TradeXColors.goldBright,
+    'Journal & Tools' => TradeXColors.goldPale,
+    'Copy Trading' => TradeXColors.goldSoft,
+    'Membership & Payments' => TradeXColors.gold,
+    'Affiliate & Referrals' => TradeXColors.goldBright,
+    'Profile & Security' => TradeXColors.goldPale,
+    _ => TradeXColors.gold,
+
   };
 }
 
