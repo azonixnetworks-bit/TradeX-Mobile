@@ -49,6 +49,59 @@ abstract final class TradeXTheme {
       dividerColor: TradeXColors.border,
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
+      cardTheme: CardThemeData(
+        color: TradeXColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: TradeXColors.border),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: TradeXColors.gold,
+          foregroundColor: TradeXColors.onGold,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: TradeXColors.gold,
+          foregroundColor: TradeXColors.onGold,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: TradeXColors.goldBright,
+          side: const BorderSide(color: TradeXColors.goldOutline),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: TradeXColors.surfaceRaised,
+        hintStyle: const TextStyle(color: TradeXColors.secondaryText),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: TradeXColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: TradeXColors.gold, width: 1.4),
+        ),
+      ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: TradeXColors.goldBright,
+      ),
+      dividerTheme: const DividerThemeData(color: TradeXColors.border),
+      iconTheme: const IconThemeData(color: TradeXColors.gold),
+      tabBarTheme: const TabBarThemeData(
+        labelColor: TradeXColors.goldBright,
+        unselectedLabelColor: TradeXColors.secondaryText,
+        indicatorColor: TradeXColors.gold,
+      ),
     );
   }
 }
