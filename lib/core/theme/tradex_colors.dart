@@ -36,7 +36,7 @@ abstract final class TradeXGradients {
     colors: [
       Color(0xFF9B7327),
       TradeXColors.gold,
-      TradeXColors.goldPale,
+      TradeXColors.goldBright,
       TradeXColors.gold,
     ],
     stops: [0.0, 0.33, 0.62, 1.0],

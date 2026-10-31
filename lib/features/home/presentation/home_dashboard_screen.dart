@@ -646,13 +646,12 @@ class _CompactServicesGrid extends StatelessWidget {
   Color _serviceAccent(String group) => switch (group) {
     'Home & Market' => TradeXColors.gold,
     'Trade Ideas' => TradeXColors.goldBright,
-    'Journal & Tools' => TradeXColors.goldPale,
+    'Journal & Tools' => TradeXColors.goldBright,
     'Copy Trading' => TradeXColors.goldSoft,
     'Membership & Payments' => TradeXColors.gold,
     'Affiliate & Referrals' => TradeXColors.goldBright,
-    'Profile & Security' => TradeXColors.goldPale,
+    'Profile & Security' => TradeXColors.goldBright,
     _ => TradeXColors.gold,
-
   };
 }
 
