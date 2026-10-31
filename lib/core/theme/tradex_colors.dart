@@ -26,3 +26,31 @@ abstract final class TradeXColors {
   static const Color error = Color(0xFFFF7575);
   static const Color warning = Color(0xFFE6BF66);
 }
+
+/// Reusable luxury finishes. Keep gradients limited to hero surfaces,
+/// selected states and primary CTAs rather than every card.
+abstract final class TradeXGradients {
+  static const LinearGradient primaryGold = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF9B7327),
+      TradeXColors.gold,
+      TradeXColors.goldPale,
+      TradeXColors.gold,
+    ],
+    stops: [0.0, 0.33, 0.62, 1.0],
+  );
+
+  static const LinearGradient darkCard = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [TradeXColors.surfaceRaised, TradeXColors.surface],
+  );
+
+  static const LinearGradient selectedCard = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF2B2515), TradeXColors.surfaceRaised],
+  );
+}
