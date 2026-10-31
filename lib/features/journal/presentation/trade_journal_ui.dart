@@ -6,10 +6,10 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../data/trade_journal_models.dart';
 
-const journalPanel = Color(0xFF0C1723);
-const journalPanelRaised = Color(0xFF102033);
-const journalGreen = Color(0xFF21DB9A);
-const journalRed = Color(0xFFFF5D69);
+const journalPanel = Color(0xFF151D27);
+const journalPanelRaised = Color(0xFF1B2633);
+const journalGreen = Color(0xFF49D6A2);
+const journalRed = Color(0xFFFF7575);
 const journalBlue = Color(0xFF58A6FF);
 
 class JournalScaffold extends StatelessWidget {
@@ -32,9 +32,9 @@ class JournalScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFF06101A),
+    backgroundColor: const Color(0xFF0B1017),
     appBar: AppBar(
-      backgroundColor: const Color(0xFF07111C),
+      backgroundColor: const Color(0xFF111923),
       surfaceTintColor: Colors.transparent,
       titleSpacing: 0,
       title: Column(
@@ -549,7 +549,7 @@ class _JournalChartPainter extends CustomPainter {
         ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0x66FFC83D), Color(0x00FFC83D)],
+          colors: [Color(0x66D4AF37), Color(0x00D4AF37)],
         ).createShader(Offset.zero & size),
     );
     canvas.drawPath(

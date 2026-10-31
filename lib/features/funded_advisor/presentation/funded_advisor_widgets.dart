@@ -131,7 +131,7 @@ class FundedCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: gold
-              ? const [Color(0xFF1B180D), TradeXColors.surface]
+              ? const [TradeXColors.goldSoft, TradeXColors.surface]
               : const [TradeXColors.surfaceRaised, TradeXColors.surface],
         ),
         borderRadius: radius,
@@ -225,8 +225,8 @@ class FundedPrimaryButton extends StatelessWidget {
     child: FilledButton.icon(
       onPressed: onPressed,
       style: FilledButton.styleFrom(
-        backgroundColor: fundedGold,
-        foregroundColor: Colors.black,
+        backgroundColor: TradeXColors.gold,
+        foregroundColor: const Color(0xFF11151B),
         disabledBackgroundColor: TradeXColors.surfaceMuted,
         disabledForegroundColor: TradeXColors.tertiaryText,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

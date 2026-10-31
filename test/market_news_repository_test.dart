@@ -10,37 +10,31 @@ void main() {
 
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  test(
-    'stores Laravel economic events locally and reuses them all day',
-    () async {
-      final store = SecureSessionStore();
-      final api = _EconomicNewsApiClient(store, DeviceIdentity(store));
-      final repository = MarketNewsRepository(api);
-      final today = DateTime(2026, 10, 21, 8);
+  test('loads Laravel economic events and reuses a fresh local copy', () async {
+    final store = SecureSessionStore();
+    final api = _EconomicNewsApiClient(store, DeviceIdentity(store));
+    final repository = MarketNewsRepository(api);
+    final today = DateTime(2026, 10, 21, 8);
 
-      final first = await repository.today(now: today);
-      final second = await repository.today(now: DateTime(2026, 10, 21, 20));
+    final first = await repository.today(now: today);
+    final second = await repository.today(now: DateTime(2026, 10, 21, 20));
 
-      expect(api.paths, hasLength(1));
-      expect(
-        api.paths.single,
-        startsWith('/api/v1/economic-news/calendar?from='),
-      );
-      expect(api.paths.single, contains('&to='));
-      expect(api.paths.single, endsWith('&per_page=100'));
-      expect(first, hasLength(1));
-      expect(second, hasLength(1));
-      expect(first.single.title, 'US CPI');
-      expect(first.single.source, 'Trading Economics');
-      expect(first.single.impact, 'HIGH');
-      expect(first.single.bias, 'BEARISH');
-      expect(first.single.confidenceScore, 82);
-      expect(first.single.affectedPairs, ['EURUSD', 'XAUUSD']);
-      expect(first.single.previous, '2.7%');
-      expect(first.single.forecast, '2.8%');
-      expect(first.single.actual, '2.9%');
-    },
-  );
+    expect(api.paths, hasLength(1));
+    expect(api.paths.single, startsWith('/api/v1/economic-news/events?from='));
+    expect(api.paths.single, contains('&to='));
+    expect(api.paths.single, endsWith('&per_page=100'));
+    expect(first, hasLength(1));
+    expect(second, hasLength(1));
+    expect(first.single.title, 'US CPI');
+    expect(first.single.source, 'Trading Economics');
+    expect(first.single.impact, 'HIGH');
+    expect(first.single.bias, 'BEARISH');
+    expect(first.single.confidenceScore, 82);
+    expect(first.single.affectedPairs, ['EURUSD', 'XAUUSD']);
+    expect(first.single.previous, '2.7%');
+    expect(first.single.forecast, '2.8%');
+    expect(first.single.actual, '2.9%');
+  });
 
   test('force refresh loads news published later on the same day', () async {
     final store = SecureSessionStore();
@@ -50,14 +44,83 @@ void main() {
 
     expect(await repository.today(now: now), isEmpty);
     expect(await repository.today(now: now), isEmpty);
-    expect(api.calls, 1);
+    expect(api.calls, 4);
 
     api.published = true;
     final refreshed = await repository.today(now: now, forceRefresh: true);
 
-    expect(api.calls, 2);
+    expect(api.calls, 5);
     expect(refreshed.single.title, 'Published later');
   });
+
+  test('falls back to calendar when events endpoint has no rows', () async {
+    final store = SecureSessionStore();
+    final api = _CalendarFallbackApiClient(store, DeviceIdentity(store));
+    final repository = MarketNewsRepository(api);
+
+    final items = await repository.today(now: DateTime(2026, 10, 21, 8));
+
+    expect(api.paths, hasLength(2));
+    expect(api.paths.first, startsWith('/api/v1/economic-news/events?'));
+    expect(api.paths.last, startsWith('/api/v1/economic-news/calendar?'));
+    expect(items.single.title, 'Calendar fallback');
+  });
+
+  test('accepts a paginated data list response', () async {
+    final store = SecureSessionStore();
+    final api = _PaginatedEventsApiClient(store, DeviceIdentity(store));
+    final repository = MarketNewsRepository(api);
+
+    final items = await repository.today(now: DateTime(2026, 10, 21, 8));
+
+    expect(api.calls, 1);
+    expect(items.single.title, 'Paginated event');
+  });
+}
+
+class _CalendarFallbackApiClient extends TradeXApiClient {
+  _CalendarFallbackApiClient(super.sessionStore, super.deviceIdentity);
+
+  final List<String> paths = <String>[];
+
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async {
+    paths.add(path);
+    if (path.contains('/events?')) {
+      return <String, dynamic>{'data': <Map<String, dynamic>>[]};
+    }
+    return <String, dynamic>{
+      'data': <String, dynamic>{
+        'events': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'uuid': 'calendar-fallback',
+            'title': 'Calendar fallback',
+            'scheduled_at_utc': '2026-10-22T12:30:00Z',
+          },
+        ],
+      },
+    };
+  }
+}
+
+class _PaginatedEventsApiClient extends TradeXApiClient {
+  _PaginatedEventsApiClient(super.sessionStore, super.deviceIdentity);
+
+  int calls = 0;
+
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async {
+    calls++;
+    return <String, dynamic>{
+      'data': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'uuid': 'paginated-event',
+          'title': 'Paginated event',
+          'scheduled_at_utc': '2026-10-22T12:30:00Z',
+        },
+      ],
+    };
+  }
 }
 
 class _PublishLaterApiClient extends TradeXApiClient {

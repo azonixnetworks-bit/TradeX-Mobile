@@ -21,6 +21,7 @@ import '../../journal/data/trade_journal_repository.dart';
 import '../../journal/presentation/trade_journal_home_screen.dart';
 import '../../journal/presentation/trade_journal_insights_screens.dart';
 import '../../journal/presentation/trade_journal_trade_screens.dart';
+import '../../market/presentation/crypto_market_screen.dart';
 import '../../notifications/notification_dependencies.dart';
 import '../../notifications/presentation/notification_module.dart';
 import '../../risk_reward/presentation/risk_reward_module.dart';
@@ -72,6 +73,7 @@ Future<void> openTradeXFeature(
   final journal = TradeJournalRepository(apiClient);
   final workflow = switch (spec.id) {
     'economic-news' => EconomicNewsScreen(apiClient: apiClient),
+    'market-screener' => CryptoMarketScreen(apiClient: apiClient),
     'trade-journal' => TradeJournalHomeScreen(
       apiClient: apiClient,
       repository: journal,

@@ -324,14 +324,26 @@ class _TradeIdeaCard extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
               colors: [
+                Color(0xFF3A2B0A),
+                Color(0xFF211A08),
                 TradeXColors.surfaceRaised,
-                accent.withValues(alpha: .055),
               ],
             ),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: accent.withValues(alpha: .42)),
+            border: Border.all(
+              color: TradeXColors.goldBright.withValues(alpha: .58),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: TradeXColors.goldDeep.withValues(alpha: .14),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

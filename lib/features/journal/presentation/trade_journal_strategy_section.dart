@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-const _strategyBackground = Color(0xFF020C1B);
-const _strategySurface = Color(0xFF061A32);
-const _strategySurfaceRaised = Color(0xFF09213D);
-const _strategyBorder = Color(0xFF16436A);
-const _strategyGold = Color(0xFFFFC94D);
-const _strategyGreen = Color(0xFF00E6B0);
-const _strategyRed = Color(0xFFFF4658);
+const _strategyBackground = Color(0xFF0B1017);
+const _strategySurface = Color(0xFF151D27);
+const _strategySurfaceRaised = Color(0xFF1B2633);
+const _strategyBorder = Color(0xFF293342);
+const _strategyGold = Color(0xFFD4AF37);
+const _strategyGreen = Color(0xFF49D6A2);
+const _strategyRed = Color(0xFFFF7575);
 const _strategyBlue = Color(0xFF2499FF);
 const _strategyPurple = Color(0xFFC34DFF);
 const _strategyCyan = Color(0xFF00DDF3);
-const _strategyText = Color(0xFFF5F8FF);
-const _strategyMuted = Color(0xFFA8B9D3);
+const _strategyText = Color(0xFFF4F6F8);
+const _strategyMuted = Color(0xFFA9B3C2);
 
 class StrategyReasonSection extends StatelessWidget {
   const StrategyReasonSection({
@@ -328,13 +328,13 @@ class _TargetIcon extends StatelessWidget {
     decoration: BoxDecoration(
       shape: BoxShape.circle,
       gradient: const LinearGradient(
-        colors: [Color(0xFFFFE36A), Color(0xFFFFA812)],
+        colors: [Color(0xFFE4BD61), Color(0xFFD4AF37)],
       ),
       boxShadow: [
         BoxShadow(color: _strategyGold.withValues(alpha: .35), blurRadius: 16),
       ],
     ),
-    child: const Icon(Icons.adjust_rounded, color: Color(0xFF132138)),
+    child: const Icon(Icons.adjust_rounded, color: Color(0xFF11151B)),
   );
 }
 
@@ -864,7 +864,7 @@ class _AnimatedCheck extends StatelessWidget {
           ? const Icon(
               Icons.check_rounded,
               key: ValueKey('checked'),
-              color: Color(0xFF071523),
+              color: Color(0xFF11151B),
               size: 16,
             )
           : const SizedBox(key: ValueKey('unchecked')),
@@ -1197,7 +1197,7 @@ class SaveTradeButton extends StatelessWidget {
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
       gradient: const LinearGradient(
-        colors: [Color(0xFFFFE36A), Color(0xFFFFAF19)],
+        colors: [Color(0xFFE4BD61), Color(0xFFD4AF37)],
       ),
       borderRadius: BorderRadius.circular(15),
       boxShadow: [
@@ -1224,7 +1224,7 @@ class SaveTradeButton extends StatelessWidget {
                       key: ValueKey('saving'),
                       dimension: 20,
                       child: CircularProgressIndicator(
-                        color: Color(0xFF071523),
+                        color: Color(0xFF11151B),
                         strokeWidth: 2.2,
                       ),
                     )
@@ -1234,13 +1234,13 @@ class SaveTradeButton extends StatelessWidget {
                       children: [
                         const Icon(
                           Icons.save_rounded,
-                          color: Color(0xFF071523),
+                          color: Color(0xFF11151B),
                         ),
                         const SizedBox(width: 9),
                         Text(
                           label,
                           style: const TextStyle(
-                            color: Color(0xFF071523),
+                            color: Color(0xFF11151B),
                             fontSize: 15,
                             fontWeight: FontWeight.w900,
                           ),

@@ -5,18 +5,18 @@ import '../data/trade_journal_models.dart';
 import 'trade_journal_risk_psychology_sections.dart';
 import 'trade_journal_ui.dart';
 
-const closeTradeBackground = Color(0xFF020B1B);
-const closeTradeSurface = Color(0xFF061A32);
-const closeTradeRaised = Color(0xFF0A203D);
-const closeTradeBorder = Color(0xFF225186);
-const closeTradeGold = Color(0xFFFFC94D);
-const closeTradeGreen = Color(0xFF00D5A5);
-const closeTradeRed = Color(0xFFFF4658);
+const closeTradeBackground = Color(0xFF0B1017);
+const closeTradeSurface = Color(0xFF151D27);
+const closeTradeRaised = Color(0xFF1B2633);
+const closeTradeBorder = Color(0xFF293342);
+const closeTradeGold = Color(0xFFD4AF37);
+const closeTradeGreen = Color(0xFF49D6A2);
+const closeTradeRed = Color(0xFFFF7575);
 const closeTradePurple = Color(0xFFA94BFF);
 const closeTradeBlue = Color(0xFF248EFF);
 const closeTradeCyan = Color(0xFF18CEDC);
-const closeTradeText = Color(0xFFF5F8FF);
-const closeTradeMuted = Color(0xFF9EB3D1);
+const closeTradeText = Color(0xFFF4F6F8);
+const closeTradeMuted = Color(0xFFA9B3C2);
 
 class CloseTradeSummaryCard extends StatelessWidget {
   const CloseTradeSummaryCard({super.key, required this.entry});
@@ -43,15 +43,15 @@ class CloseTradeSummaryCard extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFFFFDC6F), closeTradeGold],
+                colors: [Color(0xFFE4BD61), closeTradeGold],
               ),
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: Color(0x55FFC94D), blurRadius: 14)],
+              boxShadow: [BoxShadow(color: Color(0x55D4AF37), blurRadius: 14)],
             ),
             child: Text(
               closeTradeSymbolInitials(entry.symbol),
               style: const TextStyle(
-                color: Color(0xFF19213A),
+                color: Color(0xFF11151B),
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
               ),
@@ -523,7 +523,7 @@ class MistakeSelectionChip extends StatelessWidget {
                 colors: [Color(0xFF7A2034), Color(0xFF2B1733)],
               )
             : const LinearGradient(
-                colors: [Color(0xFF0D2543), Color(0xFF07182E)],
+                colors: [Color(0xFF1B2633), Color(0xFF111923)],
               ),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
@@ -531,7 +531,7 @@ class MistakeSelectionChip extends StatelessWidget {
           width: selected ? 1.3 : .8,
         ),
         boxShadow: selected
-            ? const [BoxShadow(color: Color(0x33FF4658), blurRadius: 9)]
+            ? const [BoxShadow(color: Color(0x33FF7575), blurRadius: 9)]
             : null,
       ),
       child: Material(
@@ -729,14 +729,14 @@ class CloseTradeSaveButton extends StatelessWidget {
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(18),
       boxShadow: enabled
-          ? const [BoxShadow(color: Color(0x55FFC94D), blurRadius: 20)]
+          ? const [BoxShadow(color: Color(0x55D4AF37), blurRadius: 20)]
           : null,
     ),
     child: DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: enabled
-              ? const [Color(0xFFFFE169), closeTradeGold]
+              ? const [Color(0xFFE4BD61), closeTradeGold]
               : const [Color(0xFF4B5261), Color(0xFF383E49)],
         ),
         borderRadius: BorderRadius.circular(18),
@@ -747,7 +747,7 @@ class CloseTradeSaveButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: Colors.transparent,
           disabledBackgroundColor: Colors.transparent,
-          foregroundColor: const Color(0xFF07111F),
+          foregroundColor: const Color(0xFF11151B),
           disabledForegroundColor: closeTradeMuted,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
@@ -759,7 +759,7 @@ class CloseTradeSaveButton extends StatelessWidget {
                 dimension: 19,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.2,
-                  color: Color(0xFF07111F),
+                  color: Color(0xFF11151B),
                 ),
               )
             : const Icon(Icons.save_rounded, size: 22),
@@ -1059,7 +1059,7 @@ class _PremiumFieldShell extends StatelessWidget {
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF09213E), Color(0xFF06182D)],
+        colors: [Color(0xFF09213E), Color(0xFF151D27)],
       ),
       borderRadius: BorderRadius.circular(14),
       border: Border.all(color: closeTradeBorder.withValues(alpha: .75)),
@@ -1151,7 +1151,7 @@ class _ResultSegment extends StatelessWidget {
         gradient: selected
             ? LinearGradient(colors: [accent, accent.withValues(alpha: .72)])
             : null,
-        color: selected ? null : const Color(0xFF07172C),
+        color: selected ? null : const Color(0xFF111923),
         borderRadius: BorderRadius.circular(9),
         border: Border.all(color: selected ? accent : closeTradeMuted),
         boxShadow: selected
@@ -1169,7 +1169,7 @@ class _ResultSegment extends StatelessWidget {
               style: TextStyle(
                 color: selected
                     ? (accent == closeTradeGold
-                          ? const Color(0xFF101522)
+                          ? const Color(0xFF111923)
                           : closeTradeText)
                     : closeTradeText,
                 fontWeight: FontWeight.w800,
@@ -1208,7 +1208,7 @@ BoxDecoration _premiumDecoration({
   gradient: const LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF08213D), closeTradeSurface, Color(0xFF031329)],
+    colors: [Color(0xFF1B2633), closeTradeSurface, Color(0xFF0B1017)],
   ),
   borderRadius: BorderRadius.circular(radius),
   border: Border.all(
@@ -1224,7 +1224,7 @@ BoxDecoration _premiumDecoration({
 );
 
 BoxDecoration _inputBoxDecoration() => BoxDecoration(
-  color: const Color(0xFF07162B),
+  color: const Color(0xFF111923),
   borderRadius: BorderRadius.circular(11),
   border: Border.all(color: closeTradeMuted.withValues(alpha: .45)),
 );
@@ -1233,7 +1233,7 @@ InputDecoration _inputDecoration(String hint) => InputDecoration(
   hintText: hint,
   hintStyle: const TextStyle(color: Color(0xFF6F84A3)),
   filled: true,
-  fillColor: const Color(0xFF07162B),
+  fillColor: const Color(0xFF111923),
   contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
   isDense: true,
   border: OutlineInputBorder(

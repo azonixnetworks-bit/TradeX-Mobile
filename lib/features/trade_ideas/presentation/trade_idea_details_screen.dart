@@ -692,18 +692,32 @@ class _PrimaryActions extends StatelessWidget {
   final TradeIdeaDataSource repository;
   @override
   Widget build(BuildContext context) {
-    final raw = detail.summary.tradingViewUrl;
+    final idea = detail.summary;
+    final symbol = const TradeIdeaTradingViewSymbolResolver().resolve(
+      category: idea.category,
+      symbol: idea.symbol,
+      marketRegion: idea.marketRegion,
+    );
+    final interval = tradeIdeaTradingViewInterval(idea.timeframe);
     return Row(
       children: [
         Expanded(
           flex: 3,
           child: FilledButton.icon(
-            onPressed: isSafeTradingViewAnalysisUrl(raw)
-                ? () => launchUrl(
-                    Uri.parse(raw!),
-                    mode: LaunchMode.externalApplication,
-                  )
-                : null,
+            key: const ValueKey('open-tradingview-in-app'),
+            onPressed: symbol == null
+                ? null
+                : () => Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      settings: const RouteSettings(
+                        name: '/trade-ideas/tradingview',
+                      ),
+                      builder: (_) => TradingViewChartScreen.qualified(
+                        qualifiedSymbol: symbol,
+                        interval: interval,
+                      ),
+                    ),
+                  ),
             style: FilledButton.styleFrom(
               backgroundColor: TradeXColors.goldBright,
               foregroundColor: Colors.black,

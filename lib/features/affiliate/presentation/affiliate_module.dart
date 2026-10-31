@@ -22,6 +22,7 @@ const _muted = TradeXColors.secondaryText;
 const _purple = Color(0xFFA855F7);
 
 abstract final class _AffiliateAssets {
+  static const brandLogo = 'assets/branding/trade_x_final_logo.png';
   static const gift = 'assets/affiliate/illustrations/gift_gold.png';
   static const money = 'assets/affiliate/illustrations/money_gold.png';
   static const crown = 'assets/affiliate/illustrations/crown_gold.png';
@@ -431,17 +432,12 @@ class AffiliateScaffold extends StatelessWidget {
             ),
             if (!dashboardHeader && showBrand) ...[
               const SizedBox(width: 6),
-              const Text(
-                'Trade',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
-              ),
-              const Text(
-                'X',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: _gold,
-                ),
+              Image.asset(
+                _AffiliateAssets.brandLogo,
+                width: 50,
+                height: 50,
+                fit: BoxFit.contain,
+                semanticLabel: 'TradeX logo',
               ),
             ],
             const Spacer(),

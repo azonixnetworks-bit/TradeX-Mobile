@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tradex_mobile/core/auth/secure_session_store.dart';
 import 'package:tradex_mobile/core/device/device_identity.dart';
 import 'package:tradex_mobile/core/network/tradex_api_client.dart';
@@ -7,6 +8,7 @@ import 'package:tradex_mobile/core/theme/tradex_theme.dart';
 import 'package:tradex_mobile/features/catalog/models/feature_spec.dart';
 import 'package:tradex_mobile/features/catalog/presentation/feature_catalog_screen.dart';
 import 'package:tradex_mobile/features/catalog/presentation/secure_workflow_screens.dart';
+import 'package:tradex_mobile/features/market/presentation/crypto_market_screen.dart';
 
 void main() {
   test('catalog contains every planned missing screen exactly once', () {
@@ -77,6 +79,31 @@ void main() {
     }
   });
 
+  testWidgets('market screener opens the live market screen', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final client = _CatalogApiClient();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => openTradeXFeature(
+              context,
+              client,
+              featureById('market-screener'),
+            ),
+            child: const Text('Open screener'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open screener'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CryptoMarketScreen), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('prepared bank payment shows backend transfer instructions', (
     tester,
   ) async {
@@ -142,4 +169,17 @@ void main() {
     );
     await tester.pumpWidget(const SizedBox.shrink());
   });
+}
+
+class _CatalogApiClient extends TradeXApiClient {
+  _CatalogApiClient()
+    : super(SecureSessionStore(), DeviceIdentity(SecureSessionStore()));
+
+  @override
+  Future<String?> currentAccountStorageKey() async => 'test-account';
+
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async => const {
+    'data': <String, dynamic>{},
+  };
 }

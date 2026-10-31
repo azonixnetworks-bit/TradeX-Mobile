@@ -1263,7 +1263,7 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF020B1B), Color(0xFF031222)],
+          colors: [Color(0xFF0B1017), Color(0xFF0B1017)],
         ),
       ),
       child: FutureBuilder<({TradeJournalMeta meta, TradeJournalEntry entry})>(
@@ -1719,7 +1719,7 @@ class _TradeJournalScreenshotsScreenState
           width: double.infinity,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: const Color(0xFF07111C),
+            color: const Color(0xFF111923),
             borderRadius: BorderRadius.circular(13),
             border: Border.all(color: Colors.white.withValues(alpha: .08)),
           ),
@@ -1932,7 +1932,7 @@ class _PickerTile extends StatelessWidget {
     child: Ink(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF091522),
+        color: const Color(0xFF111923),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withValues(alpha: .09)),
       ),

@@ -1,3 +1,4 @@
+import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/preferences/app_preferences.dart';
 
@@ -9,7 +10,29 @@ class LearnRepository {
   final TradeXApiClient _api;
   TradeXApiClient get apiClient => _api;
 
-  Future<JsonMap> overview() => _data('/api/v1/education/overview');
+  Future<JsonMap> overview() async {
+    try {
+      return await _data('/api/v1/education/overview');
+    } on ApiException catch (error) {
+      if ((error.statusCode ?? 0) < 500) rethrow;
+
+      // The home dashboard already carries the same learning summary. Keep the
+      // Learn tab usable when the dedicated overview endpoint is temporarily
+      // unavailable, without masking authentication or connectivity failures.
+      final dashboard = await _data('/api/v1/dashboard');
+      final learning = map(dashboard['learning']);
+      if (learning.isEmpty) rethrow;
+
+      return <String, dynamic>{
+        'is_premium': learning['is_premium'] ?? dashboard['is_premium'],
+        'learning': learning,
+        'featured_courses': list(
+          dashboard['featured_courses'] ?? learning['featured_courses'],
+        ),
+      };
+    }
+  }
+
   Future<JsonMap> languages() => _data('/api/v1/languages');
 
   Future<void> updateLanguage(String languageCode) async {

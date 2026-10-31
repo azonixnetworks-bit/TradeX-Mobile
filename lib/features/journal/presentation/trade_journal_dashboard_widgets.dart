@@ -5,16 +5,16 @@ import 'package:flutter/material.dart';
 import '../data/trade_journal_models.dart';
 import 'trade_journal_ui.dart';
 
-const _dashboardBackground = Color(0xFF020B1B);
-const _dashboardSurface = Color(0xFF061A32);
-const _dashboardSurfaceRaised = Color(0xFF09213D);
-const _dashboardBorder = Color(0xFF225186);
-const _dashboardGold = Color(0xFFFFC94D);
-const _dashboardGreen = Color(0xFF00D5A5);
-const _dashboardRed = Color(0xFFFF4658);
+const _dashboardBackground = Color(0xFF0B1017);
+const _dashboardSurface = Color(0xFF151D27);
+const _dashboardSurfaceRaised = Color(0xFF1B2633);
+const _dashboardBorder = Color(0xFF293342);
+const _dashboardGold = Color(0xFFD4AF37);
+const _dashboardGreen = Color(0xFF49D6A2);
+const _dashboardRed = Color(0xFFFF7575);
 const _dashboardBlue = Color(0xFF248EFF);
-const _dashboardText = Color(0xFFF5F8FF);
-const _dashboardMuted = Color(0xFF9EB3D1);
+const _dashboardText = Color(0xFFF4F6F8);
+const _dashboardMuted = Color(0xFFA9B3C2);
 
 class JournalPeriodSelector extends StatelessWidget {
   const JournalPeriodSelector({
@@ -718,7 +718,7 @@ class SymbolAvatar extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFFDD6B), _dashboardGold],
+          colors: [Color(0xFFE4BD61), _dashboardGold],
         ),
         shape: BoxShape.circle,
         boxShadow: [
@@ -1169,7 +1169,7 @@ class _EquityCurvePainter extends CustomPainter {
         ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0x4400D5A5), Color(0x1100D5A5), Color(0x22FF4658)],
+          colors: [Color(0x4449D6A2), Color(0x1149D6A2), Color(0x22FF7575)],
         ).createShader(Offset.zero & size),
     );
     for (var index = 1; index < points.length; index++) {

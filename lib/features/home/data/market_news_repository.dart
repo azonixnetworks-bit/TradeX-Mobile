@@ -8,7 +8,8 @@ import '../domain/no_trade_zone_warning.dart';
 class MarketNewsRepository {
   const MarketNewsRepository(this._apiClient);
 
-  static const _dailyCacheKey = 'tradex.economic_news.upcoming.v3';
+  static const _dailyCacheKey = 'tradex.economic_news.upcoming.v4';
+  static const _cacheFreshFor = Duration(minutes: 5);
   static final Map<String, Future<List<MarketNewsItem>>> _inFlightByDay = {};
 
   final TradeXApiClient _apiClient;
@@ -29,8 +30,11 @@ class MarketNewsRepository {
     final day = _dayKey(localNow);
     final preferences = await SharedPreferences.getInstance();
     final cached = _readCache(preferences.getString(_dailyCacheKey));
-    if (!forceRefresh && cached?.day == day) {
-      return _parseUpcomingEvents(cached!.events, localNow, cached.savedAt);
+    if (!forceRefresh &&
+        cached?.day == day &&
+        cached!.events.isNotEmpty &&
+        DateTime.now().toUtc().difference(cached.savedAt) < _cacheFreshFor) {
+      return _parseUpcomingEvents(cached.events, localNow, cached.savedAt);
     }
 
     final requestKey = forceRefresh ? '$day:refresh' : day;
@@ -67,17 +71,26 @@ class MarketNewsRepository {
     );
 
     try {
-      final response = await _apiClient.getJson(
-        '/api/v1/economic-news/calendar?from=$from&to=$to&per_page=100',
-      );
-      final data = response['data'];
-      final rawEvents = data is Map ? data['events'] : null;
-      final events = rawEvents is List
-          ? rawEvents
-                .whereType<Map>()
-                .map((event) => Map<String, dynamic>.from(event))
-                .toList(growable: false)
-          : <Map<String, dynamic>>[];
+      var events = <Map<String, dynamic>>[];
+      Object? lastError;
+      StackTrace? lastStackTrace;
+      var receivedResponse = false;
+      for (final endpoint in const ['events', 'calendar']) {
+        try {
+          final response = await _apiClient.getJson(
+            '/api/v1/economic-news/$endpoint?from=$from&to=$to&per_page=100',
+          );
+          receivedResponse = true;
+          events = _eventMaps(response);
+          if (events.isNotEmpty) break;
+        } catch (error, stackTrace) {
+          lastError = error;
+          lastStackTrace = stackTrace;
+        }
+      }
+      if (!receivedResponse && lastError != null) {
+        Error.throwWithStackTrace(lastError, lastStackTrace!);
+      }
       final savedAt = DateTime.now().toUtc();
       await preferences.setString(
         _dailyCacheKey,
@@ -94,6 +107,20 @@ class MarketNewsRepository {
       }
       rethrow;
     }
+  }
+
+  static List<Map<String, dynamic>> _eventMaps(Map<String, dynamic> response) {
+    Object? payload = response['data'];
+    if (payload is Map) {
+      payload = payload['events'] ?? payload['items'] ?? payload['data'];
+    }
+    payload ??= response['events'] ?? response['items'];
+    if (payload is Map) payload = payload['data'];
+    if (payload is! List) return const [];
+    return payload
+        .whereType<Map>()
+        .map((event) => Map<String, dynamic>.from(event))
+        .toList(growable: false);
   }
 
   static List<MarketNewsItem> _parseUpcomingEvents(

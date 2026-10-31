@@ -88,6 +88,31 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('referrals header uses the official TradeX logo asset', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: const AffiliateScaffold(
+          title: 'My Referrals',
+          subtitle: 'Your direct referral network and qualified sales.',
+          child: SizedBox.shrink(),
+        ),
+      ),
+    );
+
+    expect(find.bySemanticsLabel('TradeX logo'), findsOneWidget);
+    final logo = tester.widget<Image>(find.byType(Image));
+    expect(
+      (logo.image as AssetImage).assetName,
+      'assets/branding/trade_x_final_logo.png',
+    );
+    expect(find.text('Trade'), findsNothing);
+    expect(find.text('X'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   test('technical API routes are never exposed as customer messages', () {
     const error = ApiException(
       message: 'The route api/v1/affiliate/earnings-series was not found.',

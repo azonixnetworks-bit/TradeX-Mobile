@@ -1,9 +1,13 @@
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tradex_mobile/core/network/api_exception.dart';
 import 'package:tradex_mobile/features/trade_ideas/data/trade_idea_repository.dart';
 import 'package:tradex_mobile/features/trade_ideas/models/trade_idea_models.dart';
 import 'package:tradex_mobile/features/trade_ideas/presentation/bloc/trade_idea_details_cubit.dart';
+import 'package:tradex_mobile/features/trade_ideas/presentation/trade_idea_details_screen.dart';
+import 'package:tradex_mobile/features/market/presentation/trading_view_chart_screen.dart';
 
 void main() {
   const uuid = '123e4567-e89b-42d3-a456-426614174000';
@@ -33,6 +37,64 @@ void main() {
     expect(cubit.state.reactionMessage, isNotNull);
     await cubit.close();
   });
+
+  testWidgets('Open TradingView pushes the internal landscape chart', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final observer = _RecordingNavigatorObserver();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorObservers: [observer],
+        home: TradeIdeaDetailsScreen(
+          repository: _NavigationSource(),
+          uuid: uuid,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final buttonFinder = find.byKey(const ValueKey('open-tradingview-in-app'));
+    expect(buttonFinder, findsOneWidget);
+    final button = tester.widget<FilledButton>(buttonFinder);
+    expect(button.onPressed, isNotNull);
+
+    observer.routes.clear();
+    button.onPressed!();
+
+    expect(observer.routes, hasLength(1));
+    final route = observer.routes.single as MaterialPageRoute<void>;
+    expect(route.settings.name, '/trade-ideas/tradingview');
+    final destination = route.builder(tester.element(buttonFinder));
+    expect(destination, isA<TradingViewChartScreen>());
+    final chart = destination as TradingViewChartScreen;
+    expect(chart.qualifiedSymbol, 'OANDA:XAUUSD');
+    expect(chart.interval, '60');
+  });
+}
+
+class _RecordingNavigatorObserver extends NavigatorObserver {
+  final routes = <Route<dynamic>>[];
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    routes.add(route);
+    super.didPush(route, previousRoute);
+  }
+}
+
+class _NavigationSource extends _FakeSource {
+  @override
+  Future<Uint8List> analysisChart(String uuid) {
+    throw const ApiException(
+      message: 'Analysis chart is unavailable.',
+      statusCode: 404,
+    );
+  }
 }
 
 class _FakeSource implements TradeIdeaDataSource {

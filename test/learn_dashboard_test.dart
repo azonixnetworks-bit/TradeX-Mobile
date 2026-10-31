@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tradex_mobile/core/auth/secure_session_store.dart';
 import 'package:tradex_mobile/core/device/device_identity.dart';
+import 'package:tradex_mobile/core/network/api_exception.dart';
 import 'package:tradex_mobile/core/network/tradex_api_client.dart';
 import 'package:tradex_mobile/core/preferences/app_preferences.dart';
 import 'package:tradex_mobile/core/theme/tradex_theme.dart';
@@ -61,6 +62,29 @@ void main() {
     expect(find.text('Featured Trading Course'), findsOneWidget);
     expect(find.text('35%'), findsOneWidget);
     expect(find.text('7 of 20 lessons completed'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('learn dashboard falls back when overview service returns 500', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final api = _OverviewFailureLearnApiClient();
+
+    await tester.pumpWidget(_subject(api));
+    await tester.pumpAndSettle();
+
+    expect(api.requestedPaths, [
+      '/api/v1/education/overview',
+      '/api/v1/dashboard',
+      '/api/v1/education/my-learning?view=SAVED&per_page=30',
+    ]);
+    expect(find.text('Learn.'), findsOneWidget);
+    expect(find.text('Market Structure Mastery'), findsOneWidget);
+    expect(find.text('Server Error'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -321,4 +345,27 @@ class _LearnApiClient extends TradeXApiClient {
     'is_locked': false,
     'progress': {'total_lessons': 24, 'completed_lessons': 6, 'percent': 25},
   };
+}
+
+class _OverviewFailureLearnApiClient extends _LearnApiClient {
+  final requestedPaths = <String>[];
+
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async {
+    requestedPaths.add(path);
+    if (path == '/api/v1/education/overview') {
+      throw const ApiException(message: 'Server Error', statusCode: 500);
+    }
+    if (path == '/api/v1/dashboard') {
+      final overview = _LearnApiClient._overview();
+      return {
+        'data': {
+          'learning': overview['learning'],
+          'is_premium': overview['is_premium'],
+          'featured_courses': overview['featured_courses'],
+        },
+      };
+    }
+    return super.getJson(path);
+  }
 }
