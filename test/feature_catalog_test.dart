@@ -12,10 +12,10 @@ import 'package:tradex_mobile/features/market/presentation/crypto_market_screen.
 
 void main() {
   test('catalog contains every planned missing screen exactly once', () {
-    expect(tradeXFeatureSpecs, hasLength(40));
+    expect(tradeXFeatureSpecs, hasLength(41));
     expect(
       tradeXFeatureSpecs.map((feature) => feature.id).toSet(),
-      hasLength(40),
+      hasLength(41),
     );
   });
 
