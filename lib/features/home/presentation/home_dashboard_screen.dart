@@ -50,6 +50,8 @@ part 'home_dashboard/live_trade_ideas_section.dart';
 part 'home_dashboard/latest_content_section.dart';
 part 'home_dashboard/dashboard_tabs.dart';
 part 'home_dashboard/profile_tab.dart';
+part 'home_dashboard/profile_tab_state.dart';
+part 'home_dashboard/profile_tab_models.dart';
 part 'home_dashboard/learning_tab_widgets.dart';
 part 'home_dashboard/trade_ideas_tab_widgets.dart';
 part 'home_dashboard/affiliate_tab_widgets.dart';
