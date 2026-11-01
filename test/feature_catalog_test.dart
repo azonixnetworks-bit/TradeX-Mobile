@@ -170,6 +170,28 @@ void main() {
     );
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('checkout includes enabled manual bank and USDT accounts', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: PaymentCheckoutScreen(
+          apiClient: _ManualPaymentCatalogApiClient(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Stripe'), findsWidgets);
+    expect(find.textContaining('Local bank deposit'), findsOneWidget);
+    expect(find.textContaining('USDT manual deposit'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class _CatalogApiClient extends TradeXApiClient {
@@ -183,4 +205,52 @@ class _CatalogApiClient extends TradeXApiClient {
   Future<Map<String, dynamic>> getJson(String path) async => const {
     'data': <String, dynamic>{},
   };
+}
+
+class _ManualPaymentCatalogApiClient extends _CatalogApiClient {
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async {
+    if (path == '/api/v1/payments/methods') {
+      return const {
+        'data': {
+          'purchase_allowed': true,
+          'product': {
+            'name': 'Education Premium',
+            'base_price': {'currency': 'USD', 'amount': '79.00'},
+          },
+          'methods': [
+            {
+              'code': 'stripe',
+              'display_name': 'Stripe',
+              'available': true,
+              'mode': 'REDIRECT',
+              'amount': {'currency': 'USD', 'amount': '79.00'},
+            },
+          ],
+        },
+      };
+    }
+    if (path == '/api/v1/payments/manual-accounts') {
+      return const {
+        'data': {
+          'accounts': [
+            {
+              'uuid': 'bank-account',
+              'type': 'BANK',
+              'display_name': 'TradeX local bank',
+              'tender': {'currency': 'LKR', 'amount': '25000.00'},
+            },
+            {
+              'uuid': 'usdt-account',
+              'type': 'CRYPTO',
+              'coin': 'USDT',
+              'display_name': 'TradeX USDT TRC20',
+              'tender': {'currency': 'USDT', 'amount': '79.00'},
+            },
+          ],
+        },
+      };
+    }
+    return super.getJson(path);
+  }
 }

@@ -47,6 +47,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
         '/api/v1/payments/manual-accounts',
       );
       accounts = _listOfMaps(_map(accountsResponse['data'])['accounts']);
+      _addMissingManualMethods(methods, accounts);
     } on UserFacingException {
       // Online redirect methods remain usable if no manual account is enabled.
     }
@@ -99,7 +100,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
           if (candidate['code']?.toString() == _provider) method = candidate;
         }
         method ??= methods.isEmpty ? null : methods.first;
-        final manual = method?['mode']?.toString() == 'MANUAL_REVIEW';
+        final manual = method != null && _isManualMethod(method);
         final accounts = manual
             ? _matchingAccounts(_listOfMaps(data['accounts']), _provider ?? '')
             : const <Map<String, dynamic>>[];
@@ -233,7 +234,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
     setState(() => _working = true);
     try {
       final code = (method['code']?.toString() ?? '').toLowerCase();
-      if (method['mode']?.toString() == 'MANUAL_REVIEW') {
+      if (_isManualMethod(method)) {
         final response = await widget.apiClient.postJsonWithHeaders(
           '/api/v1/payments/manual-orders',
           {'receiving_account_uuid': _receivingAccount},
@@ -349,6 +350,60 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
       return type.contains('crypto');
     }).toList();
   }
+
+  void _addMissingManualMethods(
+    List<Map<String, dynamic>> methods,
+    List<Map<String, dynamic>> accounts,
+  ) {
+    final existingCodes = methods
+        .map((method) => method['code']?.toString().toLowerCase() ?? '')
+        .toSet();
+    var hasBankMethod = existingCodes.any((code) => code.contains('bank'));
+    var hasUsdtMethod = existingCodes.any((code) => code.contains('usdt'));
+
+    void addMethod({
+      required String code,
+      required String displayName,
+      required Map<String, dynamic> account,
+    }) {
+      if (existingCodes.contains(code) ||
+          (code.contains('bank') && hasBankMethod) ||
+          (code.contains('usdt') && hasUsdtMethod)) {
+        return;
+      }
+      methods.add({
+        'code': code,
+        'display_name': displayName,
+        'mode': 'MANUAL_REVIEW',
+        'available': true,
+        'amount': account['tender'],
+      });
+      existingCodes.add(code);
+      if (code.contains('bank')) hasBankMethod = true;
+      if (code.contains('usdt')) hasUsdtMethod = true;
+    }
+
+    for (final account in accounts) {
+      final type = account['type']?.toString().toLowerCase() ?? '';
+      final coin = account['coin']?.toString().toLowerCase() ?? '';
+      if (type.contains('bank')) {
+        addMethod(
+          code: 'local_bank',
+          displayName: 'Local bank deposit',
+          account: account,
+        );
+      } else if (type.contains('crypto') && coin == 'usdt') {
+        addMethod(
+          code: 'usdt_manual',
+          displayName: 'USDT manual deposit',
+          account: account,
+        );
+      }
+    }
+  }
+
+  bool _isManualMethod(Map<String, dynamic> method) =>
+      method['mode']?.toString().toUpperCase() == 'MANUAL_REVIEW';
 
   Map<String, dynamic> _map(Object? value) =>
       value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
