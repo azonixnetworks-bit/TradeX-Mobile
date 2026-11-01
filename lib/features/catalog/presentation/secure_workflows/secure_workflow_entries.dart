@@ -2,7 +2,7 @@ part of '../secure_workflow_screens.dart';
 
 class BrokerConnectionScreen extends StatefulWidget {
   const BrokerConnectionScreen({super.key, required this.apiClient});
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
 
   @override
   State<BrokerConnectionScreen> createState() => _BrokerConnectionScreenState();
@@ -11,7 +11,7 @@ class BrokerConnectionScreen extends StatefulWidget {
 class CopyTradeDashboardScreen extends StatefulWidget {
   const CopyTradeDashboardScreen({super.key, required this.apiClient});
 
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
 
   @override
   State<CopyTradeDashboardScreen> createState() =>
@@ -24,7 +24,7 @@ class PaymentCheckoutScreen extends StatefulWidget {
     required this.apiClient,
     this.productUuid,
   });
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
   final String? productUuid;
 
   @override

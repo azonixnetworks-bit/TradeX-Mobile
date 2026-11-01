@@ -6,6 +6,8 @@ import '../features/auth/data/auth_repository.dart';
 import '../features/auth/data/password_recovery_repository.dart';
 import '../features/auth/data/registration_repository.dart';
 import '../features/auth/presentation/session_gate.dart';
+import '../features/auth/domain/services/quick_unlock_service.dart';
+import '../features/auth/data/services/session_security_state_impl.dart';
 import 'connectivity_observer.dart';
 import '../core/network/app_messenger.dart';
 import '../core/network/tradex_api_client.dart';
@@ -72,6 +74,8 @@ class TradeXApp extends StatelessWidget {
               apiClient: apiClient,
               tradeIdeasRepository: tradeIdeasRepository,
               learningRepository: learningRepository,
+              quickUnlockService: QuickUnlockServiceRegistry.current,
+              securityState: const SessionSecurityStateImpl(),
             ),
           ),
         ),

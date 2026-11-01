@@ -11,11 +11,12 @@ import '../auth/auth_session.dart';
 import '../auth/secure_session_store.dart';
 import '../config/tradex_api_config.dart';
 import '../device/device_identity.dart';
+import '../domain/api_gateway.dart';
 import '../offline/offline_cache_store.dart';
 import 'api_exception.dart';
 import 'app_messenger.dart';
 
-class TradeXApiClient {
+class TradeXApiClient implements ApiGateway {
   TradeXApiClient(
     this._sessionStore,
     this._deviceIdentity, {
@@ -52,6 +53,7 @@ class TradeXApiClient {
     return session == null ? null : _accountKey(session);
   }
 
+  @override
   Future<void> clearOfflineData() async {
     final session = await _sessionStore.readSession();
     if (session != null) {
@@ -103,6 +105,7 @@ class TradeXApiClient {
     }
   }
 
+  @override
   Future<Map<String, dynamic>> publicPost(
     String path,
     Map<String, dynamic> body,
@@ -114,6 +117,7 @@ class TradeXApiClient {
     retryAfterRefresh: false,
   );
 
+  @override
   Future<Map<String, dynamic>> getJson(String path) => _send(
     method: 'GET',
     path: path,
@@ -126,6 +130,7 @@ class TradeXApiClient {
   /// This is intentionally different from the normal network-first GET. It is
   /// used by data-heavy screens that must open instantly and remain available
   /// offline. A manual refresh can still call [getJson] to fetch the server.
+  @override
   Future<Map<String, dynamic>> getJsonCacheFirst(String path) async {
     final session = await _sessionStore.readSession();
     if (session != null && _isCacheable(path)) {
@@ -169,6 +174,7 @@ class TradeXApiClient {
     );
   }
 
+  @override
   Future<Uint8List> getBytes(String path) async {
     AuthSession? session = await _sessionStore.readSession();
     if (session == null) {
@@ -220,6 +226,7 @@ class TradeXApiClient {
     return Uint8List.fromList(response.data as List<int>);
   }
 
+  @override
   Future<Map<String, dynamic>> postJson(
     String path,
     Map<String, dynamic> body,
@@ -231,6 +238,7 @@ class TradeXApiClient {
     retryAfterRefresh: true,
   );
 
+  @override
   Future<Map<String, dynamic>> postJsonWithHeaders(
     String path,
     Map<String, dynamic> body,
@@ -244,6 +252,7 @@ class TradeXApiClient {
     headers: headers,
   );
 
+  @override
   Future<Map<String, dynamic>> postMultipart(
     String path,
     Map<String, dynamic> fields,
@@ -306,6 +315,7 @@ class TradeXApiClient {
     return _decodeResponse(response);
   }
 
+  @override
   Future<Map<String, dynamic>> putJson(
     String path,
     Map<String, dynamic> body,
@@ -317,6 +327,7 @@ class TradeXApiClient {
     retryAfterRefresh: true,
   );
 
+  @override
   Future<Map<String, dynamic>> patchJson(
     String path,
     Map<String, dynamic> body,
@@ -328,6 +339,7 @@ class TradeXApiClient {
     retryAfterRefresh: true,
   );
 
+  @override
   Future<Map<String, dynamic>> deleteJson(String path) => _send(
     method: 'DELETE',
     path: path,

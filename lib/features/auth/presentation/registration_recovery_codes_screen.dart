@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/tradex_colors.dart';
-import '../models/registration_session.dart';
+import '../domain/entities/registration_session.dart';
 import 'widgets/auth_form_components.dart';
 
 class RegistrationRecoveryCodesScreen extends StatelessWidget {

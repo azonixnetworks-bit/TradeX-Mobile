@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/network/tradex_api_client.dart';
+import '../../../core/domain/api_gateway.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../../catalog/presentation/secure_workflow_screens.dart';
 
@@ -13,7 +13,7 @@ class MobileNumberDetailsScreen extends StatelessWidget {
     required this.telegramUsername,
   });
 
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
   final String number;
   final bool verified;
   final String telegramUsername;

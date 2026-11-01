@@ -8,10 +8,15 @@ import 'core/device/device_identity.dart';
 import 'core/network/tradex_api_client.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/auth/data/password_recovery_repository.dart';
+import 'features/auth/data/services/quick_unlock_service_impl.dart';
+import 'features/auth/domain/services/quick_unlock_service.dart';
 import 'features/auth/data/registration_repository.dart';
 import 'features/home/data/trade_ideas_repository.dart';
 import 'features/home/data/learning_repository.dart';
 import 'core/preferences/app_preferences.dart';
+import 'features/catalog/catalog_dependencies.dart';
+import 'features/profile/profile_dependencies.dart';
+import 'features/secure_workflows/secure_workflow_dependencies.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +33,10 @@ Future<void> main() async {
     sessionStore,
     deviceIdentity,
   );
+  QuickUnlockServiceRegistry.configure(QuickUnlockServiceImpl(sessionStore));
+  ProfileDependenciesRegistry.configure(ProfileDependencies(apiClient));
+  CatalogDependenciesRegistry.configure(CatalogDependencies(apiClient));
+  SecureWorkflowDependencies.configure();
 
   final registrationRepository = RegistrationRepository(apiClient);
 

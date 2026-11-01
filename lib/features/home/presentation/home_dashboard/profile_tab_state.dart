@@ -114,8 +114,11 @@ class _ProfileTabState extends State<_ProfileTab> {
   Future<bool> _openWithdrawal(WithdrawalMethod method) async {
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
-        builder: (_) =>
-            WithdrawalMethodScreen(apiClient: widget.apiClient, method: method),
+        builder: (_) => WithdrawalMethodScreen(
+          apiClient: widget.apiClient,
+          draftStore: ProfileDependenciesRegistry.current.withdrawalDraftStore,
+          method: method,
+        ),
       ),
     );
     if (saved == true && mounted) _refresh();
@@ -125,8 +128,10 @@ class _ProfileTabState extends State<_ProfileTab> {
   Future<void> _openQuickUnlockSettings() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) =>
-            QuickUnlockSettingsScreen(repository: widget.authRepository),
+        builder: (_) => QuickUnlockSettingsScreen(
+          repository: widget.authRepository,
+          quickUnlockService: QuickUnlockServiceRegistry.current,
+        ),
       ),
     );
     if (mounted) _refresh();

@@ -7,6 +7,7 @@ import 'package:tradex_mobile/core/network/tradex_api_client.dart';
 import 'package:tradex_mobile/core/theme/tradex_theme.dart';
 import 'package:tradex_mobile/features/catalog/models/feature_spec.dart';
 import 'package:tradex_mobile/features/catalog/presentation/feature_catalog_screen.dart';
+import 'package:tradex_mobile/features/catalog/catalog_dependencies.dart';
 import 'package:tradex_mobile/features/catalog/presentation/secure_workflow_screens.dart';
 import 'package:tradex_mobile/features/market/presentation/crypto_market_screen.dart';
 
@@ -49,7 +50,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: TradeXTheme.dark,
-          home: FeatureCatalogScreen(apiClient: client),
+          home: FeatureCatalogScreen(dependencies: CatalogDependencies(client)),
         ),
       );
       expect(find.text('TradeX Services'), findsOneWidget);
@@ -88,7 +89,7 @@ void main() {
           builder: (context) => TextButton(
             onPressed: () => openTradeXFeature(
               context,
-              client,
+              CatalogDependencies(client),
               featureById('market-screener'),
             ),
             child: const Text('Open screener'),

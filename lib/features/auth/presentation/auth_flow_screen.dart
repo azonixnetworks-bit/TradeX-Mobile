@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/auth/secure_session_store.dart';
-import '../data/auth_repository.dart';
-import '../data/password_recovery_repository.dart';
-import '../data/registration_repository.dart';
-import '../models/password_recovery_session.dart';
-import '../models/registration_session.dart';
+import '../domain/entities/password_recovery_session.dart';
+import '../domain/entities/registration_session.dart';
+import '../domain/repositories/auth_repositories.dart';
+import '../domain/services/quick_unlock_service.dart';
 import 'auth_success_screen.dart';
 import 'forgot_password_screen.dart';
 import 'login_screen.dart';
@@ -49,11 +47,13 @@ class AuthFlowScreen extends StatefulWidget {
     required this.onAuthenticated,
     this.quickUnlockConfig,
     this.onQuickUnlock,
+    required this.quickUnlockService,
   });
 
-  final AuthRepository authRepository;
-  final RegistrationRepository registrationRepository;
-  final PasswordRecoveryRepository passwordRecoveryRepository;
+  final AuthRepositoryContract authRepository;
+  final RegistrationRepositoryContract registrationRepository;
+  final PasswordRecoveryRepositoryContract passwordRecoveryRepository;
+  final QuickUnlockService quickUnlockService;
   final VoidCallback onAuthenticated;
   final QuickUnlockConfig? quickUnlockConfig;
   final Future<void> Function()? onQuickUnlock;
@@ -496,6 +496,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
 
       case _AuthStep.login:
         return LoginScreen(
+          quickUnlockService: widget.quickUnlockService,
           onBack: _showWelcome,
           onForgotPassword: _showForgotPassword,
           onCreateAccount: _showRegister,

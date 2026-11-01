@@ -3,83 +3,47 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../auth/secure_session_store.dart';
+import '../../features/profile/domain/entities/pending_financial_form_draft.dart';
 
-class PendingFinancialFormDraft {
-  const PendingFinancialFormDraft({
-    required this.method,
-    required this.accountHolder,
-    required this.bankName,
-    required this.bankBranch,
-    required this.accountNumber,
-    required this.accountNumberConfirmation,
-    required this.awaitingTotp,
-    required this.updatedAt,
-    this.sessionUuid = '',
-  });
+export '../../features/profile/domain/entities/pending_financial_form_draft.dart';
 
-  final String method;
-  final String accountHolder;
-  final String bankName;
-  final String bankBranch;
-  final String accountNumber;
-  final String accountNumberConfirmation;
-  final bool awaitingTotp;
-  final DateTime updatedAt;
-  final String sessionUuid;
-
-  PendingFinancialFormDraft copyWith({
-    bool? awaitingTotp,
-    DateTime? updatedAt,
-    String? sessionUuid,
-  }) => PendingFinancialFormDraft(
-    method: method,
-    accountHolder: accountHolder,
-    bankName: bankName,
-    bankBranch: bankBranch,
-    accountNumber: accountNumber,
-    accountNumberConfirmation: accountNumberConfirmation,
-    awaitingTotp: awaitingTotp ?? this.awaitingTotp,
-    updatedAt: updatedAt ?? this.updatedAt,
-    sessionUuid: sessionUuid ?? this.sessionUuid,
-  );
-
-  Map<String, dynamic> toJson() => <String, dynamic>{
-    'version': 1,
-    'method': method,
-    'account_holder': accountHolder,
-    'bank_name': bankName,
-    'bank_branch': bankBranch,
-    'account_number': accountNumber,
-    'account_number_confirmation': accountNumberConfirmation,
-    'awaiting_totp': awaitingTotp,
-    'updated_at': updatedAt.toIso8601String(),
-    'session_uuid': sessionUuid,
-  };
-
-  factory PendingFinancialFormDraft.fromJson(Map<String, dynamic> json) {
-    final updatedAt = DateTime.tryParse(json['updated_at']?.toString() ?? '');
-    final sessionUuid = json['session_uuid']?.toString() ?? '';
-    final method = json['method']?.toString() ?? '';
-    if (json['version'] != 1 ||
-        method.isEmpty ||
-        updatedAt == null ||
-        sessionUuid.isEmpty) {
-      throw const FormatException('Invalid pending financial form draft.');
-    }
-    return PendingFinancialFormDraft(
-      method: method,
-      accountHolder: json['account_holder']?.toString() ?? '',
-      bankName: json['bank_name']?.toString() ?? '',
-      bankBranch: json['bank_branch']?.toString() ?? '',
-      accountNumber: json['account_number']?.toString() ?? '',
-      accountNumberConfirmation:
-          json['account_number_confirmation']?.toString() ?? '',
-      awaitingTotp: json['awaiting_totp'] == true,
-      updatedAt: updatedAt,
-      sessionUuid: sessionUuid,
-    );
+PendingFinancialFormDraft _draftFromJson(Map<String, dynamic> json) {
+  final updatedAt = DateTime.tryParse(json['updated_at']?.toString() ?? '');
+  final sessionUuid = json['session_uuid']?.toString() ?? '';
+  final method = json['method']?.toString() ?? '';
+  if (json['version'] != 1 ||
+      method.isEmpty ||
+      updatedAt == null ||
+      sessionUuid.isEmpty) {
+    throw const FormatException('Invalid pending financial form draft.');
   }
+  return PendingFinancialFormDraft(
+    method: method,
+    accountHolder: json['account_holder']?.toString() ?? '',
+    bankName: json['bank_name']?.toString() ?? '',
+    bankBranch: json['bank_branch']?.toString() ?? '',
+    accountNumber: json['account_number']?.toString() ?? '',
+    accountNumberConfirmation:
+        json['account_number_confirmation']?.toString() ?? '',
+    awaitingTotp: json['awaiting_totp'] == true,
+    updatedAt: updatedAt,
+    sessionUuid: sessionUuid,
+  );
 }
+
+Map<String, dynamic> _draftToJson(PendingFinancialFormDraft draft) =>
+    <String, dynamic>{
+      'version': 1,
+      'method': draft.method,
+      'account_holder': draft.accountHolder,
+      'bank_name': draft.bankName,
+      'bank_branch': draft.bankBranch,
+      'account_number': draft.accountNumber,
+      'account_number_confirmation': draft.accountNumberConfirmation,
+      'awaiting_totp': draft.awaitingTotp,
+      'updated_at': draft.updatedAt.toIso8601String(),
+      'session_uuid': draft.sessionUuid,
+    };
 
 class PendingFinancialFormStore {
   PendingFinancialFormStore({
@@ -100,9 +64,7 @@ class PendingFinancialFormStore {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map) throw const FormatException();
-      final draft = PendingFinancialFormDraft.fromJson(
-        Map<String, dynamic>.from(decoded),
-      );
+      final draft = _draftFromJson(Map<String, dynamic>.from(decoded));
       final session = await SecureSessionStore(storage: _storage).readSession();
       final expired = _clock().difference(draft.updatedAt) > _maximumAge;
       if (session == null ||
@@ -127,7 +89,7 @@ class PendingFinancialFormStore {
     );
     await _storage.write(
       key: _withdrawalKey,
-      value: jsonEncode(protectedDraft.toJson()),
+      value: jsonEncode(_draftToJson(protectedDraft)),
     );
   }
 

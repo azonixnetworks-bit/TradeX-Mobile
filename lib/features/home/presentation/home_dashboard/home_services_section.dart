@@ -13,8 +13,8 @@ class _HomeContent extends StatelessWidget {
   final ValueChanged<String> onActionTap;
   final Future<void> Function() onLogout;
   final TradeXApiClient apiClient;
-  final TradeIdeasRepository tradeIdeasRepository;
-  final LearningRepository learningRepository;
+  final DashboardTradeIdeasRepository tradeIdeasRepository;
+  final DashboardLearningRepository learningRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +182,11 @@ class _CompactServicesGrid extends StatelessWidget {
             key: ValueKey('home-service-${service.id}'),
             service: service,
             accent: _serviceAccent(service.group),
-            onTap: () => openTradeXFeature(context, apiClient, service),
+            onTap: () => openTradeXFeature(
+              context,
+              CatalogDependenciesRegistry.current,
+              service,
+            ),
           );
         },
       ),

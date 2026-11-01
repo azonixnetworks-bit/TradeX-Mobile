@@ -6,7 +6,7 @@ class ContactChangeScreen extends StatefulWidget {
     required this.apiClient,
     this.initialChannel = 'whatsapp',
   });
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
   final String initialChannel;
 
   @override
@@ -117,7 +117,7 @@ class _ContactChangeScreenState extends State<ContactChangeScreen> {
       final id = data?['challenge_id']?.toString();
       final token = data?['challenge_token']?.toString();
       if (id == null || token == null) {
-        throw const ApiException(
+        throw const UserFacingFailure(
           message: 'TradeX did not return a valid confirmation challenge.',
         );
       }
@@ -126,7 +126,7 @@ class _ContactChangeScreenState extends State<ContactChangeScreen> {
         _challengeToken = token;
       });
       _message('Confirmation code sent.');
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _working = false);
@@ -149,7 +149,7 @@ class _ContactChangeScreenState extends State<ContactChangeScreen> {
         '${_channel == 'whatsapp' ? 'WhatsApp number' : 'Telegram username'} updated.',
       );
       if (mounted) Navigator.pop(context, true);
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _working = false);

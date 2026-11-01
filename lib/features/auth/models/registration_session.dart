@@ -1,13 +1,11 @@
-class RegistrationSession {
-  const RegistrationSession({
-    required this.id,
-    required this.token,
-    required this.expiresAt,
-  });
+import '../domain/entities/registration_session.dart' as domain;
 
-  final String id;
-  final String token;
-  final DateTime expiresAt;
+class RegistrationSession extends domain.RegistrationSession {
+  const RegistrationSession({
+    required super.id,
+    required super.token,
+    required super.expiresAt,
+  });
 
   factory RegistrationSession.fromJson(Map<String, dynamic> json) {
     return RegistrationSession(
@@ -18,22 +16,15 @@ class RegistrationSession {
   }
 }
 
-class RegistrationTotpSetup {
+class RegistrationTotpSetup extends domain.RegistrationTotpSetup {
   const RegistrationTotpSetup({
-    required this.secret,
-    required this.otpauthUri,
-    required this.issuer,
-    required this.accountName,
-    required this.digits,
-    required this.periodSeconds,
+    required super.secret,
+    required super.otpauthUri,
+    required super.issuer,
+    required super.accountName,
+    required super.digits,
+    required super.periodSeconds,
   });
-
-  final String secret;
-  final String otpauthUri;
-  final String issuer;
-  final String accountName;
-  final int digits;
-  final int periodSeconds;
 
   factory RegistrationTotpSetup.fromJson(Map<String, dynamic> json) {
     return RegistrationTotpSetup(
@@ -47,10 +38,8 @@ class RegistrationTotpSetup {
   }
 }
 
-class RegistrationRecoveryCodes {
-  const RegistrationRecoveryCodes({required this.codes});
-
-  final List<String> codes;
+class RegistrationRecoveryCodes extends domain.RegistrationRecoveryCodes {
+  const RegistrationRecoveryCodes({required super.codes});
 
   factory RegistrationRecoveryCodes.fromJson(Map<String, dynamic> json) {
     final rawCodes = json['recovery_codes'];

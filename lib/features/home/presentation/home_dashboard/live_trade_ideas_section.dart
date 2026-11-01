@@ -6,7 +6,7 @@ class _LiveTradeIdeasCarousel extends StatefulWidget {
     required this.onActionTap,
   });
 
-  final TradeIdeasRepository repository;
+  final DashboardTradeIdeasRepository repository;
   final ValueChanged<String> onActionTap;
 
   @override
@@ -106,7 +106,7 @@ class _LiveTradeIdeaCard extends StatefulWidget {
 
   final DashboardTradeIdea idea;
   final int position;
-  final TradeIdeasRepository repository;
+  final DashboardTradeIdeasRepository repository;
 
   @override
   State<_LiveTradeIdeaCard> createState() => _LiveTradeIdeaCardState();

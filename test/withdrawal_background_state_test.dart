@@ -6,6 +6,7 @@ import 'package:tradex_mobile/core/auth/secure_session_store.dart';
 import 'package:tradex_mobile/core/device/device_identity.dart';
 import 'package:tradex_mobile/core/network/tradex_api_client.dart';
 import 'package:tradex_mobile/features/profile/presentation/withdrawal_method_screen.dart';
+import 'package:tradex_mobile/features/profile/data/repositories/withdrawal_draft_store_impl.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +31,7 @@ void main() {
       MaterialApp(
         home: WithdrawalMethodScreen(
           apiClient: api,
+          draftStore: WithdrawalDraftStoreImpl(),
           method: WithdrawalMethod.localBank,
         ),
       ),
@@ -343,8 +345,11 @@ Future<void> _openWithdrawalRoute(
               key: const ValueKey('profile-host'),
               onPressed: () => Navigator.of(context).push<bool>(
                 MaterialPageRoute<bool>(
-                  builder: (_) =>
-                      WithdrawalMethodScreen(apiClient: api, method: method),
+                  builder: (_) => WithdrawalMethodScreen(
+                    apiClient: api,
+                    draftStore: WithdrawalDraftStoreImpl(),
+                    method: method,
+                  ),
                 ),
               ),
               child: const Text('Open withdrawal method'),

@@ -11,6 +11,7 @@ import 'package:tradex_mobile/features/home/data/learning_repository.dart';
 import 'package:tradex_mobile/features/home/data/trade_ideas_repository.dart';
 import 'package:tradex_mobile/features/home/presentation/home_dashboard_screen.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_home_screen.dart';
+import 'package:tradex_mobile/features/catalog/catalog_dependencies.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +31,7 @@ void main() {
     final store = SecureSessionStore();
     final device = DeviceIdentity(store);
     final api = _HomeMarketApiClient(store, device);
+    CatalogDependenciesRegistry.configure(CatalogDependencies(api));
 
     await tester.pumpWidget(
       MaterialApp(
@@ -126,6 +128,7 @@ void main() {
     final store = SecureSessionStore();
     final device = DeviceIdentity(store);
     final api = _HomeMarketApiClient(store, device);
+    CatalogDependenciesRegistry.configure(CatalogDependencies(api));
 
     await tester.pumpWidget(
       MaterialApp(

@@ -2,7 +2,7 @@ part of '../secure_workflow_screens.dart';
 
 class KycSubmissionScreen extends StatefulWidget {
   const KycSubmissionScreen({super.key, required this.apiClient});
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
 
   @override
   State<KycSubmissionScreen> createState() => _KycSubmissionScreenState();
@@ -15,7 +15,7 @@ class _KycSubmissionScreenState extends State<KycSubmissionScreen> {
   final _dateOfBirth = TextEditingController();
   final _identityNumber = TextEditingController();
   final _address = TextEditingController();
-  final _files = <String, XFile>{};
+  final _files = <String, PickedImage>{};
   bool _working = false;
 
   @override
@@ -89,8 +89,8 @@ class _KycSubmissionScreenState extends State<KycSubmissionScreen> {
   );
 
   Future<void> _pick(String key, bool selfie) async {
-    final file = await ImagePicker().pickImage(
-      source: selfie ? ImageSource.camera : ImageSource.gallery,
+    final file = await SecureWorkflowPlatformRegistry.current.pickImage(
+      camera: selfie,
       imageQuality: 88,
       maxWidth: 2400,
       maxHeight: 2400,
@@ -119,7 +119,7 @@ class _KycSubmissionScreenState extends State<KycSubmissionScreen> {
       );
       _message('KYC submission received for review.');
       if (mounted) Navigator.pop(context, true);
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _working = false);

@@ -7,7 +7,7 @@ class TradeXFeatureScreen extends StatefulWidget {
     required this.spec,
   });
 
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
   final FeatureSpec spec;
 
   @override
@@ -245,7 +245,7 @@ class _RecordDetailsScreen extends StatefulWidget {
     this.identifier,
   });
 
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
   final FeatureSpec spec;
   final Map<String, dynamic> record;
   final String? identifier;
@@ -311,15 +311,14 @@ class _RecordDetailsScreenState extends State<_RecordDetailsScreen> {
       final target =
           action?['url'] ?? action?['share_url'] ?? action?['deep_link'];
       if (target is! String ||
-          !await launchUrl(
-            Uri.parse(target),
-            mode: LaunchMode.externalApplication,
+          !await SecureWorkflowPlatformRegistry.current.launchExternal(
+            target,
           )) {
-        throw const ApiException(
+        throw const UserFacingFailure(
           message: 'The share destination is unavailable.',
         );
       }
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } catch (_) {
       _message('The trade idea could not be shared right now.');
@@ -336,7 +335,7 @@ class _RecordDetailsScreenState extends State<_RecordDetailsScreen> {
         const {},
       );
       _message('Notification marked as read.');
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _working = false);
@@ -368,7 +367,7 @@ class _RecordDetailsScreenState extends State<_RecordDetailsScreen> {
         '/api/v1/trade-journal/${widget.identifier}',
       );
       if (mounted) Navigator.pop(context);
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _working = false);
@@ -385,7 +384,7 @@ class _RecordDetailsScreenState extends State<_RecordDetailsScreen> {
 class _FeatureActionScreen extends StatefulWidget {
   const _FeatureActionScreen({required this.apiClient, required this.spec});
 
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
   final FeatureSpec spec;
 
   @override
@@ -396,7 +395,7 @@ class _FeatureActionScreenState extends State<_FeatureActionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _values = <String, TextEditingController>{};
   bool _working = false;
-  XFile? _selectedFile;
+  PickedImage? _selectedFile;
 
   List<_FieldSpec> get _fields => switch (widget.spec.id) {
     'trade-entry-form' => const [
@@ -515,8 +514,8 @@ class _FeatureActionScreenState extends State<_FeatureActionScreen> {
   }
 
   Future<void> _pickDocumentImage() async {
-    final file = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
+    final file = await SecureWorkflowPlatformRegistry.current.pickImage(
+      camera: false,
       imageQuality: 88,
       maxWidth: 2200,
       maxHeight: 2200,
@@ -536,19 +535,20 @@ class _FeatureActionScreenState extends State<_FeatureActionScreen> {
       switch (widget.spec.id) {
         case 'trade-entry-form':
           final now = DateTime.now();
-          final timezone = await FlutterTimezone.getLocalTimezone();
+          final timezone = await SecureWorkflowPlatformRegistry.current
+              .timezoneId();
           body.addAll({
             'market': 'forex',
             'direction': 'buy',
             'status': 'planned',
             'trade_date': _date(now),
             'trade_time': _time(now),
-            'timezone': timezone.identifier,
+            'timezone': timezone,
           });
           await widget.apiClient.postJson('/api/v1/trade-journal', body);
         case 'request-withdrawal':
           await widget.apiClient.postJsonWithHeaders('/api/v1/payouts', body, {
-            'Idempotency-Key': const Uuid().v4(),
+            'Idempotency-Key': SecureWorkflowPlatformRegistry.current.newUuid(),
           });
         case 'financial-profile':
           await widget.apiClient.patchJson('/api/v1/profile/financial', body);
@@ -568,7 +568,7 @@ class _FeatureActionScreenState extends State<_FeatureActionScreen> {
             },
           );
         default:
-          throw const ApiException(
+          throw const UserFacingFailure(
             message: 'This action needs additional account context.',
           );
       }
@@ -577,7 +577,7 @@ class _FeatureActionScreenState extends State<_FeatureActionScreen> {
         const SnackBar(content: Text('Request submitted successfully.')),
       );
       Navigator.pop(context, true);
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(error.message)));

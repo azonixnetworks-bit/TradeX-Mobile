@@ -6,8 +6,9 @@ import '../../../core/auth/secure_session_store.dart';
 import '../../../core/device/device_identity.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
+import '../domain/repositories/auth_repositories.dart';
 
-class AuthRepository {
+class AuthRepository implements AuthRepositoryContract {
   AuthRepository(
     this._apiClient,
     this._sessionStore,
@@ -19,6 +20,7 @@ class AuthRepository {
 
   final TradeXApiClient _apiClient;
   final SecureSessionStore _sessionStore;
+  SecureSessionStore get sessionStore => _sessionStore;
   final DeviceIdentity _deviceIdentity;
   final DeviceCredentialService _credentialService;
   final Uuid _uuid = const Uuid();
@@ -28,6 +30,7 @@ class AuthRepository {
   /// A session created without "Remember this device" deliberately has no
   /// Quick Unlock configuration. It is cleared at the next app launch rather
   /// than becoming a silent persistent login.
+  @override
   Future<AuthSession?> restoreRememberedSession() async {
     if (await _sessionStore.readQuickUnlock() == null) {
       await _sessionStore.clearSession();
@@ -37,6 +40,7 @@ class AuthRepository {
     return _restoreStoredSession();
   }
 
+  @override
   Future<AuthSession?> restoreSessionAfterQuickUnlock() async {
     final config = await _sessionStore.readQuickUnlock();
     if (config == null) return null;
@@ -71,6 +75,7 @@ class AuthRepository {
     return session;
   }
 
+  @override
   Future<AuthSession> login({
     required String email,
     required String password,
@@ -168,6 +173,7 @@ class AuthRepository {
     return session;
   }
 
+  @override
   Future<void> logout({bool forgetDevice = false}) async {
     final quickUnlock = await _sessionStore.readQuickUnlock();
     try {
@@ -188,6 +194,7 @@ class AuthRepository {
     }
   }
 
+  @override
   Future<void> logoutAll() async {
     final quickUnlock = await _sessionStore.readQuickUnlock();
     try {
@@ -207,10 +214,12 @@ class AuthRepository {
     await _sessionStore.clearSession();
   }
 
+  @override
   Future<QuickUnlockConfig?> quickUnlockConfiguration() {
     return _sessionStore.readQuickUnlock();
   }
 
+  @override
   Future<Map<String, dynamic>> quickUnlockStatus() async {
     final response = await _apiClient.getJson('/api/v1/security/quick-unlock');
     final data = response['data'];
@@ -251,10 +260,12 @@ class AuthRepository {
     return status;
   }
 
+  @override
   Future<QuickUnlockConfig?> readLocalQuickUnlockConfig() {
     return _sessionStore.readQuickUnlock();
   }
 
+  @override
   Future<void> configureQuickUnlock({
     required bool enabled,
     String? method,
@@ -269,6 +280,7 @@ class AuthRepository {
     );
   }
 
+  @override
   Future<void> configureQuickUnlockMethods({
     required bool biometricEnabled,
     required bool passcodeEnabled,
@@ -336,6 +348,7 @@ class AuthRepository {
     }
   }
 
+  @override
   Future<AuthSession> quickLogin(QuickUnlockConfig config) async {
     final device = await _deviceIdentity.load();
     if (!await _credentialService.contains(config.credentialId)) {
@@ -386,6 +399,7 @@ class AuthRepository {
     return session;
   }
 
+  @override
   Future<void> clearLocalQuickUnlock() async {
     final config = await _sessionStore.readQuickUnlock();
     if (config != null) await _credentialService.delete(config.credentialId);
@@ -417,10 +431,12 @@ class AuthRepository {
     }
   }
 
+  @override
   Future<bool> hasCompletedFirstLogin() {
     return _sessionStore.hasCompletedFirstLogin();
   }
 
+  @override
   Future<void> markFirstLoginCompleted() {
     return _sessionStore.markFirstLoginCompleted();
   }

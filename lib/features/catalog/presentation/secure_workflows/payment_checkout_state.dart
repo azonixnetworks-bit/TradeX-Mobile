@@ -47,7 +47,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
         '/api/v1/payments/manual-accounts',
       );
       accounts = _listOfMaps(_map(accountsResponse['data'])['accounts']);
-    } on ApiException {
+    } on UserFacingException {
       // Online redirect methods remain usable if no manual account is enabled.
     }
     _provider ??= methods.isEmpty ? null : methods.first['code']?.toString();
@@ -237,12 +237,12 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
         final response = await widget.apiClient.postJsonWithHeaders(
           '/api/v1/payments/manual-orders',
           {'receiving_account_uuid': _receivingAccount},
-          {'Idempotency-Key': const Uuid().v4()},
+          {'Idempotency-Key': SecureWorkflowPlatformRegistry.current.newUuid()},
         );
         final order = _map(response['data']);
         final uuid = order['uuid']?.toString();
         if (uuid == null || uuid.isEmpty) {
-          throw const ApiException(
+          throw const UserFacingFailure(
             message: 'TradeX did not return a prepared payment order.',
           );
         }
@@ -269,7 +269,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
         'stripe' => '/api/v1/payments/stripe/checkout-sessions',
         'nowpayments' => '/api/v1/payments/nowpayments/invoices',
         'paypal' => '/api/v1/payments/paypal/orders',
-        _ => throw const ApiException(
+        _ => throw const UserFacingFailure(
           message: 'This payment method is not supported by the app.',
         ),
       };
@@ -279,7 +279,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
           if (code == 'paypal' && _product.text.trim().isNotEmpty)
             'product_uuid': _product.text.trim(),
         },
-        {'Idempotency-Key': const Uuid().v4()},
+        {'Idempotency-Key': SecureWorkflowPlatformRegistry.current.newUuid()},
       );
       final order = _map(response['data']);
       _orderUuid =
@@ -287,18 +287,15 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
       final action = _deepMap(response, 'approval_url');
       final url = action?['approval_url']?.toString();
       if (url == null ||
-          !await launchUrl(
-            Uri.parse(url),
-            mode: LaunchMode.externalApplication,
-          )) {
-        throw const ApiException(
+          !await SecureWorkflowPlatformRegistry.current.launchExternal(url)) {
+        throw const UserFacingFailure(
           message: 'The payment provider could not be opened.',
         );
       }
       _message(
         'Checkout opened. Return to Payment History for verified status.',
       );
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _working = false);
@@ -330,7 +327,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
           'Payment is not active yet. TradeX will unlock access only after server confirmation.',
         );
       }
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _working = false);

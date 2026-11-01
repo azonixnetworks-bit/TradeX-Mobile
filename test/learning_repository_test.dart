@@ -6,7 +6,7 @@ void main() {
     test(
       'keeps non-premium learning locked and filters supplied free lessons',
       () {
-        final learning = HomeLearningData.fromJson({
+        final learning = homeLearningDataFromJson({
           'is_premium': false,
           'free_lessons': [_lesson('free-lesson', isFree: true)],
         });
@@ -19,7 +19,7 @@ void main() {
     );
 
     test('uses the latest watched premium item and its saved progress', () {
-      final learning = HomeLearningData.fromJson({
+      final learning = homeLearningDataFromJson({
         'is_premium': true,
         'continue_learning': _lesson(
           'latest-lesson',
@@ -35,7 +35,7 @@ void main() {
     });
 
     test('supplies a first premium lesson when there is no watch history', () {
-      final learning = HomeLearningData.fromJson({
+      final learning = homeLearningDataFromJson({
         'is_premium': true,
         'default_premium_lesson': _lesson('first-premium'),
       });

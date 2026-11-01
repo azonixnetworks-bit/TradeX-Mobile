@@ -45,7 +45,7 @@ class _FileTile extends StatelessWidget {
     required this.onRemove,
   });
   final String label;
-  final XFile? file;
+  final PickedImage? file;
   final VoidCallback onPick;
   final VoidCallback onRemove;
   @override

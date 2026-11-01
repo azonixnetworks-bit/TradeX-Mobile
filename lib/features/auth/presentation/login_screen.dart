@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:local_auth/local_auth.dart';
 
-import '../../../core/auth/secure_session_store.dart';
-import '../../../core/network/api_exception.dart';
+import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../domain/repositories/auth_repositories.dart';
+import '../domain/services/quick_unlock_service.dart';
 
 part 'login/login_widgets.dart';
 
@@ -20,6 +20,7 @@ class LoginScreen extends StatefulWidget {
     this.quickUnlockConfig,
     this.onQuickUnlock,
     this.authenticateBiometric,
+    required this.quickUnlockService,
   });
 
   final VoidCallback onBack;
@@ -28,6 +29,7 @@ class LoginScreen extends StatefulWidget {
   final QuickUnlockConfig? quickUnlockConfig;
   final Future<void> Function()? onQuickUnlock;
   final Future<bool> Function()? authenticateBiometric;
+  final QuickUnlockService quickUnlockService;
 
   final Future<void> Function({
     required String email,
@@ -53,7 +55,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _securityCodeController = TextEditingController();
   final TextEditingController _quickUnlockPinController =
       TextEditingController();
-  final LocalAuthentication _localAuth = LocalAuthentication();
 
   bool _obscurePassword = true;
   bool _useRecoveryCode = false;
@@ -151,20 +152,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (authenticateBiometric != null) {
         confirmed = await authenticateBiometric();
       } else {
-        final supported =
-            await _localAuth.canCheckBiometrics ||
-            await _localAuth.isDeviceSupported();
-        if (!supported) {
-          throw PlatformException(code: 'NOT_AVAILABLE');
-        }
-
-        confirmed = await _localAuth.authenticate(
-          localizedReason:
-              'Place your finger on the sensor to sign in to TradeX.',
-          options: const AuthenticationOptions(
-            biometricOnly: true,
-            stickyAuth: true,
-          ),
+        confirmed = await widget.quickUnlockService.authenticate(
+          'Place your finger on the sensor to sign in to TradeX.',
         );
       }
       if (mounted) {
@@ -176,7 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
       return confirmed;
-    } on PlatformException {
+    } catch (_) {
       if (mounted) {
         setState(() {
           _errorMessage = 'Authentication failed. Fingerprint is not available on this device.';
@@ -283,14 +272,14 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
     if (!_formKey.currentState!.validate()) return;
-    final result = await SecureSessionStore().verifyQuickUnlockPin(
+    final result = await widget.quickUnlockService.verifyPin(
       _quickUnlockPinController.text.trim(),
     );
     if (!mounted) return;
-    if (result != QuickUnlockPinResult.success) {
+    if (result != QuickUnlockPinOutcome.success) {
       setState(() {
         _quickUnlockPinController.clear();
-        _errorMessage = result == QuickUnlockPinResult.locked
+        _errorMessage = result == QuickUnlockPinOutcome.locked
             ? 'Authentication failed. Too many attempts; try again in 5 minutes.'
             : 'Authentication failed. Incorrect passcode. Try again.';
       });
@@ -336,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _errorMessage = error.toString();
         _deviceSlotOccupied =
-            error is ApiException &&
+            error is UserFacingException &&
             (error.code == 'DEVICE_SLOT_OCCUPIED' ||
                 error.code == 'DEVICE_LIMIT_REACHED');
       });

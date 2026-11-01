@@ -4,6 +4,7 @@ import 'package:tradex_mobile/core/auth/device_credential_service.dart';
 import 'package:tradex_mobile/core/auth/secure_session_store.dart';
 import 'package:tradex_mobile/features/auth/presentation/login_screen.dart';
 import 'package:tradex_mobile/features/auth/presentation/quick_unlock_screen.dart';
+import 'package:tradex_mobile/features/auth/data/services/quick_unlock_service_impl.dart';
 
 void main() {
   test(
@@ -27,7 +28,7 @@ void main() {
 
   test('legacy local enrollment without credential id is rejected', () {
     expect(
-      () => QuickUnlockConfig.fromJson(<String, dynamic>{
+      () => quickUnlockConfigFromJson(<String, dynamic>{
         'method': 'PIN',
         'email': 'trader@example.test',
         'pin_salt': 'salt',
@@ -40,7 +41,7 @@ void main() {
   test(
     'legacy biometric enrollment migrates to independent capability flags',
     () {
-      final config = QuickUnlockConfig.fromJson(<String, dynamic>{
+      final config = quickUnlockConfigFromJson(<String, dynamic>{
         'method': 'BIOMETRIC',
         'email': 'trader@example.test',
         'credential_id': 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
@@ -48,15 +49,15 @@ void main() {
 
       expect(config.hasBiometric, isTrue);
       expect(config.hasPasscode, isFalse);
-      expect(config.toJson()['biometric_enabled'], isTrue);
-      expect(config.toJson()['version'], 2);
+      expect(quickUnlockConfigToJson(config)['biometric_enabled'], isTrue);
+      expect(quickUnlockConfigToJson(config)['version'], 2);
     },
   );
 
   test(
     'combined enrollment exposes fingerprint and passcode independently',
     () {
-      final config = QuickUnlockConfig.fromJson(<String, dynamic>{
+      final config = quickUnlockConfigFromJson(<String, dynamic>{
         'version': 2,
         'method': 'BOTH',
         'email': 'trader@example.test',
@@ -84,7 +85,7 @@ void main() {
             pinSalt: 'salt',
             pinHash: 'hash',
           ),
-          sessionStore: SecureSessionStore(),
+          quickUnlockService: QuickUnlockServiceImpl(SecureSessionStore()),
           onUnlocked: () async {},
           onSignOut: () async {},
         ),
@@ -102,6 +103,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: LoginScreen(
+            quickUnlockService: QuickUnlockServiceImpl(SecureSessionStore()),
             onBack: () {},
             onForgotPassword: () {},
             onCreateAccount: () {},
@@ -142,6 +144,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: LoginScreen(
+            quickUnlockService: QuickUnlockServiceImpl(SecureSessionStore()),
             onBack: () {},
             onForgotPassword: () {},
             onCreateAccount: () {},

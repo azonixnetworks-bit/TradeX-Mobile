@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/theme/tradex_colors.dart';
-import '../models/registration_session.dart';
+import '../domain/entities/registration_session.dart';
 import 'widgets/auth_form_components.dart';
 
 class RegistrationTotpSetupScreen extends StatelessWidget {

@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:local_auth/local_auth.dart';
 
 import '../../../core/theme/tradex_colors.dart';
-import '../data/auth_repository.dart';
+import '../domain/repositories/auth_repositories.dart';
+import '../domain/services/quick_unlock_service.dart';
 
 class QuickUnlockSettingsScreen extends StatefulWidget {
-  const QuickUnlockSettingsScreen({super.key, required this.repository});
+  const QuickUnlockSettingsScreen({
+    super.key,
+    required this.repository,
+    required this.quickUnlockService,
+  });
 
-  final AuthRepository repository;
+  final AuthRepositoryContract repository;
+  final QuickUnlockService quickUnlockService;
 
   @override
   State<QuickUnlockSettingsScreen> createState() =>
@@ -19,7 +24,6 @@ class _QuickUnlockSettingsScreenState extends State<QuickUnlockSettingsScreen> {
   final _totp = TextEditingController();
   final _pin = TextEditingController();
   final _confirmPin = TextEditingController();
-  final _localAuth = LocalAuthentication();
 
   bool _biometricEnabled = false;
   bool _passcodeEnabled = false;
@@ -96,18 +100,10 @@ class _QuickUnlockSettingsScreenState extends State<QuickUnlockSettingsScreen> {
 
   Future<bool> _confirmFingerprint() async {
     try {
-      final supported =
-          await _localAuth.canCheckBiometrics ||
-          await _localAuth.isDeviceSupported();
-      if (!supported) return false;
-      return await _localAuth.authenticate(
-        localizedReason: 'Confirm your fingerprint for TradeX quick unlock.',
-        options: const AuthenticationOptions(
-          biometricOnly: true,
-          stickyAuth: true,
-        ),
+      return await widget.quickUnlockService.authenticate(
+        'Confirm your fingerprint for TradeX quick unlock.',
       );
-    } on PlatformException {
+    } catch (_) {
       return false;
     }
   }

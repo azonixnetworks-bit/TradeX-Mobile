@@ -16,6 +16,7 @@ import 'package:tradex_mobile/features/home/data/learning_repository.dart';
 import 'package:tradex_mobile/features/home/data/trade_ideas_repository.dart';
 import 'package:tradex_mobile/features/home/presentation/home_dashboard_screen.dart';
 import 'package:tradex_mobile/features/profile/presentation/withdrawal_method_screen.dart';
+import 'package:tradex_mobile/features/profile/profile_dependencies.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -82,6 +83,7 @@ void main() {
     final store = SecureSessionStore();
     final device = DeviceIdentity(store);
     final api = TradeXApiClient(store, device);
+    ProfileDependenciesRegistry.configure(ProfileDependencies(api));
 
     await tester.pumpWidget(
       MaterialApp(
@@ -276,6 +278,7 @@ void main() {
     );
     final device = DeviceIdentity(store);
     final api = TradeXApiClient(store, device);
+    ProfileDependenciesRegistry.configure(ProfileDependencies(api));
 
     await tester.pumpWidget(
       MaterialApp(

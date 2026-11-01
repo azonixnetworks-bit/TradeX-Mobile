@@ -66,8 +66,12 @@ class _AffiliateTab extends StatelessWidget {
         };
         Navigator.of(context).push<void>(
           MaterialPageRoute<void>(
-            builder: (_) =>
-                WithdrawalMethodScreen(apiClient: apiClient, method: method),
+            builder: (_) => WithdrawalMethodScreen(
+              apiClient: apiClient,
+              draftStore:
+                  ProfileDependenciesRegistry.current.withdrawalDraftStore,
+              method: method,
+            ),
           ),
         );
       },

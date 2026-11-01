@@ -1,12 +1,15 @@
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
-import '../models/password_recovery_session.dart';
+import '../domain/entities/password_recovery_session.dart';
+import '../models/password_recovery_session.dart' as dto;
+import '../domain/repositories/auth_repositories.dart';
 
-class PasswordRecoveryRepository {
+class PasswordRecoveryRepository implements PasswordRecoveryRepositoryContract {
   PasswordRecoveryRepository(this._apiClient);
 
   final TradeXApiClient _apiClient;
 
+  @override
   Future<PasswordRecoverySession> start({
     required String email,
     required String whatsappNumber,
@@ -19,9 +22,10 @@ class PasswordRecoveryRepository {
       },
     );
 
-    return PasswordRecoverySession.fromJson(_data(response));
+    return dto.PasswordRecoverySession.fromJson(_data(response));
   }
 
+  @override
   Future<void> verifyEmail(
     PasswordRecoverySession session,
     String otpCode,
@@ -35,6 +39,7 @@ class PasswordRecoveryRepository {
     );
   }
 
+  @override
   Future<void> resendEmail(PasswordRecoverySession session) async {
     await _apiClient.publicPost(
       '/api/v1/auth/password-recovery/email/resend',
@@ -42,6 +47,7 @@ class PasswordRecoveryRepository {
     );
   }
 
+  @override
   Future<void> verifyWhatsApp(
     PasswordRecoverySession session,
     String otpCode,
@@ -55,6 +61,7 @@ class PasswordRecoveryRepository {
     );
   }
 
+  @override
   Future<void> resendWhatsApp(PasswordRecoverySession session) async {
     await _apiClient.publicPost(
       '/api/v1/auth/password-recovery/whatsapp/resend',
@@ -62,6 +69,7 @@ class PasswordRecoveryRepository {
     );
   }
 
+  @override
   Future<void> verifyTotp(
     PasswordRecoverySession session,
     String totpCode,
@@ -83,6 +91,7 @@ class PasswordRecoveryRepository {
     }
   }
 
+  @override
   Future<void> resendResetLink(PasswordRecoverySession session) async {
     await _apiClient.publicPost(
       '/api/v1/auth/password-recovery/reset-link/resend',
@@ -90,6 +99,7 @@ class PasswordRecoveryRepository {
     );
   }
 
+  @override
   Future<void> resetPassword({
     required PasswordRecoverySession session,
     required String resetToken,

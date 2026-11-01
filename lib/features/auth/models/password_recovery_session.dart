@@ -1,11 +1,7 @@
-class PasswordRecoverySession {
-  const PasswordRecoverySession({
-    required this.id,
-    required this.token,
-  });
+import '../domain/entities/password_recovery_session.dart' as domain;
 
-  final String id;
-  final String token;
+class PasswordRecoverySession extends domain.PasswordRecoverySession {
+  const PasswordRecoverySession({required super.id, required super.token});
 
   factory PasswordRecoverySession.fromJson(Map<String, dynamic> json) {
     return PasswordRecoverySession(

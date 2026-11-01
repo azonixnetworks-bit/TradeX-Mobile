@@ -6,6 +6,10 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'auth_session.dart';
+import '../../features/auth/domain/repositories/auth_repositories.dart';
+
+export '../../features/auth/domain/repositories/auth_repositories.dart'
+    show QuickUnlockConfig;
 
 class SecureSessionStore {
   SecureSessionStore({FlutterSecureStorage? storage})
@@ -66,7 +70,7 @@ class SecureSessionStore {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map) throw const FormatException();
-      return QuickUnlockConfig.fromJson(Map<String, dynamic>.from(decoded));
+      return quickUnlockConfigFromJson(Map<String, dynamic>.from(decoded));
     } catch (_) {
       await clearQuickUnlock();
       return null;
@@ -214,7 +218,7 @@ class SecureSessionStore {
   Future<void> _writeQuickUnlock(QuickUnlockConfig config) {
     return _storage.write(
       key: _quickUnlockKey,
-      value: jsonEncode(config.toJson()),
+      value: jsonEncode(quickUnlockConfigToJson(config)),
     );
   }
 
@@ -242,83 +246,42 @@ String _derivePinVerifier(String salt, String pin) {
 
 enum QuickUnlockPinResult { success, failed, locked, unavailable }
 
-class QuickUnlockConfig {
-  const QuickUnlockConfig({
-    required this.method,
-    required this.email,
-    required this.credentialId,
-    this.biometricEnabled = false,
-    this.pinSalt,
-    this.pinHash,
-    this.failedAttempts = 0,
-    this.lockedUntil,
-  });
+Map<String, dynamic> quickUnlockConfigToJson(QuickUnlockConfig config) =>
+    <String, dynamic>{
+      'version': 2,
+      'method': config.method,
+      'email': config.email,
+      'credential_id': config.credentialId,
+      'biometric_enabled': config.hasBiometric,
+      'pin_salt': config.pinSalt,
+      'pin_hash': config.pinHash,
+      'failed_attempts': config.failedAttempts,
+      'locked_until': config.lockedUntil?.toIso8601String(),
+    };
 
-  final String method;
-  final String email;
-  final String credentialId;
-  final bool biometricEnabled;
-  final String? pinSalt;
-  final String? pinHash;
-  final int failedAttempts;
-  final DateTime? lockedUntil;
-
-  bool get hasBiometric =>
-      biometricEnabled || method == 'BIOMETRIC' || method == 'BOTH';
-
-  bool get hasPasscode => pinSalt != null && pinHash != null;
-
-  QuickUnlockConfig copyWith({
-    int? failedAttempts,
-    DateTime? lockedUntil,
-    bool clearLock = false,
-  }) => QuickUnlockConfig(
-    method: method,
+QuickUnlockConfig quickUnlockConfigFromJson(Map<String, dynamic> json) {
+  final method = json['method'] as String?;
+  final email = json['email'] as String?;
+  final credentialId = json['credential_id'] as String?;
+  if ((method != 'PIN' && method != 'BIOMETRIC' && method != 'BOTH') ||
+      email == null ||
+      email.isEmpty ||
+      credentialId == null ||
+      credentialId.isEmpty) {
+    throw const FormatException();
+  }
+  return QuickUnlockConfig(
+    method: method!,
     email: email,
     credentialId: credentialId,
-    biometricEnabled: biometricEnabled,
-    pinSalt: pinSalt,
-    pinHash: pinHash,
-    failedAttempts: failedAttempts ?? this.failedAttempts,
-    lockedUntil: clearLock ? null : lockedUntil ?? this.lockedUntil,
+    biometricEnabled:
+        json['biometric_enabled'] as bool? ??
+        (method == 'BIOMETRIC' || method == 'BOTH'),
+    pinSalt: json['pin_salt'] as String?,
+    pinHash: json['pin_hash'] as String?,
+    failedAttempts: (json['failed_attempts'] as num?)?.toInt() ?? 0,
+    lockedUntil: json['locked_until'] is String
+        ? DateTime.tryParse(json['locked_until'] as String)
+        : null,
   );
-
-  Map<String, dynamic> toJson() => <String, dynamic>{
-    'version': 2,
-    'method': method,
-    'email': email,
-    'credential_id': credentialId,
-    'biometric_enabled': hasBiometric,
-    'pin_salt': pinSalt,
-    'pin_hash': pinHash,
-    'failed_attempts': failedAttempts,
-    'locked_until': lockedUntil?.toIso8601String(),
-  };
-
-  factory QuickUnlockConfig.fromJson(Map<String, dynamic> json) {
-    final method = json['method'] as String?;
-    final email = json['email'] as String?;
-    final credentialId = json['credential_id'] as String?;
-    if ((method != 'PIN' && method != 'BIOMETRIC' && method != 'BOTH') ||
-        email == null ||
-        email.isEmpty ||
-        credentialId == null ||
-        credentialId.isEmpty) {
-      throw const FormatException();
-    }
-    return QuickUnlockConfig(
-      method: method!,
-      email: email,
-      credentialId: credentialId,
-      biometricEnabled:
-          json['biometric_enabled'] as bool? ??
-          (method == 'BIOMETRIC' || method == 'BOTH'),
-      pinSalt: json['pin_salt'] as String?,
-      pinHash: json['pin_hash'] as String?,
-      failedAttempts: (json['failed_attempts'] as num?)?.toInt() ?? 0,
-      lockedUntil: json['locked_until'] is String
-          ? DateTime.tryParse(json['locked_until'] as String)
-          : null,
-    );
-  }
 }

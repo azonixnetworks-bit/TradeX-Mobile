@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/bloc/bloc_future_builder.dart';
-import '../../../core/network/api_exception.dart';
-import '../../../core/network/tradex_api_client.dart';
-import '../../../core/profile/pending_financial_form_store.dart';
+import '../../../core/domain/api_gateway.dart';
+import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
-import '../data/sri_lanka_bank_directory.dart';
+import '../domain/entities/sri_lanka_bank_directory.dart';
+import '../domain/entities/pending_financial_form_draft.dart';
+import '../domain/repositories/withdrawal_draft_store.dart';
 
 enum WithdrawalMethod { paypal, binance, usdtTrc20, localBank }
 
@@ -18,10 +19,12 @@ class WithdrawalMethodScreen extends StatefulWidget {
   const WithdrawalMethodScreen({
     super.key,
     required this.apiClient,
+    required this.draftStore,
     required this.method,
   });
 
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
+  final WithdrawalDraftStore draftStore;
   final WithdrawalMethod method;
 
   @override
@@ -38,7 +41,7 @@ class _WithdrawalMethodScreenState extends State<WithdrawalMethodScreen>
   final _holder = TextEditingController();
   final _bankNameFocus = FocusNode();
   final _bankBranchFocus = FocusNode();
-  final _draftStore = PendingFinancialFormStore();
+  WithdrawalDraftStore get _draftStore => widget.draftStore;
   Timer? _draftDebounce;
   bool _restoringDraft = true;
   bool _awaitingTotp = false;
@@ -193,7 +196,7 @@ class _WithdrawalMethodScreenState extends State<WithdrawalMethodScreen>
           items.whereType<Map>().any(
             (item) => item['code']?.toString().toUpperCase() == _payoutCode,
           );
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       payoutMessage = error.message;
     }
     return _WithdrawalState(
@@ -314,7 +317,7 @@ class _WithdrawalMethodScreenState extends State<WithdrawalMethodScreen>
         _editing = false;
         _state = _load();
       });
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

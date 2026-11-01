@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/bloc/bloc_future_builder.dart';
-import '../../../core/network/api_exception.dart';
-import '../../../core/network/tradex_api_client.dart';
+import '../../../core/domain/api_gateway.dart';
+import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
 
 class TrustedDevicesScreen extends StatefulWidget {
   const TrustedDevicesScreen({super.key, required this.apiClient});
 
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
 
   @override
   State<TrustedDevicesScreen> createState() => _TrustedDevicesScreenState();
@@ -32,7 +32,7 @@ class _TrustedDevicesScreenState extends State<TrustedDevicesScreen> {
     final data = response['data'];
     final items = data is Map ? data['items'] : null;
     if (items is! List) {
-      throw const ApiException(message: 'Trusted devices are unavailable.');
+      throw const FormatException('Trusted devices are unavailable.');
     }
     final devices = items
         .whereType<Map>()
@@ -84,7 +84,7 @@ class _TrustedDevicesScreenState extends State<TrustedDevicesScreen> {
         SnackBar(content: Text('${device.displayName} access revoked.')),
       );
       await _refresh();
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

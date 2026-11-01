@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:local_auth/local_auth.dart';
 
-import '../../../core/auth/secure_session_store.dart';
-import '../../../core/network/api_exception.dart';
+import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../domain/repositories/auth_repositories.dart';
+import '../domain/services/quick_unlock_service.dart';
 
 class QuickUnlockScreen extends StatefulWidget {
   const QuickUnlockScreen({
     super.key,
     required this.config,
-    required this.sessionStore,
+    required this.quickUnlockService,
     required this.onUnlocked,
     required this.onSignOut,
   });
 
   final QuickUnlockConfig config;
-  final SecureSessionStore sessionStore;
+  final QuickUnlockService quickUnlockService;
   final Future<void> Function() onUnlocked;
   final Future<void> Function() onSignOut;
 
@@ -26,7 +26,6 @@ class QuickUnlockScreen extends StatefulWidget {
 
 class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
   final _pinController = TextEditingController();
-  final _localAuth = LocalAuthentication();
   bool _busy = false;
   String? _error;
   String _biometricLabel = 'Biometrics';
@@ -47,16 +46,9 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
   Future<void> _loadBiometricLabel() async {
     if (!widget.config.hasBiometric) return;
     try {
-      final available = await _localAuth.getAvailableBiometrics();
-      final label = available.contains(BiometricType.face)
-          ? 'Face ID'
-          : available.contains(BiometricType.fingerprint)
-          ? 'Fingerprint'
-          : available.contains(BiometricType.strong)
-          ? 'Biometrics'
-          : 'Biometrics';
+      final label = await widget.quickUnlockService.biometricLabel();
       if (mounted) setState(() => _biometricLabel = label);
-    } on PlatformException {
+    } catch (_) {
       // The lock screen retains the generic safe fallback label.
     }
   }
@@ -76,14 +68,14 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
       _busy = true;
       _error = null;
     });
-    final result = await widget.sessionStore.verifyQuickUnlockPin(
+    final result = await widget.quickUnlockService.verifyPin(
       _pinController.text,
     );
     if (!mounted) return;
-    if (result != QuickUnlockPinResult.success) {
+    if (result != QuickUnlockPinOutcome.success) {
       setState(() {
         _busy = false;
-        _error = result == QuickUnlockPinResult.locked
+        _error = result == QuickUnlockPinOutcome.locked
             ? 'Too many attempts. Passcode unlock is locked for 5 minutes.'
             : 'Incorrect passcode. Try again.';
         _pinController.clear();
@@ -99,18 +91,8 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
       _error = null;
     });
     try {
-      final canAuthenticate =
-          await _localAuth.canCheckBiometrics ||
-          await _localAuth.isDeviceSupported();
-      if (!canAuthenticate) {
-        throw PlatformException(code: 'NOT_AVAILABLE');
-      }
-      final unlocked = await _localAuth.authenticate(
-        localizedReason: 'Verify your identity to unlock TradeX.',
-        options: const AuthenticationOptions(
-          biometricOnly: true,
-          stickyAuth: true,
-        ),
+      final unlocked = await widget.quickUnlockService.authenticate(
+        'Verify your identity to unlock TradeX.',
       );
       if (!mounted) return;
       if (unlocked) {
@@ -121,7 +103,7 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
           _error = '$_biometricLabel verification was not completed.';
         });
       }
-    } on PlatformException {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _busy = false;
@@ -134,7 +116,7 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
   Future<void> _completeServerUnlock() async {
     try {
       await widget.onUnlocked();
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       if (!mounted) return;
       setState(() {
         _busy = false;

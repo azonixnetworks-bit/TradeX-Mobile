@@ -15,11 +15,11 @@ class ForgotPasswordScreen extends StatefulWidget {
   final Future<void> Function({
     required String email,
     required String whatsappNumber,
-  }) onSubmit;
+  })
+  onSubmit;
 
   @override
-  State<ForgotPasswordScreen> createState() =>
-      _ForgotPasswordScreenState();
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
@@ -104,16 +104,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     return TradeXAuthPage(
       title: 'Forgot Password',
-      subtitle:
-          'Confirm the email and WhatsApp number linked to your TradeX account.',
+      subtitle: 'Confirm the email and WhatsApp number linked to your TradeX account.',
       onBack: widget.onBack,
       child: Form(
         key: _formKey,
         child: Column(
           children: [
             const TradeXInfoBanner(
-              message:
-                  'For privacy, TradeX returns the same response whether or not the account details are eligible.',
+              message: 'For privacy, TradeX returns the same response whether or not the account details are eligible.',
               icon: Icons.privacy_tip_outlined,
             ),
             const SizedBox(height: 16),
@@ -133,9 +131,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               keyboardType: TextInputType.phone,
               textInputAction: TextInputAction.done,
               inputFormatters: [
-                FilteringTextInputFormatter.allow(
-                  RegExp(r'[0-9+]'),
-                ),
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
                 LengthLimitingTextInputFormatter(16),
               ],
               validator: _validateWhatsApp,

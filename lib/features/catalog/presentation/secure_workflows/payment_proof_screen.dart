@@ -8,7 +8,7 @@ class PaymentProofScreen extends StatefulWidget {
     this.initialEvidenceType,
     this.preparedOrder = const <String, dynamic>{},
   });
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
   final String? initialOrderUuid;
   final String? initialEvidenceType;
   final Map<String, dynamic> preparedOrder;
@@ -27,7 +27,7 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
   final _amount = TextEditingController();
   final _sender = TextEditingController();
   late String _type;
-  XFile? _file;
+  PickedImage? _file;
   bool _working = false;
   bool _submitted = false;
   String? _submissionStatus;
@@ -165,8 +165,8 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
   );
 
   Future<void> _pick() async {
-    final file = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
+    final file = await SecureWorkflowPlatformRegistry.current.pickImage(
+      camera: false,
       imageQuality: 88,
     );
     if (file != null && mounted) setState(() => _file = file);
@@ -209,7 +209,7 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
         _submissionStatus = submission['status']?.toString() ?? 'PENDING';
       });
       _message('Evidence submitted securely. Payment is pending review.');
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _working = false);
@@ -243,7 +243,7 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
       } else {
         _message('Payment is still pending backend verification.');
       }
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _working = false);
@@ -280,12 +280,14 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
             )
           : null;
       if (uri == null ||
-          !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        throw const ApiException(
+          !await SecureWorkflowPlatformRegistry.current.launchExternal(
+            uri.toString(),
+          )) {
+        throw const UserFacingFailure(
           message: 'TradeX support contact is not configured right now.',
         );
       }
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _working = false);

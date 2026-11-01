@@ -2,21 +2,18 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../core/auth/secure_session_store.dart';
-import '../../../core/network/api_exception.dart';
+import '../../../core/domain/api_gateway.dart';
+import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
-import '../../../core/network/tradex_api_client.dart';
-import '../../../core/preferences/app_preferences.dart';
-import '../../../core/profile/pending_financial_form_store.dart';
-import '../data/auth_repository.dart';
-import '../data/password_recovery_repository.dart';
-import '../data/registration_repository.dart';
+import '../domain/repositories/auth_repositories.dart';
+import '../domain/services/quick_unlock_service.dart';
+import '../domain/services/session_security_state.dart';
 import 'auth_flow_screen.dart';
 import 'quick_unlock_screen.dart';
 import 'quick_unlock_settings_screen.dart';
 import '../../home/presentation/home_dashboard_screen.dart';
-import '../../home/data/trade_ideas_repository.dart';
-import '../../home/data/learning_repository.dart';
+import '../../home/domain/trade_ideas_repository.dart';
+import '../../home/domain/learning_repository.dart';
 
 class SessionGate extends StatefulWidget {
   const SessionGate({
@@ -28,14 +25,18 @@ class SessionGate extends StatefulWidget {
     required this.tradeIdeasRepository,
     required this.learningRepository,
     this.now,
+    required this.quickUnlockService,
+    required this.securityState,
   });
 
-  final AuthRepository authRepository;
-  final RegistrationRepository registrationRepository;
-  final PasswordRecoveryRepository passwordRecoveryRepository;
-  final TradeXApiClient apiClient;
-  final TradeIdeasRepository tradeIdeasRepository;
-  final LearningRepository learningRepository;
+  final AuthRepositoryContract authRepository;
+  final RegistrationRepositoryContract registrationRepository;
+  final PasswordRecoveryRepositoryContract passwordRecoveryRepository;
+  final ApiGateway apiClient;
+  final DashboardTradeIdeasRepository tradeIdeasRepository;
+  final DashboardLearningRepository learningRepository;
+  final QuickUnlockService quickUnlockService;
+  final SessionSecurityState securityState;
   final DateTime Function()? now;
 
   @override
@@ -63,7 +64,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _backgroundLockDuration = Duration(
-      seconds: AppPreferences.instance.quickUnlockBackgroundLockSeconds,
+      seconds: widget.securityState.backgroundLockSeconds,
     );
 
     _initialize();
@@ -85,7 +86,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       if (_authenticated && !_quickUnlockLocked && !_privacyShielded) {
         if (_quickUnlock != null && _backgroundedAt == null) {
           _backgroundedAt = _now;
-          unawaited(AppPreferences.instance.markBackgrounded(_backgroundedAt!));
+          unawaited(widget.securityState.markBackgrounded(_backgroundedAt!));
         }
         _privacyShielded = true;
         _ensureSecurityOverlay();
@@ -113,7 +114,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       _ensureSecurityOverlay();
     } else {
       _removeSecurityOverlay();
-      unawaited(AppPreferences.instance.clearBackgroundedAt());
+      unawaited(widget.securityState.clearBackgroundedAt());
     }
   }
 
@@ -156,7 +157,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       return QuickUnlockScreen(
         key: const ValueKey('session-quick-unlock-overlay'),
         config: config,
-        sessionStore: SecureSessionStore(),
+        quickUnlockService: widget.quickUnlockService,
         onUnlocked: _restoreAfterQuickUnlock,
         onSignOut: _signOutCompletely,
       );
@@ -189,14 +190,12 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
         _quickUnlock = status['enabled'] == true ? localConfig : null;
         _backgroundLockDuration = Duration(seconds: seconds);
       });
-      unawaited(
-        AppPreferences.instance.setQuickUnlockBackgroundLockSeconds(seconds),
-      );
+      unawaited(widget.securityState.setBackgroundLockSeconds(seconds));
       if (_quickUnlock == null) {
         _quickUnlockLocked = false;
         _privacyShielded = false;
         _removeSecurityOverlay();
-        unawaited(AppPreferences.instance.clearBackgroundedAt());
+        unawaited(widget.securityState.clearBackgroundedAt());
       }
     } catch (_) {
       // Keep the secure 30-minute fallback when policy refresh is offline.
@@ -216,7 +215,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
           .quickUnlockConfiguration();
 
       if (quickUnlock != null) {
-        final backgroundedAt = AppPreferences.instance.lastBackgroundedAt;
+        final backgroundedAt = widget.securityState.lastBackgroundedAt;
         final elapsed = backgroundedAt == null
             ? null
             : _now.difference(backgroundedAt);
@@ -229,7 +228,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
               .restoreRememberedSession();
           if (!mounted) return;
           if (session != null) {
-            await AppPreferences.instance.clearBackgroundedAt();
+            await widget.securityState.clearBackgroundedAt();
             if (!mounted) return;
             setState(() {
               _authenticated = true;
@@ -266,7 +265,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
         _quickUnlockLocked = false;
         _loading = false;
       });
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       if (!mounted) {
         return;
       }
@@ -295,14 +294,14 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       _quickUnlockLocked = false;
       _privacyShielded = false;
       _removeSecurityOverlay();
-      unawaited(AppPreferences.instance.clearBackgroundedAt());
+      unawaited(widget.securityState.clearBackgroundedAt());
       setState(() {
         _authenticated = session != null;
         _quickUnlock = session == null ? null : _quickUnlock;
         _error = null;
       });
       if (session != null) unawaited(_refreshQuickUnlockPolicy());
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       final enrollmentInvalid = <String>{
         'QUICK_UNLOCK_ENROLLMENT_UNAVAILABLE',
         'QUICK_UNLOCK_CREDENTIAL_MISSING',
@@ -318,7 +317,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       _quickUnlockLocked = false;
       _privacyShielded = false;
       _removeSecurityOverlay();
-      unawaited(AppPreferences.instance.clearBackgroundedAt());
+      unawaited(widget.securityState.clearBackgroundedAt());
       setState(() {
         _authenticated = false;
         _quickUnlock = null;
@@ -328,7 +327,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
   }
 
   void _onAuthenticated() {
-    unawaited(AppPreferences.instance.clearBackgroundedAt());
+    unawaited(widget.securityState.clearBackgroundedAt());
     setState(() {
       _authenticated = true;
       _quickUnlockLocked = false;
@@ -345,7 +344,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
     if (config == null) return;
     await widget.authRepository.quickLogin(config);
     if (!mounted) return;
-    unawaited(AppPreferences.instance.clearBackgroundedAt());
+    unawaited(widget.securityState.clearBackgroundedAt());
     setState(() {
       _authenticated = true;
       _quickUnlockLocked = false;
@@ -364,12 +363,11 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       unawaited(_refreshQuickUnlockPolicy());
       return;
     }
-    final sessionStore = SecureSessionStore();
-    final alreadyShown = await sessionStore.hasShownQuickUnlockSetupPrompt();
+    final alreadyShown = await widget.quickUnlockService.hasShownSetupPrompt();
     if (!mounted || alreadyShown) {
       return;
     }
-    await sessionStore.markQuickUnlockSetupPromptShown();
+    await widget.quickUnlockService.markSetupPromptShown();
     if (!mounted) return;
     final openSettings = await showDialog<bool>(
       context: context,
@@ -394,8 +392,10 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
     if (openSettings != true || !mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) =>
-            QuickUnlockSettingsScreen(repository: widget.authRepository),
+        builder: (_) => QuickUnlockSettingsScreen(
+          repository: widget.authRepository,
+          quickUnlockService: widget.quickUnlockService,
+        ),
       ),
     );
     final config = await widget.authRepository.quickUnlockConfiguration();
@@ -412,8 +412,8 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
     if (configuredQuickUnlock != null) {
       await widget.authRepository.logout();
       await _clearPendingFinancialDraft();
-      await AppPreferences.instance.setDashboardTab(0);
-      await AppPreferences.instance.clearBackgroundedAt();
+      await widget.securityState.resetDashboardTab();
+      await widget.securityState.clearBackgroundedAt();
       if (!mounted) return;
       _removeSecurityOverlay();
       setState(() {
@@ -431,8 +431,8 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
   Future<void> _signOutCompletely() async {
     await widget.authRepository.logout();
     await _clearPendingFinancialDraft();
-    await AppPreferences.instance.setDashboardTab(0);
-    await AppPreferences.instance.clearBackgroundedAt();
+    await widget.securityState.resetDashboardTab();
+    await widget.securityState.clearBackgroundedAt();
 
     if (!mounted) {
       return;
@@ -450,8 +450,8 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
   Future<void> _signOutAndForgetDevice() async {
     await widget.authRepository.logout(forgetDevice: true);
     await _clearPendingFinancialDraft();
-    await AppPreferences.instance.setDashboardTab(0);
-    await AppPreferences.instance.clearBackgroundedAt();
+    await widget.securityState.resetDashboardTab();
+    await widget.securityState.clearBackgroundedAt();
     if (!mounted) return;
     _removeSecurityOverlay();
     setState(() {
@@ -465,8 +465,8 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
   Future<void> _signOutAllDevices() async {
     await widget.authRepository.logoutAll();
     await _clearPendingFinancialDraft();
-    await AppPreferences.instance.setDashboardTab(0);
-    await AppPreferences.instance.clearBackgroundedAt();
+    await widget.securityState.resetDashboardTab();
+    await widget.securityState.clearBackgroundedAt();
     if (!mounted) return;
     _removeSecurityOverlay();
     setState(() {
@@ -479,7 +479,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
 
   Future<void> _clearPendingFinancialDraft() async {
     try {
-      await PendingFinancialFormStore().clearWithdrawal();
+      await widget.securityState.clearPendingWithdrawal();
     } catch (_) {
       // Draft cleanup must never prevent an explicit sign-out.
     }
@@ -502,10 +502,10 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
           onLogout: _logout,
           onForgetDevice: _signOutAndForgetDevice,
           onLogoutAll: _signOutAllDevices,
-          apiClient: widget.apiClient,
+          apiClient: widget.apiClient as dynamic,
           tradeIdeasRepository: widget.tradeIdeasRepository,
           learningRepository: widget.learningRepository,
-          authRepository: widget.authRepository,
+          authRepository: widget.authRepository as dynamic,
         ),
       );
     }
@@ -517,6 +517,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       onAuthenticated: _onAuthenticated,
       quickUnlockConfig: _quickUnlock,
       onQuickUnlock: _quickUnlock == null ? null : _completeQuickLogin,
+      quickUnlockService: widget.quickUnlockService,
     );
   }
 }

@@ -160,25 +160,23 @@ class _CopyTradeDashboardScreenState extends State<CopyTradeDashboardScreen>
       final url = data['open_account_via_tradex_url']?.toString();
       final intent = data['onboarding_intent_uuid']?.toString();
       if (url == null || intent == null) {
-        throw const ApiException(
+        throw const UserFacingFailure(
           message: 'The broker onboarding action is unavailable.',
         );
       }
       if (!mounted) return;
       setState(() => _pendingIntents[marketUuid] = data);
-      final opened = await launchUrl(
-        Uri.parse(url),
-        mode: LaunchMode.externalApplication,
-      );
+      final opened = await SecureWorkflowPlatformRegistry.current
+          .launchExternal(url);
       if (!opened) {
-        throw const ApiException(
+        throw const UserFacingFailure(
           message: 'The broker link could not be opened.',
         );
       }
       _message(
         'After opening the LIVE account, return here and submit its account number.',
       );
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } catch (_) {
       _message('The broker link could not be opened right now.');
@@ -280,7 +278,7 @@ class _CopyTradeDashboardScreenState extends State<CopyTradeDashboardScreen>
       _pendingIntents.remove(marketUuid);
       _message('Account submitted. TradeX will verify the IB relationship.');
       _reload();
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       account.dispose();
@@ -371,7 +369,7 @@ class _CopyTradeDashboardScreenState extends State<CopyTradeDashboardScreen>
       );
       _message('Corrected account number submitted for verification.');
       _reload();
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       controller.dispose();
@@ -891,8 +889,8 @@ class _CopyTradeError extends StatelessWidget {
           const Icon(Icons.cloud_off_rounded, size: 48, color: Colors.white38),
           const SizedBox(height: 12),
           Text(
-            error is ApiException
-                ? (error as ApiException).message
+            error is UserFacingException
+                ? (error as UserFacingException).message
                 : 'Copy Trade details could not be loaded.',
             textAlign: TextAlign.center,
           ),

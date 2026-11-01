@@ -6,7 +6,7 @@ class _ContinueLearningSection extends StatefulWidget {
     required this.onActionTap,
   });
 
-  final LearningRepository repository;
+  final DashboardLearningRepository repository;
   final ValueChanged<String> onActionTap;
 
   @override

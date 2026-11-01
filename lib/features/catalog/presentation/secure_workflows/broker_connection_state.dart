@@ -60,7 +60,7 @@ class _BrokerConnectionScreenState extends State<BrokerConnectionScreen> {
       });
       _message('Broker account submitted for activation review.');
       if (mounted) Navigator.pop(context, true);
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _working = false);

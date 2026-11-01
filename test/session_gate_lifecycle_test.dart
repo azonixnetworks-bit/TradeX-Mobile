@@ -8,6 +8,8 @@ import 'package:tradex_mobile/core/device/device_identity.dart';
 import 'package:tradex_mobile/core/network/tradex_api_client.dart';
 import 'package:tradex_mobile/core/preferences/app_preferences.dart';
 import 'package:tradex_mobile/features/auth/data/auth_repository.dart';
+import 'package:tradex_mobile/features/auth/data/services/quick_unlock_service_impl.dart';
+import 'package:tradex_mobile/features/auth/data/services/session_security_state_impl.dart';
 import 'package:tradex_mobile/features/auth/data/password_recovery_repository.dart';
 import 'package:tradex_mobile/features/auth/data/registration_repository.dart';
 import 'package:tradex_mobile/features/auth/presentation/login_screen.dart';
@@ -55,6 +57,8 @@ void main() {
             apiClient: api,
             tradeIdeasRepository: TradeIdeasRepository(api),
             learningRepository: LearningRepository(api),
+            quickUnlockService: QuickUnlockServiceImpl(store),
+            securityState: const SessionSecurityStateImpl(),
             now: () => now,
           ),
         ),
@@ -108,6 +112,8 @@ void main() {
             apiClient: api,
             tradeIdeasRepository: TradeIdeasRepository(api),
             learningRepository: LearningRepository(api),
+            quickUnlockService: QuickUnlockServiceImpl(store),
+            securityState: const SessionSecurityStateImpl(),
             now: () => now,
           ),
         ),
@@ -165,6 +171,8 @@ void main() {
             apiClient: api,
             tradeIdeasRepository: TradeIdeasRepository(api),
             learningRepository: LearningRepository(api),
+            quickUnlockService: QuickUnlockServiceImpl(store),
+            securityState: const SessionSecurityStateImpl(),
             now: () => clock,
           ),
         ),

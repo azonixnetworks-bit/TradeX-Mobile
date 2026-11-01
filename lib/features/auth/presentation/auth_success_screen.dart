@@ -42,8 +42,7 @@ class AuthSuccessScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           const TradeXInfoBanner(
-            message:
-                'Your security flow completed successfully. Continue to sign in with your account credentials and authenticator code.',
+            message: 'Your security flow completed successfully. Continue to sign in with your account credentials and authenticator code.',
             icon: Icons.verified_user_rounded,
           ),
           const SizedBox(height: 20),

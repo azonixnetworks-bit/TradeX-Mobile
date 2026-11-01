@@ -77,9 +77,8 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
               FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
               LengthLimitingTextInputFormatter(30),
               TextInputFormatter.withFunction(
-                (oldValue, newValue) => newValue.copyWith(
-                  text: newValue.text.toUpperCase(),
-                ),
+                (oldValue, newValue) =>
+                    newValue.copyWith(text: newValue.text.toUpperCase()),
               ),
             ],
             validator: (v) => v == null || v.trim().isEmpty

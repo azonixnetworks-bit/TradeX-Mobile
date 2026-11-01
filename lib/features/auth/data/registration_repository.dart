@@ -1,12 +1,15 @@
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
-import '../models/registration_session.dart';
+import '../domain/entities/registration_session.dart';
+import '../models/registration_session.dart' as dto;
+import '../domain/repositories/auth_repositories.dart';
 
-class RegistrationRepository {
+class RegistrationRepository implements RegistrationRepositoryContract {
   RegistrationRepository(this._apiClient);
 
   final TradeXApiClient _apiClient;
 
+  @override
   Future<RegistrationSession> start({
     required String name,
     required String email,
@@ -31,9 +34,10 @@ class RegistrationRepository {
       },
     );
 
-    return RegistrationSession.fromJson(_data(response));
+    return dto.RegistrationSession.fromJson(_data(response));
   }
 
+  @override
   Future<void> verifyEmail(RegistrationSession session, String otpCode) async {
     await _apiClient.publicPost(
       '/api/v1/auth/register/email/verify',
@@ -44,6 +48,7 @@ class RegistrationRepository {
     );
   }
 
+  @override
   Future<void> resendEmail(RegistrationSession session) async {
     await _apiClient.publicPost(
       '/api/v1/auth/register/email/resend',
@@ -51,6 +56,7 @@ class RegistrationRepository {
     );
   }
 
+  @override
   Future<void> verifyWhatsApp(
     RegistrationSession session,
     String otpCode,
@@ -64,6 +70,7 @@ class RegistrationRepository {
     );
   }
 
+  @override
   Future<void> resendWhatsApp(RegistrationSession session) async {
     await _apiClient.publicPost(
       '/api/v1/auth/register/whatsapp/resend',
@@ -71,15 +78,17 @@ class RegistrationRepository {
     );
   }
 
+  @override
   Future<RegistrationTotpSetup> setupTotp(RegistrationSession session) async {
     final response = await _apiClient.publicPost(
       '/api/v1/auth/register/totp/setup',
       _sessionPayload(session),
     );
 
-    return RegistrationTotpSetup.fromJson(_data(response));
+    return dto.RegistrationTotpSetup.fromJson(_data(response));
   }
 
+  @override
   Future<void> confirmTotp(RegistrationSession session, String totpCode) async {
     final response = await _apiClient.publicPost(
       '/api/v1/auth/register/totp/confirm',
@@ -98,6 +107,7 @@ class RegistrationRepository {
     }
   }
 
+  @override
   Future<RegistrationRecoveryCodes> bootstrapRecoveryCodes(
     RegistrationSession session,
   ) async {
@@ -106,7 +116,7 @@ class RegistrationRepository {
       _sessionPayload(session),
     );
 
-    return RegistrationRecoveryCodes.fromJson(_data(response));
+    return dto.RegistrationRecoveryCodes.fromJson(_data(response));
   }
 
   Map<String, dynamic> _sessionPayload(RegistrationSession session) {

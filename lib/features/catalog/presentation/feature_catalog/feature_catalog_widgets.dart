@@ -211,8 +211,8 @@ class _ErrorState extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            error is ApiException
-                ? (error! as ApiException).message
+            error is UserFacingException
+                ? (error! as UserFacingException).message
                 : 'This service is unavailable right now.',
             textAlign: TextAlign.center,
           ),
@@ -310,7 +310,7 @@ class _UploadPicker extends StatelessWidget {
     required this.onPick,
     required this.onRemove,
   });
-  final XFile? selectedFile;
+  final PickedImage? selectedFile;
   final VoidCallback onPick;
   final VoidCallback onRemove;
   @override

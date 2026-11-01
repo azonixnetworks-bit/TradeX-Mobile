@@ -17,8 +17,8 @@ class HomeDashboardScreen extends StatefulWidget {
   final Future<void> Function() onForgetDevice;
   final Future<void> Function() onLogoutAll;
   final TradeXApiClient apiClient;
-  final TradeIdeasRepository tradeIdeasRepository;
-  final LearningRepository learningRepository;
+  final DashboardTradeIdeasRepository tradeIdeasRepository;
+  final DashboardLearningRepository learningRepository;
   final AuthRepository authRepository;
   final LocalProfilePhotoStore profilePhotoStore;
 
@@ -83,6 +83,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           ),
           builder: (_) => WithdrawalMethodScreen(
             apiClient: widget.apiClient,
+            draftStore:
+                ProfileDependenciesRegistry.current.withdrawalDraftStore,
             method: restoredMethod,
           ),
         ),
@@ -175,7 +177,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     if (normalized == 'services') {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => FeatureCatalogScreen(apiClient: widget.apiClient),
+          builder: (_) => FeatureCatalogScreen(
+            dependencies: CatalogDependenciesRegistry.current,
+          ),
         ),
       );
       return;
@@ -193,7 +197,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     if (normalized == 'tradex content') {
       openTradeXFeature(
         context,
-        widget.apiClient,
+        CatalogDependenciesRegistry.current,
         const FeatureSpec(
           id: 'our-channel',
           group: 'Notifications & Support',
@@ -225,7 +229,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         'trade-idea-details',
       _ => 'help-faq',
     };
-    openTradeXFeature(context, widget.apiClient, featureById(id));
+    openTradeXFeature(
+      context,
+      CatalogDependenciesRegistry.current,
+      featureById(id),
+    );
   }
 
   @override
