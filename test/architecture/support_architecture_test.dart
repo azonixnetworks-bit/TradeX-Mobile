@@ -78,6 +78,21 @@ void main() {
     }
   });
 
+  test('home dashboard stays split into maintainable units', () {
+    final dashboardFiles = _dartFiles(
+      Directory('lib/features/home/presentation/home_dashboard'),
+    );
+
+    for (final file in dashboardFiles) {
+      final lineCount = file.readAsLinesSync().length;
+      expect(
+        lineCount,
+        lessThan(1000),
+        reason: '${file.path} has $lineCount lines and should be split',
+      );
+    }
+  });
+
   for (final feature in const ['support', 'copy_trading', 'funded_advisor']) {
     final featureRoot = Directory('lib/features/$feature');
 
