@@ -121,6 +121,33 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('continue does not depend on the lesson-detail endpoint', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final api = _LessonDetailFailureLearnApiClient();
+
+    await tester.pumpWidget(_subject(api));
+    await tester.pumpAndSettle();
+    final continueButton = find.byKey(
+      const ValueKey('continue-learning-button'),
+    );
+    await tester.ensureVisible(continueButton);
+    await tester.tap(continueButton);
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+
+    expect(api.lessonDetailRequests, 0);
+    expect(
+      api.postedPaths,
+      contains('/api/v1/education/videos/video-last/playback-token'),
+    );
+    expect(find.byType(CourseVideoPlayerScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('free lesson bookmark uses existing user-scoped API', (
     tester,
   ) async {
@@ -365,6 +392,19 @@ class _OverviewFailureLearnApiClient extends _LearnApiClient {
           'featured_courses': overview['featured_courses'],
         },
       };
+    }
+    return super.getJson(path);
+  }
+}
+
+class _LessonDetailFailureLearnApiClient extends _LearnApiClient {
+  int lessonDetailRequests = 0;
+
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async {
+    if (path.startsWith('/api/v1/education/lessons/')) {
+      lessonDetailRequests += 1;
+      throw const ApiException(message: 'Server Error', statusCode: 500);
     }
     return super.getJson(path);
   }

@@ -327,21 +327,6 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
     }
     setState(() => _resumingLessonUuid = lessonUuid);
     try {
-      final detail = await widget.repository.lesson(lessonUuid);
-      final videos = LearnRepository.list(detail['videos'])
-          .map(LearnRepository.map)
-          .toList(growable: false);
-      JsonMap? video;
-      for (final candidate in videos) {
-        if (LearnRepository.text(candidate['uuid']) == videoUuid) {
-          video = candidate;
-          break;
-        }
-      }
-      if (video == null || !LearnRepository.flag(video['playback_ready'])) {
-        if (mounted) _openLessonFromItem(item);
-        return;
-      }
       final token = await widget.repository.playbackToken(videoUuid);
       final playbackUrl = LearnRepository.text(token['playback_url']);
       if (playbackUrl.isEmpty) throw StateError('Playback URL unavailable');
@@ -353,7 +338,7 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
             lessonUuid: lessonUuid,
             videoUuid: videoUuid,
             title: LearnRepository.text(
-              video?['title'],
+              item['last_video_title'],
               LearnRepository.text(
                 LearnRepository.map(item['lesson'])['title'],
                 'TradeX course video',
