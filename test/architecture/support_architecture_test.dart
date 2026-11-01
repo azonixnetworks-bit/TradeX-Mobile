@@ -168,6 +168,22 @@ void main() {
     }
   });
 
+  test('login presentation stays split into maintainable units', () {
+    final presentationFiles = <File>[
+      File('lib/features/auth/presentation/login_screen.dart'),
+      ..._dartFiles(Directory('lib/features/auth/presentation/login')),
+    ];
+
+    for (final file in presentationFiles) {
+      final lineCount = file.readAsLinesSync().length;
+      expect(
+        lineCount,
+        lessThan(1000),
+        reason: '${file.path} has $lineCount lines and should be split',
+      );
+    }
+  });
+
   for (final feature in const ['support', 'copy_trading', 'funded_advisor']) {
     final featureRoot = Directory('lib/features/$feature');
 
