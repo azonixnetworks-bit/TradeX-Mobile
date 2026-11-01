@@ -283,6 +283,33 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('withdrawal form opens before the balance reaches minimum', (
+    tester,
+  ) async {
+    final repository = _PayoutRepository(canRequest: false);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: AffiliatePayoutsScreen(
+            repository: repository,
+            onUpgrade: () {},
+            onConfigureMethod: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Withdraw'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Request Withdrawal'), findsOneWidget);
+    expect(find.text('Amount'), findsOneWidget);
+    expect(find.text('Submit Request'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   test('affiliate load cubit emits immutable ready state', () async {
     final cubit = AffiliateLoadCubit(() async => {'value': 42});
     await cubit.load();
@@ -294,6 +321,9 @@ void main() {
 }
 
 class _PayoutRepository implements AffiliateRepository {
+  _PayoutRepository({this.canRequest = true});
+
+  final bool canRequest;
   String? requestedMethod;
   String? requestedAmount;
 
@@ -304,7 +334,7 @@ class _PayoutRepository implements AffiliateRepository {
     'net_earned': {'currency': 'USD', 'amount': '100.00'},
     'paid': {'currency': 'USD', 'amount': '20.00'},
     'locked': {'currency': 'USD', 'amount': '0.00'},
-    'can_request_payout': true,
+    'can_request_payout': canRequest,
     'kyc': {'required': false, 'satisfied': true},
   };
 

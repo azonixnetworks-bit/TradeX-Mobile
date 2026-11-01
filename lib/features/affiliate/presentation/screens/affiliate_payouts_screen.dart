@@ -84,8 +84,7 @@ class PayoutsContent extends StatelessWidget {
     final configured = methods
         .where((item) => AffiliateRepository.boolean(item['configured']))
         .toList();
-    if (!AffiliateRepository.boolean(summary['can_request_payout']) ||
-        configured.isEmpty) {
+    if (configured.isEmpty) {
       _snack(context, _eligibilityMessage(summary, methods));
       return;
     }
