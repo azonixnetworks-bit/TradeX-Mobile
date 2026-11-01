@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tradex_mobile/core/network/api_exception.dart';
+import 'package:tradex_mobile/features/affiliate/domain/repositories/affiliate_repository.dart';
 import 'package:tradex_mobile/features/affiliate/presentation/affiliate_module.dart';
 import 'package:tradex_mobile/features/affiliate/presentation/bloc/affiliate_cubits.dart';
 import 'package:tradex_mobile/features/affiliate/presentation/services/affiliate_share_card_service.dart';
@@ -243,6 +244,45 @@ void main() {
     expect(find.text(r'$200.00'), findsOneWidget);
   });
 
+  testWidgets('withdrawal submits selected account and amount to repository', (
+    tester,
+  ) async {
+    final repository = _PayoutRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: AffiliatePayoutsScreen(
+            repository: repository,
+            onUpgrade: () {},
+            onConfigureMethod: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Withdraw'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('PayPal • a***@example.com'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '25.00');
+    await tester.tap(find.text('Submit Request'));
+    await tester.pumpAndSettle();
+    expect(find.text('Confirm withdrawal'), findsOneWidget);
+    expect(
+      find.text('Withdraw \$25.00 to PayPal • a***@example.com?'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Confirm'));
+    await tester.pumpAndSettle();
+
+    expect(repository.requestedMethod, 'PAYPAL');
+    expect(repository.requestedAmount, '25.00');
+    expect(tester.takeException(), isNull);
+  });
+
   test('affiliate load cubit emits immutable ready state', () async {
     final cubit = AffiliateLoadCubit(() async => {'value': 42});
     await cubit.load();
@@ -251,4 +291,56 @@ void main() {
     expect(cubit.state.data['value'], 42);
     await cubit.close();
   });
+}
+
+class _PayoutRepository implements AffiliateRepository {
+  String? requestedMethod;
+  String? requestedAmount;
+
+  @override
+  Future<JsonMap> payoutSummary() async => {
+    'available': {'currency': 'USD', 'amount': '80.00'},
+    'minimum_payout': {'currency': 'USD', 'amount': '15.00'},
+    'net_earned': {'currency': 'USD', 'amount': '100.00'},
+    'paid': {'currency': 'USD', 'amount': '20.00'},
+    'locked': {'currency': 'USD', 'amount': '0.00'},
+    'can_request_payout': true,
+    'kyc': {'required': false, 'satisfied': true},
+  };
+
+  @override
+  Future<JsonMap> payoutMethods() async => {
+    'items': [
+      {
+        'code': 'PAYPAL',
+        'configured': true,
+        'destination': {'label': 'a***@example.com'},
+      },
+      {
+        'code': 'USDT_TRC20',
+        'configured': true,
+        'destination': {'label': 'TQn9...bLSE'},
+      },
+    ],
+  };
+
+  @override
+  Future<JsonMap> payoutHistory({int page = 1, int perPage = 20}) async => {
+    'items': <JsonMap>[],
+  };
+
+  @override
+  Future<JsonMap> requestPayout({
+    required String method,
+    required String amount,
+  }) async {
+    requestedMethod = method;
+    requestedAmount = amount;
+    return {
+      'payout': {'method': method, 'amount': amount},
+    };
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

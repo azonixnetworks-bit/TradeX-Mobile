@@ -84,12 +84,15 @@ class PayoutsContent extends StatelessWidget {
     final configured = methods
         .where((item) => AffiliateRepository.boolean(item['configured']))
         .toList();
-    if (!AffiliateRepository.boolean(summary['can_request_payout'])) {
+    if (!AffiliateRepository.boolean(summary['can_request_payout']) ||
+        configured.isEmpty) {
       _snack(context, _eligibilityMessage(summary, methods));
       return;
     }
     final amount = TextEditingController();
     String method = AffiliateRepository.text(configured.first['code'], '');
+    final available = AffiliateRepository.money(summary['available']);
+    final minimum = AffiliateRepository.money(summary['minimum_payout']);
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -119,9 +122,8 @@ class PayoutsContent extends StatelessWidget {
                       DropdownMenuItem(
                         value: AffiliateRepository.text(item['code'], ''),
                         child: Text(
-                          _methodName(
-                            AffiliateRepository.text(item['code'], ''),
-                          ),
+                          _payoutMethodLabel(item),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                   ],
@@ -145,15 +147,34 @@ class PayoutsContent extends StatelessWidget {
                     helperText:
                         'Available: ${AffiliateRepository.moneyText(summary['available'])}',
                     prefixText: r'$ ',
+                    suffixIcon: TextButton(
+                      onPressed: () =>
+                          amount.text = available.toStringAsFixed(2),
+                      child: const Text('MAX'),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 18),
                 GoldActionButton(
                   label: 'Submit Request',
                   onPressed: () {
-                    if (double.tryParse(amount.text) == null ||
-                        double.parse(amount.text) <= 0) {
+                    final requested = double.tryParse(amount.text);
+                    if (requested == null || requested <= 0) {
                       _snack(sheetContext, 'Enter a valid withdrawal amount.');
+                      return;
+                    }
+                    if (requested < minimum) {
+                      _snack(
+                        sheetContext,
+                        'Minimum withdrawal is ${AffiliateRepository.moneyText(summary['minimum_payout'])}.',
+                      );
+                      return;
+                    }
+                    if (requested > available) {
+                      _snack(
+                        sheetContext,
+                        'Amount cannot exceed your available balance.',
+                      );
                       return;
                     }
                     Navigator.pop(sheetContext, true);
@@ -165,10 +186,34 @@ class PayoutsContent extends StatelessWidget {
         ),
       ),
     );
+    final requestedAmount = amount.text.trim();
     if (confirmed != true || !context.mounted) return;
+    final selected = configured.firstWhere(
+      (item) => AffiliateRepository.text(item['code'], '') == method,
+    );
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Confirm withdrawal'),
+        content: Text(
+          'Withdraw \$$requestedAmount to ${_payoutMethodLabel(selected)}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (approved != true || !context.mounted) return;
     final error = await context.read<PayoutCubit>().submit(
       method,
-      amount.text.trim(),
+      requestedAmount,
     );
     if (!context.mounted) return;
     _snack(context, error ?? 'Withdrawal request submitted.');
@@ -320,6 +365,20 @@ class PayoutsContent extends StatelessWidget {
       ],
     );
   }
+}
+
+String _payoutMethodLabel(JsonMap method) {
+  final code = AffiliateRepository.text(method['code'], '');
+  final destination = AffiliateRepository.mapOf(method['destination']);
+  final account = AffiliateRepository.text(
+    destination['label'] ??
+        destination['account_number'] ??
+        destination['bank_name'],
+    '',
+  );
+  return account.isEmpty
+      ? _methodName(code)
+      : '${_methodName(code)} • $account';
 }
 
 class _PayoutMetric extends StatelessWidget {
