@@ -63,6 +63,21 @@ void main() {
     }
   });
 
+  test('secure workflows stay split into maintainable units', () {
+    final workflowFiles = _dartFiles(
+      Directory('lib/features/catalog/presentation/secure_workflows'),
+    );
+
+    for (final file in workflowFiles) {
+      final lineCount = file.readAsLinesSync().length;
+      expect(
+        lineCount,
+        lessThan(1000),
+        reason: '${file.path} has $lineCount lines and should be split',
+      );
+    }
+  });
+
   for (final feature in const ['support', 'copy_trading', 'funded_advisor']) {
     final featureRoot = Directory('lib/features/$feature');
 
