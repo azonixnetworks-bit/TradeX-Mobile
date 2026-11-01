@@ -1,7 +1,6 @@
 part of '../home_dashboard_screen.dart';
 
 class _ProfileTabState extends State<_ProfileTab> {
-  final _imagePicker = ImagePicker();
   late Future<_CustomerProfile> _profile;
   Uint8List? _profilePhoto;
   String? _profileEmail;
@@ -116,7 +115,7 @@ class _ProfileTabState extends State<_ProfileTab> {
       MaterialPageRoute<bool>(
         builder: (_) => WithdrawalMethodScreen(
           apiClient: widget.apiClient,
-          draftStore: ProfileDependenciesRegistry.current.withdrawalDraftStore,
+          draftStore: widget.withdrawalDraftStore,
           method: method,
         ),
       ),
@@ -181,9 +180,8 @@ class _ProfileTabState extends State<_ProfileTab> {
       subtitle: 'System, Light or Dark theme',
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => LearnSettingsScreen(
-            repository: LearnDependencies(widget.apiClient).repository,
-          ),
+          builder: (_) =>
+              LearnSettingsScreen(repository: widget.learnRepository),
         ),
       ),
     ),
@@ -283,8 +281,8 @@ class _ProfileTabState extends State<_ProfileTab> {
     final email = _profileEmail;
     if (email == null || _profilePhotoBusy) return;
     try {
-      final selected = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+      final selected = await AppPlatformRegistry.current.pickImage(
+        camera: false,
         maxWidth: 1024,
         maxHeight: 1024,
         imageQuality: 86,
@@ -302,7 +300,7 @@ class _ProfileTabState extends State<_ProfileTab> {
           : 0;
       final endpoint = metadata['endpoint']?.toString().trim();
       if (version < 1 || endpoint == null || endpoint.isEmpty) {
-        throw const ApiException(
+        throw const UserFacingFailure(
           message: 'The server did not confirm the profile photo.',
         );
       }
@@ -323,7 +321,7 @@ class _ProfileTabState extends State<_ProfileTab> {
         );
         _refresh();
       }
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(error.message)));
@@ -357,7 +355,7 @@ class _ProfileTabState extends State<_ProfileTab> {
         );
         _refresh();
       }
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(error.message)));

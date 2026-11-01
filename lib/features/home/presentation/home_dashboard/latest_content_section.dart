@@ -155,7 +155,7 @@ class _LatestContentCard extends StatefulWidget {
     required this.onActionTap,
   });
 
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
   final ValueChanged<String> onActionTap;
 
   @override
@@ -217,7 +217,7 @@ class _LatestContentCardState extends State<_LatestContentCard> {
   Future<void> _openVideo(String? rawUrl) async {
     final uri = rawUrl == null ? null : Uri.tryParse(rawUrl);
     if (uri == null ||
-        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        !await AppPlatformRegistry.current.launchExternal(uri.toString())) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Unable to open YouTube right now.')),

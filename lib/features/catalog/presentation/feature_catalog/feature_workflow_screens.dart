@@ -90,7 +90,9 @@ class _TradeXFeatureScreenState extends State<TradeXFeatureScreen>
           final filtered = records
               .where((record) {
                 if (_query.isEmpty) return true;
-                return jsonEncode(record).toLowerCase().contains(_query);
+                return encodeStructuredText(record)
+                    .toLowerCase()
+                    .contains(_query);
               })
               .toList(growable: false);
           return RefreshIndicator(

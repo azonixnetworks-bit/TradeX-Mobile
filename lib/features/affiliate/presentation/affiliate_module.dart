@@ -7,7 +7,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/domain/app_platform.dart';
 
 import '../../../core/theme/tradex_colors.dart';
 import '../../../core/theme/tradex_icons.dart';

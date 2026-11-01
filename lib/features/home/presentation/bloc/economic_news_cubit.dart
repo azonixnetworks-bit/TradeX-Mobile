@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 
-import '../../data/market_news_repository.dart';
+import '../../domain/market_news_repository.dart';
 
 enum EconomicNewsStatus { initial, loading, success, failure }
 
@@ -66,7 +66,7 @@ class EconomicNewsCubit extends Cubit<EconomicNewsState> {
     );
   }
 
-  final MarketNewsRepository _repository;
+  final MarketNewsRepositoryContract _repository;
   final DateTime Function() _now;
   late final Timer _clock;
   late final Timer _refreshTimer;

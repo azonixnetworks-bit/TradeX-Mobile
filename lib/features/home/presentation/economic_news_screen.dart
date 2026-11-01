@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../../../shared/widgets/no_trade_zone_warning.dart';
-import '../data/market_news_repository.dart';
+import '../domain/market_news_repository.dart';
 import 'bloc/economic_news_cubit.dart';
 
 class EconomicNewsScreen extends StatefulWidget {
-  const EconomicNewsScreen({super.key, required this.apiClient});
+  const EconomicNewsScreen({super.key, required this.repository});
 
-  final TradeXApiClient apiClient;
+  final MarketNewsRepositoryContract repository;
 
   @override
   State<EconomicNewsScreen> createState() => _EconomicNewsScreenState();
@@ -26,7 +25,7 @@ class _EconomicNewsScreenState extends State<EconomicNewsScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _cubit = EconomicNewsCubit(MarketNewsRepository(widget.apiClient))..load();
+    _cubit = EconomicNewsCubit(widget.repository)..load();
     _pageController = PageController();
     _verticalControllers = <EconomicNewsFilter, ScrollController>{
       for (final filter in EconomicNewsFilter.values)

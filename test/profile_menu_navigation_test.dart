@@ -9,11 +9,11 @@ import 'package:tradex_mobile/core/auth/secure_session_store.dart';
 import 'package:tradex_mobile/core/device/device_identity.dart';
 import 'package:tradex_mobile/core/network/tradex_api_client.dart';
 import 'package:tradex_mobile/core/profile/local_profile_photo_store.dart';
+import 'package:tradex_mobile/core/domain/profile_photo_store.dart';
 import 'package:tradex_mobile/core/preferences/app_preferences.dart';
 import 'package:tradex_mobile/features/auth/data/auth_repository.dart';
-import 'package:tradex_mobile/features/home/data/learning_repository.dart';
-import 'package:tradex_mobile/features/home/data/trade_ideas_repository.dart';
 import 'package:tradex_mobile/features/home/presentation/home_dashboard_screen.dart';
+import 'package:tradex_mobile/features/home/home_dependencies.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -39,11 +39,11 @@ void main() {
           onLogout: () async {},
           onForgetDevice: () async {},
           onLogoutAll: () async {},
-          apiClient: api,
-          tradeIdeasRepository: TradeIdeasRepository(api),
-          learningRepository: LearningRepository(api),
-          authRepository: AuthRepository(api, store, device),
-          profilePhotoStore: _MemoryProfilePhotoStore(),
+          dependencies: HomeDependencies(
+            api,
+            AuthRepository(api, store, device),
+            profilePhotoStore: _MemoryProfilePhotoStore(),
+          ),
         ),
       ),
     );
@@ -116,11 +116,11 @@ void main() {
           onLogout: () async {},
           onForgetDevice: () async {},
           onLogoutAll: () async {},
-          apiClient: api,
-          tradeIdeasRepository: TradeIdeasRepository(api),
-          learningRepository: LearningRepository(api),
-          authRepository: AuthRepository(api, store, device),
-          profilePhotoStore: _MemoryProfilePhotoStore(),
+          dependencies: HomeDependencies(
+            api,
+            AuthRepository(api, store, device),
+            profilePhotoStore: _MemoryProfilePhotoStore(),
+          ),
         ),
       ),
     );

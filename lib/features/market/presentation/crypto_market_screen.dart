@@ -9,7 +9,6 @@ import '../../../core/theme/tradex_colors.dart';
 import '../../home/domain/trade_ideas_repository.dart';
 import '../domain/entities/crypto_market_entities.dart';
 import '../domain/repositories/crypto_market_repository.dart';
-import '../market_dependencies.dart';
 import 'crypto_bubble_field.dart';
 import 'crypto_bubble_map_screen.dart';
 import 'crypto_market_cubit.dart';

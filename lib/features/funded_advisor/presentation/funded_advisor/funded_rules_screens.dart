@@ -481,7 +481,7 @@ Future<void> _open(BuildContext context, Widget page) {
 Future<void> _launch(String value) async {
   final uri = Uri.tryParse(value);
   if (uri == null || !const {'http', 'https'}.contains(uri.scheme)) return;
-  await launchUrl(uri, mode: LaunchMode.externalApplication);
+  await AppPlatformRegistry.current.launchExternal(uri.toString());
 }
 
 Color _policyColor(String policy) => switch (policy.toUpperCase()) {

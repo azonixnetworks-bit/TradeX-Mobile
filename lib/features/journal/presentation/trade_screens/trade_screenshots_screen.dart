@@ -18,7 +18,6 @@ class TradeJournalScreenshotsScreen extends StatefulWidget {
 class _TradeJournalScreenshotsScreenState
     extends State<TradeJournalScreenshotsScreen> {
   late TradeJournalEntry _entry;
-  final _picker = ImagePicker();
   String? _workingType;
 
   @override
@@ -170,8 +169,8 @@ class _TradeJournalScreenshotsScreenState
   );
 
   Future<void> _upload(String type) async {
-    final file = await _picker.pickImage(
-      source: ImageSource.gallery,
+    final file = await AppPlatformRegistry.current.pickImage(
+      camera: false,
       imageQuality: 90,
       maxWidth: 2400,
     );

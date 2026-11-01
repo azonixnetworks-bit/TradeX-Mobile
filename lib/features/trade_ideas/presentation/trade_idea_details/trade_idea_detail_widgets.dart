@@ -458,7 +458,7 @@ Future<void> _share(
     );
     final uri = Uri.tryParse(action.externalUrl);
     if (uri == null || uri.scheme != 'https') throw const FormatException();
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    await AppPlatformRegistry.current.launchExternal(uri.toString());
   } catch (_) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -3,13 +3,11 @@ part of '../crypto_market_screen.dart';
 class CryptoMarketScreen extends StatefulWidget {
   const CryptoMarketScreen({
     super.key,
-    this.apiClient,
-    this.dependencies,
+    required this.dependencies,
     this.enableDirectBubbleStream = true,
   });
 
-  final Object? apiClient;
-  final MarketFeatureDependencies? dependencies;
+  final MarketFeatureDependencies dependencies;
   final bool enableDirectBubbleStream;
 
   @override
@@ -32,8 +30,7 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    final dependencies =
-        widget.dependencies ?? MarketDependencies(widget.apiClient as dynamic);
+    final dependencies = widget.dependencies;
     _cryptoRepository = dependencies.repository;
     _liveTickerSource = dependencies.liveTickerSource;
     _cubit = CryptoMarketCubit(

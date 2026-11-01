@@ -3,10 +3,12 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:image_picker/image_picker.dart';
+
+import '../../../core/domain/app_platform.dart';
+
 import 'package:uuid/uuid.dart';
 
-import '../../../core/network/api_exception.dart';
+import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../domain/entities/support_entities.dart';
 import '../domain/support_policy.dart';

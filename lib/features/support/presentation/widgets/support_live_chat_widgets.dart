@@ -220,7 +220,7 @@ class _LiveComposer extends StatelessWidget {
 }
 
 String _friendlyError(Object error) {
-  if (error is ApiException) return error.message;
+  if (error is UserFacingException) return error.message;
   if (error is StateError) return error.message;
   return 'Live support is temporarily unavailable. Please try again.';
 }

@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+
+import '../../../core/domain/app_platform.dart';
 
 import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/serialization/structured_text_codec.dart';

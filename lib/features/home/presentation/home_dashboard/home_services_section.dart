@@ -8,13 +8,15 @@ class _HomeContent extends StatelessWidget {
     required this.apiClient,
     required this.tradeIdeasRepository,
     required this.learningRepository,
+    required this.marketNewsRepository,
   });
 
   final ValueChanged<String> onActionTap;
   final Future<void> Function() onLogout;
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
   final DashboardTradeIdeasRepository tradeIdeasRepository;
   final DashboardLearningRepository learningRepository;
+  final MarketNewsRepositoryContract marketNewsRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +49,7 @@ class _HomeContent extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               _MarketNewsSection(
-                repository: MarketNewsRepository(apiClient),
+                repository: marketNewsRepository,
                 onOpenAll: () => onActionTap('Economic News'),
               ),
               const SizedBox(height: 20),
@@ -152,7 +154,7 @@ class _Header extends StatelessWidget {
 class _CompactServicesGrid extends StatelessWidget {
   const _CompactServicesGrid({required this.apiClient});
 
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
 
   @override
   Widget build(BuildContext context) {

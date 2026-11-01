@@ -2,7 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/domain/app_platform.dart';
 
 import '../../../core/theme/tradex_colors.dart';
 import '../../market/market.dart';

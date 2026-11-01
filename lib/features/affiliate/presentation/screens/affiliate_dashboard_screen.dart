@@ -198,7 +198,7 @@ class _DashboardContent extends StatelessWidget {
         AffiliateRepository.text(result['external_share_url'], ''),
       );
       if (url == null ||
-          !await launchUrl(url, mode: LaunchMode.externalApplication)) {
+          !await AppPlatformRegistry.current.launchExternal(url.toString())) {
         throw const AffiliateException(
           message: 'The share app could not be opened.',
         );

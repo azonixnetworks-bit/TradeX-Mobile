@@ -1,11 +1,10 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 
 import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/domain/api_gateway.dart';
 import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/serialization/structured_text_codec.dart';
 import '../catalog_dependencies.dart';
 import '../models/feature_spec.dart';
 import '../../secure_workflows/domain/services/secure_workflow_platform.dart';

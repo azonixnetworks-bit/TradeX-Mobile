@@ -13,6 +13,17 @@ import 'package:tradex_mobile/features/market/data/crypto_market_repository.dart
 import 'package:tradex_mobile/features/market/presentation/crypto_market_screen.dart';
 import 'package:tradex_mobile/features/market/presentation/crypto_market_cubit.dart';
 import 'package:tradex_mobile/features/market/presentation/trading_view_chart_screen.dart';
+import 'package:tradex_mobile/features/market/market_dependencies.dart';
+import 'package:tradex_mobile/features/home/data/trade_ideas_repository.dart';
+import 'package:tradex_mobile/features/trade_ideas/trade_ideas_dependencies.dart';
+
+MarketDependencies _dependencies(TradeXApiClient api) => MarketDependencies(
+  api,
+  tradeIdeasRepository: TradeIdeasRepository(
+    api,
+    TradeIdeasDependencies(api).repository,
+  ),
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +39,7 @@ void main() {
       MaterialApp(
         theme: TradeXTheme.dark,
         home: CryptoMarketScreen(
-          apiClient: api,
+          dependencies: _dependencies(api),
           enableDirectBubbleStream: false,
         ),
       ),
@@ -92,7 +103,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: TradeXTheme.dark,
-        home: CryptoMarketScreen(apiClient: api),
+        home: CryptoMarketScreen(dependencies: _dependencies(api)),
       ),
     );
     await tester.pump();
@@ -125,7 +136,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: TradeXTheme.dark,
-        home: CryptoMarketScreen(apiClient: api),
+        home: CryptoMarketScreen(dependencies: _dependencies(api)),
       ),
     );
     await tester.pump();
@@ -149,7 +160,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: TradeXTheme.dark,
-        home: CryptoMarketScreen(apiClient: api),
+        home: CryptoMarketScreen(dependencies: _dependencies(api)),
       ),
     );
     await tester.pump();
@@ -188,7 +199,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: TradeXTheme.dark,
-        home: CryptoMarketScreen(apiClient: api),
+        home: CryptoMarketScreen(dependencies: _dependencies(api)),
       ),
     );
     await tester.pump();
@@ -329,7 +340,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: TradeXTheme.dark,
-        home: CryptoMarketScreen(apiClient: api),
+        home: CryptoMarketScreen(dependencies: _dependencies(api)),
       ),
     );
     await tester.pump();

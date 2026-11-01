@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../domain/profile_photo_store.dart';
+
 typedef ProfilePhotoDirectoryProvider = Future<Directory> Function();
 
 /// Keeps profile photos in the application's private support directory.
@@ -12,13 +14,14 @@ typedef ProfilePhotoDirectoryProvider = Future<Directory> Function();
 /// accounts on the same phone never share an avatar or expose their address in
 /// the filesystem. The authenticated Laravel copy is authoritative; this store
 /// only keeps a versioned cache so the avatar remains available offline.
-class LocalProfilePhotoStore {
+class LocalProfilePhotoStore implements ProfilePhotoStore {
   const LocalProfilePhotoStore({
     this.directoryProvider = getApplicationSupportDirectory,
   });
 
   final ProfilePhotoDirectoryProvider directoryProvider;
 
+  @override
   Future<CachedProfilePhoto?> read(String accountEmail) async {
     final file = await _fileFor(accountEmail);
     if (!await file.exists()) return null;
@@ -32,6 +35,7 @@ class LocalProfilePhotoStore {
     );
   }
 
+  @override
   Future<Uint8List> saveBytes({
     required String accountEmail,
     required Uint8List bytes,
@@ -51,6 +55,7 @@ class LocalProfilePhotoStore {
     return bytes;
   }
 
+  @override
   Future<void> remove(String accountEmail) async {
     final file = await _fileFor(accountEmail);
     if (await file.exists()) await file.delete();
@@ -73,11 +78,4 @@ class LocalProfilePhotoStore {
     final file = await _fileFor(accountEmail);
     return File('${file.path}.version');
   }
-}
-
-class CachedProfilePhoto {
-  const CachedProfilePhoto({required this.bytes, required this.version});
-
-  final Uint8List bytes;
-  final int version;
 }

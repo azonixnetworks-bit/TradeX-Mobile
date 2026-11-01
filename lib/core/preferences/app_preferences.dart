@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:bloc/bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../domain/dashboard_tab_preferences.dart';
+
 class AppPreferencesState {
   const AppPreferencesState({
     this.themeMode = ThemeMode.system,
@@ -20,7 +22,8 @@ class AppPreferencesState {
   final int quickUnlockBackgroundLockSeconds;
 }
 
-class AppPreferences extends Cubit<AppPreferencesState> {
+class AppPreferences extends Cubit<AppPreferencesState>
+    implements DashboardTabPreferences {
   AppPreferences._() : super(const AppPreferencesState());
 
   static final AppPreferences instance = AppPreferences._();
@@ -36,6 +39,7 @@ class AppPreferences extends Cubit<AppPreferencesState> {
   ThemeMode get themeMode => state.themeMode;
   String get courseLanguage => state.courseLanguage;
   bool get learnLanguageSelected => state.learnLanguageSelected;
+  @override
   int get dashboardTab => state.dashboardTab;
   DateTime? get lastBackgroundedAt => state.lastBackgroundedAt;
   int get quickUnlockBackgroundLockSeconds =>
@@ -114,6 +118,7 @@ class AppPreferences extends Cubit<AppPreferencesState> {
     await preferences.setBool(_learnLanguageSeenKey, true);
   }
 
+  @override
   Future<void> setDashboardTab(int index) async {
     final normalized = index.clamp(0, 4);
     if (dashboardTab == normalized) return;

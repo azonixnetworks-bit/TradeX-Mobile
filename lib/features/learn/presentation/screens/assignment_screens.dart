@@ -126,7 +126,9 @@ class AssignmentDetailsScreen extends StatelessWidget {
                   ),
                 );
                 if (uri != null) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  await AppPlatformRegistry.current.launchExternal(
+                    uri.toString(),
+                  );
                 }
               },
               icon: const Icon(Icons.send_rounded),

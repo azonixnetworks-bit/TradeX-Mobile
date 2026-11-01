@@ -6,6 +6,7 @@ import 'package:tradex_mobile/core/device/device_identity.dart';
 import 'package:tradex_mobile/core/network/tradex_api_client.dart';
 import 'package:tradex_mobile/core/theme/tradex_theme.dart';
 import 'package:tradex_mobile/features/home/presentation/economic_news_screen.dart';
+import 'package:tradex_mobile/features/home/data/market_news_repository.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +25,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: TradeXTheme.dark,
-        home: EconomicNewsScreen(apiClient: api),
+        home: EconomicNewsScreen(repository: MarketNewsRepository(api)),
       ),
     );
     await tester.pumpAndSettle();
@@ -149,7 +150,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: TradeXTheme.dark,
-        home: EconomicNewsScreen(apiClient: api),
+        home: EconomicNewsScreen(repository: MarketNewsRepository(api)),
       ),
     );
     await tester.pumpAndSettle();

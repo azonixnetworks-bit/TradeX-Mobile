@@ -18,6 +18,8 @@ import 'package:tradex_mobile/features/auth/presentation/session_gate.dart';
 import 'package:tradex_mobile/features/home/data/learning_repository.dart';
 import 'package:tradex_mobile/features/home/data/trade_ideas_repository.dart';
 import 'package:tradex_mobile/features/home/presentation/home_dashboard_screen.dart';
+import 'package:tradex_mobile/features/home/home_dependencies.dart';
+import 'package:tradex_mobile/features/trade_ideas/trade_ideas_dependencies.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -55,10 +57,14 @@ void main() {
             registrationRepository: RegistrationRepository(api),
             passwordRecoveryRepository: PasswordRecoveryRepository(api),
             apiClient: api,
-            tradeIdeasRepository: TradeIdeasRepository(api),
+            tradeIdeasRepository: TradeIdeasRepository(
+              api,
+              TradeIdeasDependencies(api).repository,
+            ),
             learningRepository: LearningRepository(api),
             quickUnlockService: QuickUnlockServiceImpl(store),
             securityState: const SessionSecurityStateImpl(),
+            homeDependencies: HomeDependencies(api, auth),
             now: () => now,
           ),
         ),
@@ -110,10 +116,14 @@ void main() {
             registrationRepository: RegistrationRepository(api),
             passwordRecoveryRepository: PasswordRecoveryRepository(api),
             apiClient: api,
-            tradeIdeasRepository: TradeIdeasRepository(api),
+            tradeIdeasRepository: TradeIdeasRepository(
+              api,
+              TradeIdeasDependencies(api).repository,
+            ),
             learningRepository: LearningRepository(api),
             quickUnlockService: QuickUnlockServiceImpl(store),
             securityState: const SessionSecurityStateImpl(),
+            homeDependencies: HomeDependencies(api, auth),
             now: () => now,
           ),
         ),
@@ -169,10 +179,14 @@ void main() {
             registrationRepository: RegistrationRepository(api),
             passwordRecoveryRepository: PasswordRecoveryRepository(api),
             apiClient: api,
-            tradeIdeasRepository: TradeIdeasRepository(api),
+            tradeIdeasRepository: TradeIdeasRepository(
+              api,
+              TradeIdeasDependencies(api).repository,
+            ),
             learningRepository: LearningRepository(api),
             quickUnlockService: QuickUnlockServiceImpl(store),
             securityState: const SessionSecurityStateImpl(),
+            homeDependencies: HomeDependencies(api, auth),
             now: () => clock,
           ),
         ),

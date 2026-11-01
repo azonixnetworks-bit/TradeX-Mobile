@@ -3,7 +3,7 @@ part of '../home_dashboard_screen.dart';
 class _SessionClockCard extends StatefulWidget {
   const _SessionClockCard({required this.apiClient});
 
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
 
   @override
   State<_SessionClockCard> createState() => _SessionClockCardState();
@@ -24,10 +24,7 @@ class _SessionClockCardState extends State<_SessionClockCard>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _ensureTimeZoneDatabase();
-    _deviceTimezone = FlutterTimezone.getLocalTimezone().then(
-      (timezone) => timezone.identifier,
-    );
+    _deviceTimezone = AppPlatformRegistry.current.timezoneId();
     _loadLiveMarketClock();
     _startTimers();
   }
@@ -250,7 +247,7 @@ class _WorldClockGrid extends StatelessWidget {
 
   DateTime _inZone(String timezone) {
     try {
-      return tz.TZDateTime.now(tz.getLocation(timezone));
+      return AppPlatformRegistry.current.timeInZone(timezone, now);
     } catch (_) {
       return now.toUtc();
     }

@@ -652,7 +652,7 @@ class _UnavailableSetting extends StatelessWidget {
 }
 
 String _error(Object? error) {
-  if (error is ApiException) return error.message;
+  if (error is UserFacingException) return error.message;
   if (error is StateError) return error.message;
   return 'Copy Trading could not be loaded right now.';
 }

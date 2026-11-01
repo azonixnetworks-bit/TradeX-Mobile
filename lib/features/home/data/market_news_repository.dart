@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/network/tradex_api_client.dart';
-import '../domain/no_trade_zone_warning.dart';
+import '../domain/market_news_repository.dart';
 
-class MarketNewsRepository {
+class MarketNewsRepository implements MarketNewsRepositoryContract {
   const MarketNewsRepository(this._apiClient);
 
   static const _dailyCacheKey = 'tradex.economic_news.upcoming.v4';
@@ -14,6 +14,7 @@ class MarketNewsRepository {
 
   final TradeXApiClient _apiClient;
 
+  @override
   Future<List<MarketNewsItem>> latest({
     int limit = 4,
     bool forceRefresh = false,
@@ -22,6 +23,7 @@ class MarketNewsRepository {
     return events.take(limit).toList(growable: false);
   }
 
+  @override
   Future<List<MarketNewsItem>> today({
     DateTime? now,
     bool forceRefresh = false,
@@ -129,7 +131,9 @@ class MarketNewsRepository {
     DateTime observedAt,
   ) {
     final parsed = events
-        .map((event) => MarketNewsItem.fromEvent(event, observedAt: observedAt))
+        .map(
+          (event) => _MarketNewsMapper.fromEvent(event, observedAt: observedAt),
+        )
         .where((item) => item.title.isNotEmpty)
         .where((item) {
           final status = item.status.toUpperCase();
@@ -177,54 +181,8 @@ class MarketNewsRepository {
       '${value.day.toString().padLeft(2, '0')}';
 }
 
-class MarketNewsItem {
-  const MarketNewsItem({
-    required this.uuid,
-    required this.title,
-    required this.summary,
-    required this.category,
-    required this.previous,
-    required this.forecast,
-    required this.actual,
-    required this.countryCode,
-    required this.currency,
-    required this.impact,
-    required this.bias,
-    required this.confidenceScore,
-    required this.source,
-    required this.affectedPairs,
-    required this.status,
-    required this.occurredAt,
-    required this.isLiveUpdate,
-    required this.observedAtUtc,
-  });
-
-  factory MarketNewsItem.fromLiveUpdate(Map<String, dynamic> json) {
-    final message = _text(json['message']);
-    final pairs = _pairSymbols(json['affected_pairs']);
-    return MarketNewsItem(
-      uuid: _text(json['event_uuid'], fallback: _text(json['uuid'])),
-      title: _text(json['event_title'], fallback: message),
-      summary: message,
-      category: _text(json['category']),
-      previous: _nullableText(json['previous']),
-      forecast: _nullableText(json['forecast']),
-      actual: _nullableText(json['actual']),
-      countryCode: _text(json['country_code']),
-      currency: pairs.isEmpty ? '' : pairs.first,
-      impact: _text(json['impact'], fallback: 'LOW'),
-      bias: _text(json['bias'], fallback: 'NEUTRAL'),
-      confidenceScore: _score(json['confidence_score']),
-      source: _source(json['source']),
-      affectedPairs: pairs,
-      status: 'LIVE',
-      occurredAt: DateTime.tryParse(_text(json['published_at_utc'])),
-      isLiveUpdate: true,
-      observedAtUtc: DateTime.now().toUtc(),
-    );
-  }
-
-  factory MarketNewsItem.fromEvent(
+abstract final class _MarketNewsMapper {
+  static MarketNewsItem fromEvent(
     Map<String, dynamic> json, {
     DateTime? observedAt,
   }) {
@@ -266,36 +224,6 @@ class MarketNewsItem {
       observedAtUtc: (observedAt ?? DateTime.now()).toUtc(),
     );
   }
-
-  final String uuid;
-  final String title;
-  final String summary;
-  final String category;
-  final String? previous;
-  final String? forecast;
-  final String? actual;
-  final String countryCode;
-  final String currency;
-  final String impact;
-  final String bias;
-  final int confidenceScore;
-  final String source;
-  final List<String> affectedPairs;
-  final String status;
-  final DateTime? occurredAt;
-  final bool isLiveUpdate;
-  final DateTime observedAtUtc;
-
-  EconomicNewsSnapshot toWarningSnapshot() => EconomicNewsSnapshot(
-    uuid: uuid,
-    title: title,
-    currency: currency,
-    impact: impact,
-    status: status,
-    scheduledAtUtc: occurredAt?.toUtc(),
-    affectedPairs: affectedPairs,
-    observedAtUtc: observedAtUtc,
-  );
 
   static List<String> _pairSymbols(Object? value) {
     if (value is! List) return const [];

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/network/api_exception.dart';
+import '../../../core/domain/app_platform.dart';
+
+import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/usecases/use_case.dart';
 import '../domain/entities/copy_trading_entities.dart';
 import '../domain/usecases/copy_trading_use_cases.dart';

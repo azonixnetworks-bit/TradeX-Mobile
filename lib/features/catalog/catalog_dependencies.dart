@@ -7,6 +7,8 @@ import '../funded_advisor/funded_advisor_dependencies.dart';
 import '../funded_advisor/presentation/funded_advisor_module.dart';
 import '../home/data/market_news_repository.dart';
 import '../home/data/market_news_warning_source.dart';
+import '../home/data/trade_ideas_repository.dart';
+import '../trade_ideas/trade_ideas_dependencies.dart';
 import '../home/presentation/economic_news_screen.dart';
 import '../investments/investment_dependencies.dart';
 import '../investments/presentation/investment_module.dart';
@@ -39,9 +41,17 @@ class CatalogDependencies {
         preferencesRepository: InvestmentDependencies(apiClient)
             .preferencesRepository,
       ),
-      'economic-news' => EconomicNewsScreen(apiClient: apiClient),
+      'economic-news' => EconomicNewsScreen(
+        repository: MarketNewsRepository(apiClient),
+      ),
       'market-screener' => CryptoMarketScreen(
-        dependencies: MarketDependencies(apiClient),
+        dependencies: MarketDependencies(
+          apiClient,
+          tradeIdeasRepository: TradeIdeasRepository(
+            apiClient,
+            TradeIdeasDependencies(apiClient).repository,
+          ),
+        ),
       ),
       'trade-journal' => TradeJournalHomeScreen(
         apiClient: apiClient,

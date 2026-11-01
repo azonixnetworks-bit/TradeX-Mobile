@@ -47,10 +47,7 @@ class _CopyTradingBrokerDirectoryScreenState
       final intent = await widget.useCases.openBrokerAccount(broker);
       final target = intent.openAccountUrl;
       if (target.isEmpty ||
-          !await launchUrl(
-            Uri.parse(target),
-            mode: LaunchMode.externalApplication,
-          )) {
+          !await AppPlatformRegistry.current.launchExternal(target)) {
         throw StateError('TradeX IB partner link could not be opened.');
       }
       if (!mounted) return;

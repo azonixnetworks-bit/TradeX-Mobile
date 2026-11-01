@@ -13,7 +13,6 @@ class CreateSupportTicketScreen extends StatefulWidget {
 class _CreateSupportTicketScreenState extends State<CreateSupportTicketScreen> {
   final _subject = TextEditingController();
   final _description = TextEditingController();
-  final _picker = ImagePicker();
   Uint8List? _photo;
   String? _photoName;
   bool _picking = false;
@@ -29,13 +28,13 @@ class _CreateSupportTicketScreenState extends State<CreateSupportTicketScreen> {
     if (_picking) return;
     setState(() => _picking = true);
     try {
-      final file = await _picker.pickImage(
-        source: ImageSource.gallery,
+      final file = await AppPlatformRegistry.current.pickImage(
+        camera: false,
         imageQuality: 85,
         maxWidth: 1920,
       );
       if (file == null) return;
-      final bytes = await file.readAsBytes();
+      final bytes = file.bytes;
       if (!mounted) return;
       setState(() {
         _photo = bytes;

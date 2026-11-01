@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/domain/app_platform.dart';
 
 import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/theme/tradex_colors.dart';

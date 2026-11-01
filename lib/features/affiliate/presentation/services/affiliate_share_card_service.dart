@@ -1,11 +1,10 @@
-import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:share_plus/share_plus.dart';
+
+import '../../../../core/domain/app_platform.dart';
 
 /// Creates and shares the API-backed premium affiliate card.
 class AffiliateShareCardService {
@@ -34,28 +33,20 @@ class AffiliateShareCardService {
       commissionRate: commissionRate,
       currentLevel: currentLevel,
     );
-    final directory = await getTemporaryDirectory();
-    final imageFile = File(
-      '${directory.path}${Platform.pathSeparator}tradex_premium_affiliate_card.png',
-    );
-    await imageFile.writeAsBytes(bytes, flush: true);
     final message = referralUrl.isEmpty
         ? 'Join me on TradeX with referral code $referralCode.'
         : 'Join me on TradeX with referral code $referralCode: $referralUrl';
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [
-          XFile(
-            imageFile.path,
-            mimeType: 'image/png',
-            name: 'TradeX_Premium_Affiliate_Card.png',
-          ),
-        ],
-        text: message,
-        sharePositionOrigin: anchor == null
-            ? null
-            : anchor.localToGlobal(Offset.zero) & anchor.size,
-      ),
+    final origin = anchor == null
+        ? null
+        : anchor.localToGlobal(Offset.zero) & anchor.size;
+    await AppPlatformRegistry.current.shareImage(
+      bytes: bytes,
+      fileName: 'TradeX_Premium_Affiliate_Card.png',
+      text: message,
+      originLeft: origin?.left,
+      originTop: origin?.top,
+      originWidth: origin?.width,
+      originHeight: origin?.height,
     );
   }
 

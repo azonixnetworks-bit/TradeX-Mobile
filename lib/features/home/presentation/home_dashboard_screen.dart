@@ -5,44 +5,38 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:timezone/data/latest.dart' as tz_data;
-import 'package:timezone/timezone.dart' as tz;
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/network/tradex_api_client.dart';
-import '../../../core/network/api_exception.dart';
+import '../../../core/domain/user_facing_exception.dart';
+import '../../../core/domain/api_gateway.dart';
+import '../../../core/domain/app_platform.dart';
 import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/platform/app_background_service.dart';
-import '../../../core/profile/local_profile_photo_store.dart';
-import '../../../core/profile/pending_financial_form_store.dart';
-import '../../../core/preferences/app_preferences.dart';
+import '../../../core/domain/profile_photo_store.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../../../core/theme/tradex_icons.dart';
 import '../domain/trade_ideas_repository.dart';
-import '../data/market_news_warning_source.dart';
 import '../domain/learning_repository.dart';
-import '../data/market_news_repository.dart';
+import '../domain/home_feature_dependencies.dart';
+import '../domain/market_news_repository.dart';
 import '../../profile/presentation/trusted_devices_screen.dart';
 import '../../profile/presentation/mobile_number_details_screen.dart';
 import '../../profile/presentation/withdrawal_method_screen.dart';
 import '../../learn/domain/repositories/learn_repository.dart';
-import '../../learn/learn_dependencies.dart';
+import '../../trade_ideas/domain/repositories/trade_idea_repository.dart';
+import '../../affiliate/domain/repositories/affiliate_repository.dart'
+    hide JsonMap;
+import '../domain/no_trade_zone_warning.dart';
 import '../../learn/presentation/learn_module.dart';
 import '../../market/presentation/crypto_market_screen.dart';
-import '../../market/market_dependencies.dart';
-import '../../trade_ideas/trade_ideas_dependencies.dart';
 import '../../trade_ideas/presentation/trade_ideas_screen.dart';
 import '../../trade_ideas/presentation/trade_idea_details_screen.dart';
 import '../../auth/presentation/quick_unlock_settings_screen.dart';
-import '../../auth/data/auth_repository.dart';
+import '../../auth/domain/repositories/auth_repositories.dart';
 import '../../affiliate/presentation/affiliate_module.dart';
-import '../../affiliate/affiliate_dependencies.dart';
 import '../../catalog/models/feature_spec.dart';
 import '../../catalog/presentation/feature_catalog_screen.dart';
 import '../../catalog/catalog_dependencies.dart';
-import '../../profile/profile_dependencies.dart';
+import '../../profile/domain/repositories/withdrawal_draft_store.dart';
 import '../../auth/domain/services/quick_unlock_service.dart';
 import 'bloc/home_navigation_cubit.dart';
 import 'bloc/home_market_news_cubit.dart';
@@ -63,11 +57,3 @@ part 'home_dashboard/trade_ideas_tab_widgets.dart';
 part 'home_dashboard/affiliate_tab_widgets.dart';
 part 'home_dashboard/dashboard_navigation.dart';
 part 'home_dashboard/home_shared_widgets.dart';
-
-bool _timeZoneDatabaseInitialized = false;
-
-void _ensureTimeZoneDatabase() {
-  if (_timeZoneDatabaseInitialized) return;
-  tz_data.initializeTimeZones();
-  _timeZoneDatabaseInitialized = true;
-}

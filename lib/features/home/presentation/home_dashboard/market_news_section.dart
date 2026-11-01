@@ -3,7 +3,7 @@ part of '../home_dashboard_screen.dart';
 class _MarketNewsSection extends StatefulWidget {
   const _MarketNewsSection({required this.repository, required this.onOpenAll});
 
-  final MarketNewsRepository repository;
+  final MarketNewsRepositoryContract repository;
   final VoidCallback onOpenAll;
 
   @override

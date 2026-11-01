@@ -1,13 +1,12 @@
 part of '../home_dashboard_screen.dart';
 
 class _LearnTab extends StatelessWidget {
-  const _LearnTab({super.key, required this.apiClient});
+  const _LearnTab({super.key, required this.repository});
 
-  final TradeXApiClient apiClient;
+  final LearnRepository repository;
 
   @override
-  Widget build(BuildContext context) =>
-      LearnHomeScreen(repository: LearnDependencies(apiClient).repository);
+  Widget build(BuildContext context) => LearnHomeScreen(repository: repository);
 }
 
 class _TradeIdeasTab extends StatelessWidget {
@@ -15,10 +14,16 @@ class _TradeIdeasTab extends StatelessWidget {
     super.key,
     required this.onActionTap,
     required this.apiClient,
+    required this.repository,
+    required this.warningSource,
+    required this.learnRepository,
   });
 
   final ValueChanged<String> onActionTap;
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
+  final TradeIdeaRepositoryContract repository;
+  final NoTradeWarningSource warningSource;
+  final LearnRepository learnRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -27,9 +32,10 @@ class _TradeIdeasTab extends StatelessWidget {
       title: 'Trade Ideas',
       introduction: 'Explore TradeX market-analysis tools. Protected prices, levels, charts and full analysis are requested only after the server confirms your membership.',
       protectedFeatures: [featureById('trade-idea-details')],
+      learnRepository: learnRepository,
       activeBuilder: (_) => TradeIdeasScreen(
-        repository: TradeIdeasDependencies(apiClient).repository,
-        warningSource: MarketNewsWarningSource(MarketNewsRepository(apiClient)),
+        repository: repository,
+        warningSource: warningSource,
       ),
     );
   }
@@ -40,21 +46,25 @@ class _AffiliateTab extends StatelessWidget {
     super.key,
     required this.onActionTap,
     required this.apiClient,
+    required this.repository,
+    required this.learnRepository,
+    required this.withdrawalDraftStore,
   });
 
   final ValueChanged<String> onActionTap;
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
+  final AffiliateRepository repository;
+  final LearnRepository learnRepository;
+  final WithdrawalDraftStore withdrawalDraftStore;
 
   @override
   Widget build(BuildContext context) {
     return AffiliateDashboardScreen(
-      repository: AffiliateDependencies(apiClient).repository,
+      repository: repository,
       onNotifications: () => onActionTap('notifications'),
       onUpgrade: () => Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
-          builder: (_) => PremiumAccessScreen(
-            repository: LearnDependencies(apiClient).repository,
-          ),
+          builder: (_) => PremiumAccessScreen(repository: learnRepository),
         ),
       ),
       onConfigurePayoutMethod: (code) {
@@ -68,8 +78,7 @@ class _AffiliateTab extends StatelessWidget {
           MaterialPageRoute<void>(
             builder: (_) => WithdrawalMethodScreen(
               apiClient: apiClient,
-              draftStore:
-                  ProfileDependenciesRegistry.current.withdrawalDraftStore,
+              draftStore: withdrawalDraftStore,
               method: method,
             ),
           ),
@@ -85,13 +94,15 @@ class _EntitlementAwareTab extends StatefulWidget {
     required this.title,
     required this.introduction,
     required this.protectedFeatures,
+    required this.learnRepository,
     this.activeBuilder,
   });
 
-  final TradeXApiClient apiClient;
+  final ApiGateway apiClient;
   final String title;
   final String introduction;
   final List<FeatureSpec> protectedFeatures;
+  final LearnRepository learnRepository;
   final WidgetBuilder? activeBuilder;
 
   @override
@@ -100,9 +111,13 @@ class _EntitlementAwareTab extends StatefulWidget {
 
 class _EntitlementAwareTabState extends State<_EntitlementAwareTab> {
   late Future<bool> _status = _loadStatus();
-  late Future<JsonMap> _products = LearnDependencies(widget.apiClient)
-      .repository
-      .products();
+  late Future<JsonMap> _products;
+
+  @override
+  void initState() {
+    super.initState();
+    _products = widget.learnRepository.products();
+  }
 
   Future<bool> _loadStatus() async {
     final response = await widget.apiClient.getJson(
@@ -114,7 +129,7 @@ class _EntitlementAwareTabState extends State<_EntitlementAwareTab> {
 
   void _reload() => setState(() {
     _status = _loadStatus();
-    _products = LearnDependencies(widget.apiClient).repository.products();
+    _products = widget.learnRepository.products();
   });
 
   @override
@@ -168,9 +183,8 @@ class _EntitlementAwareTabState extends State<_EntitlementAwareTab> {
     if (!active) {
       await Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
-          builder: (_) => PremiumAccessScreen(
-            repository: LearnDependencies(widget.apiClient).repository,
-          ),
+          builder: (_) =>
+              PremiumAccessScreen(repository: widget.learnRepository),
         ),
       );
       if (!mounted) return;

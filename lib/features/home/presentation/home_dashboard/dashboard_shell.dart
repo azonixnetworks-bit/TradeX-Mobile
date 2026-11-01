@@ -6,21 +6,13 @@ class HomeDashboardScreen extends StatefulWidget {
     required this.onLogout,
     required this.onForgetDevice,
     required this.onLogoutAll,
-    required this.apiClient,
-    required this.tradeIdeasRepository,
-    required this.learningRepository,
-    required this.authRepository,
-    this.profilePhotoStore = const LocalProfilePhotoStore(),
+    required this.dependencies,
   });
 
   final Future<void> Function() onLogout;
   final Future<void> Function() onForgetDevice;
   final Future<void> Function() onLogoutAll;
-  final TradeXApiClient apiClient;
-  final DashboardTradeIdeasRepository tradeIdeasRepository;
-  final DashboardLearningRepository learningRepository;
-  final AuthRepository authRepository;
-  final LocalProfilePhotoStore profilePhotoStore;
+  final HomeFeatureDependencies dependencies;
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -35,7 +27,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   void initState() {
     super.initState();
     _navigationCubit = HomeNavigationCubit(
-      preferences: AppPreferences.instance,
+      preferences: widget.dependencies.dashboardPreferences,
     );
     _tabPages = List<Widget?>.filled(5, null);
     _tabPages[_navigationCubit.state] = _buildTab(_navigationCubit.state);
@@ -53,7 +45,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   Future<void> _primeDailyEconomicNews() async {
     try {
-      await MarketNewsRepository(widget.apiClient).today();
+      await widget.dependencies.marketNewsRepository.today();
     } catch (_) {
       // The Economic News screen retains its retry state when the first daily
       // network request cannot be completed.
@@ -62,7 +54,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   Future<void> _restorePendingFinancialForm() async {
     try {
-      final draft = await PendingFinancialFormStore().readWithdrawal();
+      final draft = await widget.dependencies.withdrawalDraftStore
+          .readWithdrawal();
       if (!mounted || draft == null) return;
       WithdrawalMethod? method;
       for (final candidate in WithdrawalMethod.values) {
@@ -70,7 +63,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       }
       final restoredMethod = method;
       if (restoredMethod == null) {
-        await PendingFinancialFormStore().clearWithdrawal();
+        await widget.dependencies.withdrawalDraftStore.clearWithdrawal();
         return;
       }
       final navigator = Navigator.of(context);
@@ -82,9 +75,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             name: '/profile/withdrawal/${restoredMethod.name}',
           ),
           builder: (_) => WithdrawalMethodScreen(
-            apiClient: widget.apiClient,
-            draftStore:
-                ProfileDependenciesRegistry.current.withdrawalDraftStore,
+            apiClient: widget.dependencies.apiGateway,
+            draftStore: widget.dependencies.withdrawalDraftStore,
             method: restoredMethod,
           ),
         ),
@@ -133,23 +125,30 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       key: const PageStorageKey('home-tab'),
       onActionTap: _openAction,
       onLogout: widget.onLogout,
-      apiClient: widget.apiClient,
-      tradeIdeasRepository: widget.tradeIdeasRepository,
-      learningRepository: widget.learningRepository,
+      apiClient: widget.dependencies.apiGateway,
+      marketNewsRepository: widget.dependencies.marketNewsRepository,
+      tradeIdeasRepository: widget.dependencies.dashboardTradeIdeasRepository,
+      learningRepository: widget.dependencies.dashboardLearningRepository,
     ),
     1 => _LearnTab(
       key: const PageStorageKey('learn-tab'),
-      apiClient: widget.apiClient,
+      repository: widget.dependencies.learnRepository,
     ),
     2 => _TradeIdeasTab(
       key: const PageStorageKey('ideas-tab'),
       onActionTap: _openAction,
-      apiClient: widget.apiClient,
+      apiClient: widget.dependencies.apiGateway,
+      repository: widget.dependencies.tradeIdeasRepository,
+      warningSource: widget.dependencies.marketNewsWarningSource,
+      learnRepository: widget.dependencies.learnRepository,
     ),
     3 => _AffiliateTab(
       key: const PageStorageKey('affiliate-tab'),
       onActionTap: _openAction,
-      apiClient: widget.apiClient,
+      apiClient: widget.dependencies.apiGateway,
+      repository: widget.dependencies.affiliateRepository,
+      learnRepository: widget.dependencies.learnRepository,
+      withdrawalDraftStore: widget.dependencies.withdrawalDraftStore,
     ),
     _ => _ProfileTab(
       key: const PageStorageKey('profile-tab'),
@@ -157,9 +156,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       onLogout: widget.onLogout,
       onForgetDevice: widget.onForgetDevice,
       onLogoutAll: widget.onLogoutAll,
-      apiClient: widget.apiClient,
-      authRepository: widget.authRepository,
-      profilePhotoStore: widget.profilePhotoStore,
+      apiClient: widget.dependencies.apiGateway,
+      authRepository: widget.dependencies.authRepository,
+      profilePhotoStore: widget.dependencies.profilePhotoStore,
+      learnRepository: widget.dependencies.learnRepository,
+      withdrawalDraftStore: widget.dependencies.withdrawalDraftStore,
     ),
   };
 
@@ -188,7 +189,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => CryptoMarketScreen(
-            dependencies: MarketDependencies(widget.apiClient),
+            dependencies: widget.dependencies.marketDependencies,
           ),
         ),
       );

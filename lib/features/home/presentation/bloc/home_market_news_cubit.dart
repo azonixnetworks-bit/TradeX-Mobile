@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 
-import '../../data/market_news_repository.dart';
+import '../../domain/market_news_repository.dart';
 
 enum HomeMarketNewsStatus { initial, loading, success, failure }
 
@@ -24,7 +24,7 @@ class HomeMarketNewsCubit extends Cubit<HomeMarketNewsState> {
     );
   }
 
-  final MarketNewsRepository _repository;
+  final MarketNewsRepositoryContract _repository;
   late final Timer _refreshTimer;
 
   Future<void> load({bool forceRefresh = false}) async {

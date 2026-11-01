@@ -12,6 +12,7 @@ import 'auth_flow_screen.dart';
 import 'quick_unlock_screen.dart';
 import 'quick_unlock_settings_screen.dart';
 import '../../home/presentation/home_dashboard_screen.dart';
+import '../../home/domain/home_feature_dependencies.dart';
 import '../../home/domain/trade_ideas_repository.dart';
 import '../../home/domain/learning_repository.dart';
 
@@ -27,6 +28,7 @@ class SessionGate extends StatefulWidget {
     this.now,
     required this.quickUnlockService,
     required this.securityState,
+    required this.homeDependencies,
   });
 
   final AuthRepositoryContract authRepository;
@@ -37,6 +39,7 @@ class SessionGate extends StatefulWidget {
   final DashboardLearningRepository learningRepository;
   final QuickUnlockService quickUnlockService;
   final SessionSecurityState securityState;
+  final HomeFeatureDependencies homeDependencies;
   final DateTime Function()? now;
 
   @override
@@ -502,10 +505,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
           onLogout: _logout,
           onForgetDevice: _signOutAndForgetDevice,
           onLogoutAll: _signOutAllDevices,
-          apiClient: widget.apiClient as dynamic,
-          tradeIdeasRepository: widget.tradeIdeasRepository,
-          learningRepository: widget.learningRepository,
-          authRepository: widget.authRepository as dynamic,
+          dependencies: widget.homeDependencies,
         ),
       );
     }

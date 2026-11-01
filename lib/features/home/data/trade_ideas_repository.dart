@@ -3,17 +3,15 @@ import 'dart:typed_data';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
 import '../domain/trade_ideas_repository.dart';
-import '../../trade_ideas/data/repositories/trade_idea_repository_impl.dart';
 import '../../trade_ideas/domain/repositories/trade_idea_repository.dart';
 
 class TradeIdeasRepository implements DashboardTradeIdeasRepository {
-  TradeIdeasRepository(this._apiClient);
+  TradeIdeasRepository(this._apiClient, this.detailsRepository);
 
   final TradeXApiClient _apiClient;
   TradeXApiClient get apiClient => _apiClient;
   @override
-  TradeIdeaRepositoryContract get detailsRepository =>
-      TradeIdeaRepository(_apiClient);
+  final TradeIdeaRepositoryContract detailsRepository;
 
   @override
   Future<List<DashboardTradeIdea>> latestThree() => _latest(perPage: 12);

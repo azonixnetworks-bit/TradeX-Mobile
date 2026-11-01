@@ -7,9 +7,8 @@ import 'package:tradex_mobile/core/network/tradex_api_client.dart';
 import 'package:tradex_mobile/core/preferences/app_preferences.dart';
 import 'package:tradex_mobile/core/theme/tradex_theme.dart';
 import 'package:tradex_mobile/features/auth/data/auth_repository.dart';
-import 'package:tradex_mobile/features/home/data/learning_repository.dart';
-import 'package:tradex_mobile/features/home/data/trade_ideas_repository.dart';
 import 'package:tradex_mobile/features/home/presentation/home_dashboard_screen.dart';
+import 'package:tradex_mobile/features/home/home_dependencies.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_home_screen.dart';
 import 'package:tradex_mobile/features/catalog/catalog_dependencies.dart';
 
@@ -40,10 +39,10 @@ void main() {
           onLogout: () async {},
           onForgetDevice: () async {},
           onLogoutAll: () async {},
-          apiClient: api,
-          tradeIdeasRepository: TradeIdeasRepository(api),
-          learningRepository: LearningRepository(api),
-          authRepository: AuthRepository(api, store, device),
+          dependencies: HomeDependencies(
+            api,
+            AuthRepository(api, store, device),
+          ),
         ),
       ),
     );
@@ -137,10 +136,10 @@ void main() {
           onLogout: () async {},
           onForgetDevice: () async {},
           onLogoutAll: () async {},
-          apiClient: api,
-          tradeIdeasRepository: TradeIdeasRepository(api),
-          learningRepository: LearningRepository(api),
-          authRepository: AuthRepository(api, store, device),
+          dependencies: HomeDependencies(
+            api,
+            AuthRepository(api, store, device),
+          ),
         ),
       ),
     );

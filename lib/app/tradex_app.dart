@@ -16,6 +16,7 @@ import '../features/home/data/learning_repository.dart';
 import '../features/home/data/market_news_repository.dart';
 import '../core/preferences/app_preferences.dart';
 import '../features/learn/learn_dependencies.dart';
+import '../features/home/domain/home_feature_dependencies.dart';
 
 class TradeXApp extends StatelessWidget {
   const TradeXApp({
@@ -26,6 +27,7 @@ class TradeXApp extends StatelessWidget {
     required this.apiClient,
     required this.tradeIdeasRepository,
     required this.learningRepository,
+    required this.homeDependencies,
   });
 
   final AuthRepository authRepository;
@@ -34,6 +36,7 @@ class TradeXApp extends StatelessWidget {
   final TradeXApiClient apiClient;
   final TradeIdeasRepository tradeIdeasRepository;
   final LearningRepository learningRepository;
+  final HomeFeatureDependencies homeDependencies;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +79,7 @@ class TradeXApp extends StatelessWidget {
               learningRepository: learningRepository,
               quickUnlockService: QuickUnlockServiceRegistry.current,
               securityState: const SessionSecurityStateImpl(),
+              homeDependencies: homeDependencies,
             ),
           ),
         ),
