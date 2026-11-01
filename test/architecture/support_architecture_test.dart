@@ -18,6 +18,21 @@ void main() {
     }
   });
 
+  test('affiliate presentation stays split into maintainable units', () {
+    final presentationFiles = _dartFiles(
+      Directory('lib/features/affiliate/presentation'),
+    );
+
+    for (final file in presentationFiles) {
+      final lineCount = file.readAsLinesSync().length;
+      expect(
+        lineCount,
+        lessThan(1000),
+        reason: '${file.path} has $lineCount lines and should be split',
+      );
+    }
+  });
+
   for (final feature in const ['support', 'copy_trading', 'funded_advisor']) {
     final featureRoot = Directory('lib/features/$feature');
 
