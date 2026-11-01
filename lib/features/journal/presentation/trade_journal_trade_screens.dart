@@ -15,6 +15,7 @@ import 'trade_journal_strategy_section.dart';
 import 'trade_journal_ui.dart';
 
 part 'trade_screens/trade_plan_screen.dart';
+part 'trade_screens/trade_plan_screen_state.dart';
 part 'trade_screens/trade_open_screen.dart';
 part 'trade_screens/trade_close_screen.dart';
 part 'trade_screens/trade_screenshots_screen.dart';
