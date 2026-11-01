@@ -1,5 +1,5 @@
-import '../domain/investment_entities.dart';
-import '../domain/investment_repository.dart';
+import '../../domain/entities/investment_entities.dart';
+import '../../domain/repositories/investment_repository.dart';
 
 final class UnavailableInvestmentRepository implements InvestmentRepository {
   const UnavailableInvestmentRepository();

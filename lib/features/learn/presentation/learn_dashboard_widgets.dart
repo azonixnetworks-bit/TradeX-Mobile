@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/tradex_api_config.dart';
 import '../../../core/theme/tradex_colors.dart';
-import '../data/learn_repository.dart';
+import '../domain/repositories/learn_repository.dart';
 
 part 'widgets/learn_dashboard_primary_widgets.dart';
 part 'widgets/learn_dashboard_media_widgets.dart';

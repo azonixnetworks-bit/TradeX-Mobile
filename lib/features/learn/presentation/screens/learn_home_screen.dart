@@ -40,7 +40,7 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
   }
 
   Future<void> _ensureLanguage() async {
-    if (AppPreferences.instance.learnLanguageSelected || !mounted) return;
+    if (widget.repository.learnLanguageSelected || !mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         fullscreenDialog: true,

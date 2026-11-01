@@ -4,10 +4,12 @@ class NotificationCenterScreen extends StatefulWidget {
   const NotificationCenterScreen({
     super.key,
     required this.repository,
+    this.permissionRepository,
     this.onOpenAction,
   });
 
-  final NotificationDataSource repository;
+  final NotificationRepository repository;
+  final NotificationPermissionRepository? permissionRepository;
   final NotificationActionCallback? onOpenAction;
 
   @override
@@ -70,6 +72,8 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen>
                             MaterialPageRoute<void>(
                               builder: (_) => NotificationPreferencesScreen(
                                 repository: widget.repository,
+                                permissionRepository:
+                                    widget.permissionRepository,
                               ),
                             ),
                           ),

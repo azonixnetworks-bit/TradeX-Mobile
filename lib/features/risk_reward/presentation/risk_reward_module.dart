@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/tradex_colors.dart';
-import '../data/risk_reward_repository.dart';
-import '../models/risk_reward_models.dart';
+import '../domain/entities/risk_reward_entities.dart';
+import '../domain/repositories/risk_reward_repository.dart';
 import 'bloc/risk_reward_cubit.dart';
 
 part 'screens/risk_reward_home_screen.dart';

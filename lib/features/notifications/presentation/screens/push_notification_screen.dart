@@ -4,11 +4,11 @@ class PushNotificationScreen extends StatefulWidget {
   const PushNotificationScreen({
     super.key,
     required this.repository,
-    this.permissionService = const NotificationPermissionService(),
+    this.permissionService,
   });
 
-  final NotificationDataSource repository;
-  final NotificationPermissionService permissionService;
+  final NotificationRepository repository;
+  final NotificationPermissionRepository? permissionService;
 
   @override
   State<PushNotificationScreen> createState() => _PushNotificationScreenState();
@@ -40,7 +40,9 @@ class _PushNotificationScreenState extends State<PushNotificationScreen>
   }
 
   Future<void> _load() async {
-    final permission = await widget.permissionService.status();
+    final permission =
+        await widget.permissionService?.status() ??
+        DeviceNotificationPermission.unsupported;
     PushDeviceStatus device = const PushDeviceStatus.unavailable();
     String? error;
     try {
@@ -59,7 +61,9 @@ class _PushNotificationScreenState extends State<PushNotificationScreen>
   Future<void> _requestPermission() async {
     if (_working) return;
     setState(() => _working = true);
-    final result = await widget.permissionService.request();
+    final result =
+        await widget.permissionService?.request() ??
+        DeviceNotificationPermission.unsupported;
     if (!mounted) return;
     setState(() {
       _permission = result;

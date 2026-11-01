@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../domain/investment_entities.dart';
-import '../../domain/investment_repository.dart';
+import '../../domain/entities/investment_entities.dart';
+import '../../domain/repositories/investment_repository.dart';
 
 enum InvestmentsStatus { initial, loading, ready, empty, refreshing, error }
 

@@ -1,13 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/theme/tradex_colors.dart';
-import '../../../core/preferences/app_preferences.dart';
-import '../data/learn_repository.dart';
+import '../domain/repositories/learn_repository.dart';
 import 'course_video_player_screen.dart';
 import 'learn_dashboard_widgets.dart';
 import '../../catalog/presentation/secure_workflow_screens.dart';

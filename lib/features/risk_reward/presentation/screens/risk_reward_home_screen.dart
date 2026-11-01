@@ -3,7 +3,7 @@ part of '../risk_reward_module.dart';
 class RiskRewardHomeScreen extends StatefulWidget {
   const RiskRewardHomeScreen({super.key, required this.repository});
 
-  final RiskRewardDataSource repository;
+  final RiskRewardRepository repository;
 
   @override
   State<RiskRewardHomeScreen> createState() => _RiskRewardHomeScreenState();

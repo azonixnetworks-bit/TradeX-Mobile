@@ -13,7 +13,7 @@ import '../features/home/data/trade_ideas_repository.dart';
 import '../features/home/data/learning_repository.dart';
 import '../features/home/data/market_news_repository.dart';
 import '../core/preferences/app_preferences.dart';
-import '../features/learn/data/learn_repository.dart';
+import '../features/learn/learn_dependencies.dart';
 
 class TradeXApp extends StatelessWidget {
   const TradeXApp({
@@ -43,7 +43,9 @@ class TradeXApp extends StatelessWidget {
         RepositoryProvider.value(value: passwordRecoveryRepository),
         RepositoryProvider.value(value: tradeIdeasRepository),
         RepositoryProvider.value(value: learningRepository),
-        RepositoryProvider(create: (_) => LearnRepository(apiClient)),
+        RepositoryProvider(
+          create: (_) => LearnDependencies(apiClient).repository,
+        ),
         RepositoryProvider(create: (_) => MarketNewsRepository(apiClient)),
       ],
       child: BlocProvider.value(

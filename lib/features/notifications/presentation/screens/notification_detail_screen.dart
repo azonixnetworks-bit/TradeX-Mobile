@@ -8,7 +8,7 @@ class NotificationDetailScreen extends StatefulWidget {
     this.onOpenAction,
   });
 
-  final NotificationDataSource repository;
+  final NotificationRepository repository;
   final TradeXNotification initial;
   final NotificationActionCallback? onOpenAction;
 

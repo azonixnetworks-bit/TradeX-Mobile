@@ -9,11 +9,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/network/api_exception.dart';
-import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../../../core/theme/tradex_icons.dart';
-import '../data/affiliate_repository.dart';
+import '../domain/repositories/affiliate_repository.dart';
 import 'bloc/affiliate_cubits.dart';
 import 'services/affiliate_share_card_service.dart';
 

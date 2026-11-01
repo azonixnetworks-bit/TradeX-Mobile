@@ -1,8 +1,7 @@
 import 'package:bloc/bloc.dart';
 
-import '../../../../core/network/api_exception.dart';
-import '../../data/notification_repository.dart';
-import '../../domain/notification_models.dart';
+import '../../domain/entities/notification_entities.dart';
+import '../../domain/repositories/notification_repository.dart';
 
 enum NotificationLoadStatus { initial, loading, ready, failure }
 
@@ -48,7 +47,7 @@ class NotificationState {
 class NotificationCubit extends Cubit<NotificationState> {
   NotificationCubit(this.repository) : super(const NotificationState());
 
-  final NotificationDataSource repository;
+  final NotificationRepository repository;
 
   Future<void> initialize() => _load(state.filter);
 
@@ -137,7 +136,6 @@ class NotificationCubit extends Cubit<NotificationState> {
     }
   }
 
-  String _message(Object error) => error is ApiException
-      ? error.message
-      : 'Notifications are temporarily unavailable. Please try again.';
+  String _message(Object error) =>
+      'Notifications are temporarily unavailable. Please try again.';
 }

@@ -1,8 +1,7 @@
 import 'package:bloc/bloc.dart';
 
-import '../../../../core/network/api_exception.dart';
-import '../../data/risk_reward_repository.dart';
-import '../../models/risk_reward_models.dart';
+import '../../domain/entities/risk_reward_entities.dart';
+import '../../domain/repositories/risk_reward_repository.dart';
 
 enum RiskRewardStatus { initial, loading, ready, failure }
 
@@ -53,7 +52,7 @@ class RiskRewardState {
 class RiskRewardCubit extends Cubit<RiskRewardState> {
   RiskRewardCubit(this.repository) : super(const RiskRewardState());
 
-  final RiskRewardDataSource repository;
+  final RiskRewardRepository repository;
 
   Future<void> initialize({bool forceRefresh = false}) async {
     if (state.catalog == null) {
@@ -130,7 +129,6 @@ class RiskRewardCubit extends Cubit<RiskRewardState> {
   void clearResult() =>
       emit(state.copyWith(clearResult: true, clearError: true));
 
-  String _message(Object error) => error is ApiException
-      ? error.message
-      : 'The calculator is temporarily unavailable. Please try again.';
+  String _message(Object error) =>
+      'The calculator is temporarily unavailable. Please try again.';
 }

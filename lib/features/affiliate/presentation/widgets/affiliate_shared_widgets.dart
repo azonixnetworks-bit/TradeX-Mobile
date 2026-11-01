@@ -434,7 +434,7 @@ IconData _methodIcon(String code) => switch (code) {
   _ => Icons.account_balance_wallet_outlined,
 };
 
-String _message(Object error) => error is ApiException
+String _message(Object error) => error is AffiliateException
     ? error.message
     : 'The request could not be completed.';
 

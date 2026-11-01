@@ -60,74 +60,73 @@ class LearnSettingsScreen extends StatelessWidget {
   final LearnRepository repository;
 
   @override
-  Widget build(BuildContext context) =>
-      BlocBuilder<AppPreferences, AppPreferencesState>(
-        bloc: AppPreferences.instance,
-        buildWhen: (previous, current) =>
-            previous.themeMode != current.themeMode ||
-            previous.courseLanguage != current.courseLanguage,
-        builder: (context, preferences) => _LearnScaffold(
-          title: 'Learn Settings',
-          child: ListView(
-            children: [
-              const _InfoCard(
-                title: 'Learning Preferences',
-                body: 'Choose the preferred display language for supported TradeX course translations.',
+  Widget build(BuildContext context) {
+    final themeMode = ThemeMode.values.firstWhere(
+      (value) => value.name == repository.themeModeName,
+      orElse: () => ThemeMode.system,
+    );
+    return _LearnScaffold(
+      title: 'Learn Settings',
+      child: ListView(
+        children: [
+          const _InfoCard(
+            title: 'Learning Preferences',
+            body: 'Choose the preferred display language for supported TradeX course translations.',
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            leading: const Icon(Icons.language_rounded, color: _gold),
+            title: const Text('Course language'),
+            subtitle: Text(repository.courseLanguage.toUpperCase()),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () async {
+              await Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      LearnLanguageSelectionScreen(repository: repository),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          const _SectionHeading(
+            icon: Icons.palette_outlined,
+            title: 'Appearance',
+          ),
+          const SizedBox(height: 8),
+          SegmentedButton<ThemeMode>(
+            segments: const [
+              ButtonSegment(
+                value: ThemeMode.system,
+                label: Text('System'),
+                icon: Icon(Icons.settings_suggest_outlined),
               ),
-              const SizedBox(height: 12),
-              ListTile(
-                leading: const Icon(Icons.language_rounded, color: _gold),
-                title: const Text('Course language'),
-                subtitle: Text(preferences.courseLanguage.toUpperCase()),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () async {
-                  await Navigator.of(context).push<void>(
-                    MaterialPageRoute<void>(
-                      builder: (_) =>
-                          LearnLanguageSelectionScreen(repository: repository),
-                    ),
-                  );
-                },
+              ButtonSegment(
+                value: ThemeMode.light,
+                label: Text('Light'),
+                icon: Icon(Icons.light_mode_outlined),
               ),
-              const SizedBox(height: 12),
-              const _SectionHeading(
-                icon: Icons.palette_outlined,
-                title: 'Appearance',
-              ),
-              const SizedBox(height: 8),
-              SegmentedButton<ThemeMode>(
-                segments: const [
-                  ButtonSegment(
-                    value: ThemeMode.system,
-                    label: Text('System'),
-                    icon: Icon(Icons.settings_suggest_outlined),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.light,
-                    label: Text('Light'),
-                    icon: Icon(Icons.light_mode_outlined),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.dark,
-                    label: Text('Dark'),
-                    icon: Icon(Icons.dark_mode_outlined),
-                  ),
-                ],
-                selected: {preferences.themeMode},
-                onSelectionChanged: (selection) async {
-                  await AppPreferences.instance.setThemeMode(selection.first);
-                },
-              ),
-              const SizedBox(height: 12),
-              const ListTile(
-                leading: Icon(Icons.cloud_off_rounded, color: _gold),
-                title: Text('Protected online learning'),
-                subtitle: Text('Downloads and offline exports are disabled.'),
+              ButtonSegment(
+                value: ThemeMode.dark,
+                label: Text('Dark'),
+                icon: Icon(Icons.dark_mode_outlined),
               ),
             ],
+            selected: {themeMode},
+            onSelectionChanged: (selection) async {
+              await repository.setThemeModeName(selection.first.name);
+            },
           ),
-        ),
-      );
+          const SizedBox(height: 12),
+          const ListTile(
+            leading: Icon(Icons.cloud_off_rounded, color: _gold),
+            title: Text('Protected online learning'),
+            subtitle: Text('Downloads and offline exports are disabled.'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class LearnLanguageSelectionScreen extends StatefulWidget {
@@ -148,12 +147,12 @@ class LearnLanguageSelectionScreen extends StatefulWidget {
 class _LearnLanguageSelectionScreenState
     extends State<LearnLanguageSelectionScreen> {
   late Future<JsonMap> _future = widget.repository.languages();
-  String selected = AppPreferences.instance.courseLanguage;
+  late String selected = widget.repository.courseLanguage;
   bool saving = false;
 
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: !widget.firstEntry || AppPreferences.instance.learnLanguageSelected,
+    canPop: !widget.firstEntry || widget.repository.learnLanguageSelected,
     child: _LearnScaffold(
       title: widget.firstEntry ? 'Choose Course Language' : 'Course Language',
       child: _FutureBody(

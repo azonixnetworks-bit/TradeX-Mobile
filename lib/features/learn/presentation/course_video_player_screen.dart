@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../core/theme/tradex_colors.dart';
-import '../data/learn_repository.dart';
+import '../domain/repositories/learn_repository.dart';
 
 class CourseVideoPlayerScreen extends StatefulWidget {
   const CourseVideoPlayerScreen({

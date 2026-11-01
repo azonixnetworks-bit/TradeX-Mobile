@@ -1,9 +1,14 @@
 part of '../investment_module.dart';
 
 class InvestmentHomeScreen extends StatefulWidget {
-  const InvestmentHomeScreen({super.key, required this.repository});
+  const InvestmentHomeScreen({
+    super.key,
+    required this.repository,
+    this.preferencesRepository,
+  });
 
   final InvestmentRepository repository;
+  final InvestmentPreferencesRepository? preferencesRepository;
 
   @override
   State<InvestmentHomeScreen> createState() => _InvestmentHomeScreenState();
@@ -11,7 +16,6 @@ class InvestmentHomeScreen extends StatefulWidget {
 
 class _InvestmentHomeScreenState extends State<InvestmentHomeScreen>
     with WidgetsBindingObserver {
-  static const _hiddenKey = 'tradex.investments.hide_values';
   late final InvestmentsCubit _cubit;
   bool _hideValues = false;
   DateTime? _lastRefresh;
@@ -25,16 +29,16 @@ class _InvestmentHomeScreenState extends State<InvestmentHomeScreen>
   }
 
   Future<void> _loadPreference() async {
-    final preferences = await SharedPreferences.getInstance();
+    final hideValues =
+        await widget.preferencesRepository?.hideValues() ?? false;
     if (!mounted) return;
-    setState(() => _hideValues = preferences.getBool(_hiddenKey) ?? false);
+    setState(() => _hideValues = hideValues);
   }
 
   Future<void> _toggleHidden() async {
     final value = !_hideValues;
     setState(() => _hideValues = value);
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setBool(_hiddenKey, value);
+    await widget.preferencesRepository?.setHideValues(value);
   }
 
   @override

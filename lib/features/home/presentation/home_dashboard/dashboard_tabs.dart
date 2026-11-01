@@ -7,7 +7,7 @@ class _LearnTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      LearnHomeScreen(repository: LearnRepository(apiClient));
+      LearnHomeScreen(repository: LearnDependencies(apiClient).repository);
 }
 
 class _TradeIdeasTab extends StatelessWidget {
@@ -48,12 +48,13 @@ class _AffiliateTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AffiliateDashboardScreen(
-      apiClient: apiClient,
+      repository: AffiliateDependencies(apiClient).repository,
       onNotifications: () => onActionTap('notifications'),
       onUpgrade: () => Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
-          builder: (_) =>
-              PremiumAccessScreen(repository: LearnRepository(apiClient)),
+          builder: (_) => PremiumAccessScreen(
+            repository: LearnDependencies(apiClient).repository,
+          ),
         ),
       ),
       onConfigurePayoutMethod: (code) {
@@ -95,7 +96,9 @@ class _EntitlementAwareTab extends StatefulWidget {
 
 class _EntitlementAwareTabState extends State<_EntitlementAwareTab> {
   late Future<bool> _status = _loadStatus();
-  late Future<JsonMap> _products = LearnRepository(widget.apiClient).products();
+  late Future<JsonMap> _products = LearnDependencies(widget.apiClient)
+      .repository
+      .products();
 
   Future<bool> _loadStatus() async {
     final response = await widget.apiClient.getJson(
@@ -107,7 +110,7 @@ class _EntitlementAwareTabState extends State<_EntitlementAwareTab> {
 
   void _reload() => setState(() {
     _status = _loadStatus();
-    _products = LearnRepository(widget.apiClient).products();
+    _products = LearnDependencies(widget.apiClient).repository.products();
   });
 
   @override
@@ -162,7 +165,7 @@ class _EntitlementAwareTabState extends State<_EntitlementAwareTab> {
       await Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
           builder: (_) => PremiumAccessScreen(
-            repository: LearnRepository(widget.apiClient),
+            repository: LearnDependencies(widget.apiClient).repository,
           ),
         ),
       );

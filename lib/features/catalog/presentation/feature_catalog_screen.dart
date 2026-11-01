@@ -79,6 +79,8 @@ Future<void> openTradeXFeature(
   final workflow = switch (spec.id) {
     'investments' => InvestmentHomeScreen(
       repository: InvestmentDependencies(apiClient).repository,
+      preferencesRepository: InvestmentDependencies(apiClient)
+          .preferencesRepository,
     ),
     'economic-news' => EconomicNewsScreen(apiClient: apiClient),
     'market-screener' => CryptoMarketScreen(apiClient: apiClient),
@@ -107,6 +109,8 @@ Future<void> openTradeXFeature(
     ),
     'notifications' || 'notification-details' => NotificationCenterScreen(
       repository: NotificationDependencies(apiClient).repository,
+      permissionRepository: NotificationDependencies(apiClient)
+          .permissionRepository,
     ),
     'help-faq' || 'contact-support' => SupportHomeScreen(
       useCases: SupportDependencies(apiClient).useCases,

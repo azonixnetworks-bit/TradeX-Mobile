@@ -177,7 +177,7 @@ class _ProfileTabState extends State<_ProfileTab> {
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => LearnSettingsScreen(
-            repository: LearnRepository(widget.apiClient),
+            repository: LearnDependencies(widget.apiClient).repository,
           ),
         ),
       ),

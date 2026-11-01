@@ -71,7 +71,7 @@ class _PremiumAccessScreenState extends State<PremiumAccessScreen> {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => PaymentCheckoutScreen(
-          apiClient: widget.repository.apiClient,
+          apiClient: widget.repository.paymentGateway,
           productUuid: productUuid,
         ),
       ),

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/tradex_colors.dart';
-import '../domain/investment_entities.dart';
-import '../domain/investment_repository.dart';
+import '../domain/entities/investment_entities.dart';
+import '../domain/repositories/investment_repository.dart';
 import 'bloc/investments_cubit.dart';
 
 part 'screens/investment_home_screen.dart';

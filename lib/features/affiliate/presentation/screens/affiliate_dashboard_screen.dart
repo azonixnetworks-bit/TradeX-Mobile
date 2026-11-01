@@ -3,20 +3,19 @@ part of '../affiliate_module.dart';
 class AffiliateDashboardScreen extends StatelessWidget {
   const AffiliateDashboardScreen({
     super.key,
-    required this.apiClient,
+    required this.repository,
     required this.onUpgrade,
     required this.onConfigurePayoutMethod,
     this.onNotifications,
   });
 
-  final TradeXApiClient apiClient;
+  final AffiliateRepository repository;
   final VoidCallback onUpgrade;
   final ValueChanged<String> onConfigurePayoutMethod;
   final VoidCallback? onNotifications;
 
   @override
   Widget build(BuildContext context) {
-    final repository = AffiliateRepository(apiClient);
     return BlocProvider(
       create: (_) => AffiliateLoadCubit(repository.overview)..load(),
       child: _DashboardBody(
@@ -200,7 +199,9 @@ class _DashboardContent extends StatelessWidget {
       );
       if (url == null ||
           !await launchUrl(url, mode: LaunchMode.externalApplication)) {
-        throw const ApiException(message: 'The share app could not be opened.');
+        throw const AffiliateException(
+          message: 'The share app could not be opened.',
+        );
       }
     } catch (error) {
       if (context.mounted) _snack(context, _message(error));

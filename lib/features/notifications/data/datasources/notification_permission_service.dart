@@ -1,19 +1,16 @@
 import 'package:flutter/services.dart';
 
-enum DeviceNotificationPermission {
-  granted,
-  denied,
-  notDetermined,
-  unsupported,
-}
+import '../../domain/repositories/notification_repository.dart';
 
-class NotificationPermissionService {
+class NotificationPermissionService
+    implements NotificationPermissionRepository {
   const NotificationPermissionService();
 
   static const MethodChannel _channel = MethodChannel(
     'com.azonixnetworks.tradex_mobile/notifications',
   );
 
+  @override
   Future<DeviceNotificationPermission> status() async {
     try {
       return _decode(await _channel.invokeMethod<String>('status'));
@@ -24,6 +21,7 @@ class NotificationPermissionService {
     }
   }
 
+  @override
   Future<DeviceNotificationPermission> request() async {
     try {
       return _decode(await _channel.invokeMethod<String>('request'));

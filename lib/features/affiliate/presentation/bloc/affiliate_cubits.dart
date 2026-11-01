@@ -2,8 +2,7 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 
-import '../../../../core/network/api_exception.dart';
-import '../../data/affiliate_repository.dart';
+import '../../domain/repositories/affiliate_repository.dart';
 
 enum AffiliateLoadStatus { initial, loading, ready, empty, failure, premium }
 
@@ -46,7 +45,7 @@ class AffiliateLoadCubit extends Cubit<AffiliateLoadState> {
           data: data,
         ),
       );
-    } on ApiException catch (error) {
+    } on AffiliateException catch (error) {
       emit(
         AffiliateLoadState(
           status:
@@ -168,7 +167,7 @@ class ReferralCubit extends Cubit<ReferralState> {
           loadingMore: false,
         ),
       );
-    } on ApiException catch (error) {
+    } on AffiliateException catch (error) {
       emit(
         state.copyWith(
           status: error.code == 'AFFILIATE_PREMIUM_REQUIRED'
@@ -230,7 +229,7 @@ class PayoutCubit extends Cubit<PayoutState> {
           },
         ),
       );
-    } on ApiException catch (error) {
+    } on AffiliateException catch (error) {
       emit(
         PayoutState(
           status: error.code == 'PAYOUT_PREMIUM_REQUIRED'
@@ -256,7 +255,7 @@ class PayoutCubit extends Cubit<PayoutState> {
       await _repository.requestPayout(method: method, amount: amount);
       await load();
       return null;
-    } on ApiException catch (error) {
+    } on AffiliateException catch (error) {
       emit(
         PayoutState(
           status: state.status,

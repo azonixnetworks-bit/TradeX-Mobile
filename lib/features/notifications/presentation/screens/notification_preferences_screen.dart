@@ -1,9 +1,14 @@
 part of '../notification_module.dart';
 
 class NotificationPreferencesScreen extends StatefulWidget {
-  const NotificationPreferencesScreen({super.key, required this.repository});
+  const NotificationPreferencesScreen({
+    super.key,
+    required this.repository,
+    this.permissionRepository,
+  });
 
-  final NotificationDataSource repository;
+  final NotificationRepository repository;
+  final NotificationPermissionRepository? permissionRepository;
 
   @override
   State<NotificationPreferencesScreen> createState() =>
@@ -51,8 +56,10 @@ class _NotificationPreferencesScreenState
                 padding: const EdgeInsets.all(16),
                 onTap: () => Navigator.of(context).push<void>(
                   MaterialPageRoute<void>(
-                    builder: (_) =>
-                        PushNotificationScreen(repository: widget.repository),
+                    builder: (_) => PushNotificationScreen(
+                      repository: widget.repository,
+                      permissionService: widget.permissionRepository,
+                    ),
                   ),
                 ),
                 child: const Row(
