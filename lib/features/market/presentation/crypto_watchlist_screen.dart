@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
-import '../data/crypto_market_repository.dart';
+import '../domain/entities/crypto_market_entities.dart';
+import '../domain/repositories/crypto_market_repository.dart';
 import 'crypto_market_cubit.dart';
 import 'trading_view_chart_screen.dart';
 
 class CryptoWatchlistScreen extends StatefulWidget {
   const CryptoWatchlistScreen({
     super.key,
-    required this.apiClient,
+    required this.repository,
     required this.initialAssets,
   });
 
-  final TradeXApiClient apiClient;
+  final CryptoMarketRepositoryContract repository;
   final List<CryptoAsset> initialAssets;
 
   @override
@@ -22,7 +22,7 @@ class CryptoWatchlistScreen extends StatefulWidget {
 }
 
 class _CryptoWatchlistScreenState extends State<CryptoWatchlistScreen> {
-  late final CryptoMarketRepository _repository;
+  late final CryptoMarketRepositoryContract _repository;
   late final Map<String, CryptoAsset> _assetsByMarket;
   var _loading = false;
   String? _errorMessage;
@@ -30,7 +30,7 @@ class _CryptoWatchlistScreenState extends State<CryptoWatchlistScreen> {
   @override
   void initState() {
     super.initState();
-    _repository = CryptoMarketRepository(widget.apiClient);
+    _repository = widget.repository;
     _assetsByMarket = {
       for (final asset in widget.initialAssets) asset.marketKey: asset,
     };

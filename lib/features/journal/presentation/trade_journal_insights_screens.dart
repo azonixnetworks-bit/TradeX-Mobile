@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/network/api_exception.dart';
+import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
-import '../data/trade_journal_models.dart';
-import '../data/trade_journal_repository.dart';
+import '../domain/entities/trade_journal_entities.dart';
+import '../domain/repositories/trade_journal_repository.dart';
 import 'trade_journal_ui.dart';
 
 class TradeJournalAnalyticsScreen extends StatefulWidget {
   const TradeJournalAnalyticsScreen({super.key, required this.repository});
 
-  final TradeJournalRepository repository;
+  final TradeJournalRepositoryContract repository;
 
   @override
   State<TradeJournalAnalyticsScreen> createState() =>
@@ -19,7 +19,7 @@ class TradeJournalAnalyticsScreen extends StatefulWidget {
 class _TradeJournalAnalyticsScreenState
     extends State<TradeJournalAnalyticsScreen> {
   var _period = 'month';
-  late Future<Map<String, dynamic>> _request;
+  late Future<JournalData> _request;
 
   @override
   void initState() {
@@ -48,7 +48,7 @@ class _TradeJournalAnalyticsScreenState
         icon: const Icon(Icons.refresh_rounded),
       ),
     ],
-    body: FutureBuilder<Map<String, dynamic>>(
+    body: FutureBuilder<JournalData>(
       future: _request,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
@@ -65,14 +65,14 @@ class _TradeJournalAnalyticsScreenState
     ),
   );
 
-  Widget _content(Map<String, dynamic> data) {
+  Widget _content(JournalData data) {
     final overview = journalMap(data['overview']);
     final risk = journalMap(data['risk']);
     final performance = journalMap(data['performance']);
     final discipline = journalMap(data['discipline']);
     final curves = journalMaps(performance['equity_curves']);
     final points = curves.isEmpty
-        ? const <Map<String, dynamic>>[]
+        ? const <JournalData>[]
         : journalMaps(curves.first['points']);
     final values = points
         .map((point) => journalNumber(point['cumulative_pnl']))
@@ -250,7 +250,7 @@ class _TradeJournalAnalyticsScreenState
     );
   }
 
-  Widget _ranking(String title, List<Map<String, dynamic>> rows) => Column(
+  Widget _ranking(String title, List<JournalData> rows) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       JournalSectionTitle(title: title),
@@ -289,7 +289,7 @@ class TradeJournalReviewScreen extends StatefulWidget {
     required this.type,
   }) : assert(type == 'weekly' || type == 'monthly');
 
-  final TradeJournalRepository repository;
+  final TradeJournalRepositoryContract repository;
   final String type;
 
   @override
@@ -300,7 +300,7 @@ class TradeJournalReviewScreen extends StatefulWidget {
 class _TradeJournalReviewScreenState extends State<TradeJournalReviewScreen> {
   final _formKey = GlobalKey<FormState>();
   final _controllers = <String, TextEditingController>{};
-  late Future<Map<String, dynamic>> _request;
+  late Future<JournalData> _request;
   DateTime _anchor = DateTime.now();
   var _rating = 4;
   var _saving = false;
@@ -359,7 +359,7 @@ class _TradeJournalReviewScreenState extends State<TradeJournalReviewScreen> {
         icon: const Icon(Icons.calendar_month_rounded),
       ),
     ],
-    body: FutureBuilder<Map<String, dynamic>>(
+    body: FutureBuilder<JournalData>(
       future: _request,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
@@ -377,7 +377,7 @@ class _TradeJournalReviewScreenState extends State<TradeJournalReviewScreen> {
     ),
   );
 
-  void _seed(Map<String, dynamic> data) {
+  void _seed(JournalData data) {
     final review = journalMap(data['review']);
     if (review.isEmpty) return;
     for (final item in _fields) {
@@ -389,7 +389,7 @@ class _TradeJournalReviewScreenState extends State<TradeJournalReviewScreen> {
     if (rating != null) _rating = rating;
   }
 
-  Widget _form(Map<String, dynamic> data) {
+  Widget _form(JournalData data) {
     final summary = journalMap(data['summary']);
     final range = '${data['period_start'] ?? ''} – ${data['period_end'] ?? ''}';
     final pnl = journalNumber(summary['net_pnl']);
@@ -614,7 +614,7 @@ class _TradeJournalReviewScreenState extends State<TradeJournalReviewScreen> {
         ),
       );
       setState(_load);
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(error.message)));

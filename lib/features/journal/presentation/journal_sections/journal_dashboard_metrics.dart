@@ -59,8 +59,8 @@ class JournalDashboardMetricGrid extends StatelessWidget {
     required this.followedCount,
   });
 
-  final Map<String, dynamic> summary;
-  final Map<String, dynamic> discipline;
+  final JournalData summary;
+  final JournalData discipline;
   final List<double> curve;
   final String period;
   final ValueChanged<String> onPeriodChanged;
@@ -121,7 +121,7 @@ class NetPnlCard extends StatelessWidget {
     required this.onPeriodChanged,
   });
 
-  final Map<String, dynamic> summary;
+  final JournalData summary;
   final List<double> curve;
   final String period;
   final ValueChanged<String> onPeriodChanged;
@@ -203,7 +203,7 @@ class WinRateCard extends StatelessWidget {
     required this.onPeriodChanged,
   });
 
-  final Map<String, dynamic> summary;
+  final JournalData summary;
   final String period;
   final ValueChanged<String> onPeriodChanged;
 
@@ -279,7 +279,7 @@ class WinRateCard extends StatelessWidget {
 class OpenTradesCard extends StatelessWidget {
   const OpenTradesCard({super.key, required this.summary});
 
-  final Map<String, dynamic> summary;
+  final JournalData summary;
 
   @override
   Widget build(BuildContext context) {

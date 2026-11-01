@@ -3,9 +3,9 @@ import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/network/api_exception.dart';
-import '../../data/trade_idea_repository.dart';
-import '../../models/trade_idea_models.dart';
+import '../../../../core/domain/user_facing_exception.dart';
+import '../../domain/entities/trade_idea_entities.dart';
+import '../../domain/repositories/trade_idea_repository.dart';
 
 enum TradeIdeaLoadStatus { initial, loading, ready, failure }
 
@@ -73,7 +73,7 @@ class TradeIdeaDetailsCubit extends Cubit<TradeIdeaDetailsState> {
   TradeIdeaDetailsCubit({required this.repository, required this.uuid})
     : super(const TradeIdeaDetailsState());
 
-  final TradeIdeaDataSource repository;
+  final TradeIdeaRepositoryContract repository;
   final String uuid;
 
   Future<void> load() async {
@@ -156,7 +156,7 @@ class TradeIdeaDetailsCubit extends Cubit<TradeIdeaDetailsState> {
         ),
       );
     } catch (error) {
-      final apiError = error is ApiException ? error : null;
+      final apiError = error is UserFacingException ? error : null;
       emit(
         state.copyWith(
           analysisStatus: apiError?.statusCode == 404
@@ -202,7 +202,7 @@ class TradeIdeaDetailsCubit extends Cubit<TradeIdeaDetailsState> {
   }
 
   String _message(Object error, {bool detailRequest = false}) {
-    if (error is ApiException) {
+    if (error is UserFacingException) {
       if (error.statusCode == 401) {
         return 'Your TradeX session has ended. Please sign in again.';
       }

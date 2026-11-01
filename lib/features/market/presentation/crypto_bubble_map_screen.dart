@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/tradex_colors.dart';
-import '../data/binance_live_ticker_service.dart';
-import '../data/crypto_market_repository.dart';
+import '../domain/entities/crypto_market_entities.dart';
+import '../domain/repositories/crypto_market_repository.dart';
 import 'crypto_bubble_field.dart';
 import 'crypto_market_cubit.dart';
 import 'trading_view_chart_screen.dart';
@@ -22,9 +22,9 @@ class CryptoBubbleMapScreen extends StatefulWidget {
   });
 
   final List<CryptoAsset> assets;
-  final CryptoMarketRepository repository;
+  final CryptoMarketRepositoryContract repository;
   final String segment;
-  final BinanceLiveTickerService? liveTickerService;
+  final BinanceLiveTickerSource? liveTickerService;
   final bool enableDirectStream;
 
   @override

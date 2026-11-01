@@ -2,9 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../data/binance_live_ticker_service.dart';
-import '../data/crypto_market_repository.dart';
-import '../data/crypto_watchlist_store.dart';
+import '../domain/entities/crypto_market_entities.dart';
+import '../domain/repositories/crypto_market_repository.dart';
 
 class CryptoMarketState {
   const CryptoMarketState({
@@ -54,17 +53,20 @@ class CryptoMarketState {
 }
 
 class CryptoMarketCubit extends Cubit<CryptoMarketState> {
-  CryptoMarketCubit(this._repository, {CryptoWatchlistStore? watchlistStore})
-    : _watchlistStore = watchlistStore ?? CryptoWatchlistStore(),
-      super(const CryptoMarketState());
+  CryptoMarketCubit(
+    this._repository, {
+    CryptoWatchlistRepository? watchlistStore,
+  }) : super(const CryptoMarketState()) {
+    _watchlistStore = watchlistStore;
+  }
 
-  final CryptoMarketRepository _repository;
-  final CryptoWatchlistStore _watchlistStore;
+  final CryptoMarketRepositoryContract _repository;
+  late final CryptoWatchlistRepository? _watchlistStore;
   var _requestVersion = 0;
   var _refreshingBubbles = false;
 
   Future<void> initialize() async {
-    final watchlist = await _watchlistStore.load();
+    final watchlist = await _watchlistStore?.load() ?? const <String>{};
     if (isClosed) return;
     emit(state.copyWith(watchlistSymbols: Set.unmodifiable(watchlist)));
     await _load(useCache: true);
@@ -180,7 +182,7 @@ class CryptoMarketCubit extends Cubit<CryptoMarketState> {
       updated.add(normalized);
     }
     emit(state.copyWith(watchlistSymbols: Set.unmodifiable(updated)));
-    await _watchlistStore.save(updated);
+    await _watchlistStore?.save(updated);
   }
 
   Future<void> _load({required bool useCache, bool append = false}) async {
@@ -311,21 +313,22 @@ class CryptoBubbleMapCubit extends Cubit<CryptoBubbleMapState> {
     this._repository, {
     required this.segment,
     List<CryptoAsset> initialGainers = const <CryptoAsset>[],
-    BinanceLiveTickerService? liveTickerService,
+    BinanceLiveTickerSource? liveTickerService,
   }) : _cache = {
          if (initialGainers.isNotEmpty)
            CryptoBubbleMode.gainers: List.unmodifiable(initialGainers),
        },
-       _liveTickerService = liveTickerService ?? BinanceLiveTickerService(),
        super(
          CryptoBubbleMapState(
            assets: List.unmodifiable(initialGainers),
            loading: initialGainers.isEmpty,
          ),
-       );
+       ) {
+    _liveTickerService = liveTickerService;
+  }
 
-  final CryptoMarketRepository _repository;
-  final BinanceLiveTickerService _liveTickerService;
+  final CryptoMarketRepositoryContract _repository;
+  late final BinanceLiveTickerSource? _liveTickerService;
   final String segment;
   final Map<CryptoBubbleMode, List<CryptoAsset>> _cache;
   StreamSubscription<Map<String, BinanceLiveTicker>>? _liveTickerSubscription;
@@ -339,7 +342,9 @@ class CryptoBubbleMapCubit extends Cubit<CryptoBubbleMapState> {
     await previous?.cancel();
     if (!enabled || isClosed) return;
 
-    _liveTickerSubscription = _liveTickerService
+    final liveTickerService = _liveTickerService;
+    if (liveTickerService == null) return;
+    _liveTickerSubscription = liveTickerService
         .watch(segment)
         .listen(
           _applyLiveTickers,

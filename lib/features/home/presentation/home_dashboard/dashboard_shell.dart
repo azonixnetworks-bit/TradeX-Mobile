@@ -183,7 +183,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     if (normalized == 'crypto trade ideas') {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => CryptoMarketScreen(apiClient: widget.apiClient),
+          builder: (_) => CryptoMarketScreen(
+            dependencies: MarketDependencies(widget.apiClient),
+          ),
         ),
       );
       return;

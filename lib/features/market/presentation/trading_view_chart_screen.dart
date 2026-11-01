@@ -1,10 +1,9 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/serialization/structured_text_codec.dart';
 
 class TradingViewChartScreen extends StatefulWidget {
   const TradingViewChartScreen({
@@ -211,7 +210,7 @@ String buildTradingViewChartHtml(
   String qualifiedSymbol, {
   required String interval,
 }) {
-  final configuration = jsonEncode({
+  final configuration = encodeStructuredText({
     'autosize': true,
     'symbol': qualifiedSymbol,
     'interval': interval,

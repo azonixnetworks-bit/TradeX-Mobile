@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../data/trade_journal_models.dart';
+import '../domain/entities/trade_journal_entities.dart';
 import 'trade_journal_ui.dart';
 
 part 'journal_sections/journal_dashboard_metrics.dart';

@@ -7,7 +7,7 @@ class TradeJournalOpenScreen extends StatefulWidget {
     required this.entry,
   });
 
-  final TradeJournalRepository repository;
+  final TradeJournalRepositoryContract repository;
   final TradeJournalEntry entry;
 
   @override
@@ -168,7 +168,7 @@ class _TradeJournalOpenScreenState extends State<TradeJournalOpenScreen> {
         if (_note.text.trim().isNotEmpty) 'execution_note': _note.text.trim(),
       });
       if (mounted) Navigator.pop(context, result);
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _saving = false);

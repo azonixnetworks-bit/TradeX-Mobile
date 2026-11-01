@@ -192,7 +192,7 @@ class _SocialButton extends StatelessWidget {
 class _PrimaryActions extends StatelessWidget {
   const _PrimaryActions({required this.detail, required this.repository});
   final TradeIdeaDetail detail;
-  final TradeIdeaDataSource repository;
+  final TradeIdeaRepositoryContract repository;
   @override
   Widget build(BuildContext context) {
     final idea = detail.summary;
@@ -407,7 +407,7 @@ class _LoadFailure extends StatelessWidget {
 
 Future<void> _share(
   BuildContext context,
-  TradeIdeaDataSource repository,
+  TradeIdeaRepositoryContract repository,
   TradeIdeaDetail detail,
 ) async {
   final channel = await showModalBottomSheet<String>(

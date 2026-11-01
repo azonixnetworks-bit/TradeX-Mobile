@@ -3,7 +3,7 @@ part of '../crypto_market_screen.dart';
 class _CryptoTradeIdeasSection extends StatefulWidget {
   const _CryptoTradeIdeasSection({required this.repository});
 
-  final TradeIdeasRepository repository;
+  final DashboardTradeIdeasRepository repository;
 
   @override
   State<_CryptoTradeIdeasSection> createState() =>

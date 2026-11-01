@@ -7,7 +7,7 @@ class TradeJournalScreenshotsScreen extends StatefulWidget {
     required this.entry,
   });
 
-  final TradeJournalRepository repository;
+  final TradeJournalRepositoryContract repository;
   final TradeJournalEntry entry;
 
   @override
@@ -181,7 +181,7 @@ class _TradeJournalScreenshotsScreenState
       await widget.repository.uploadScreenshot(_entry.uuid, type, file.path);
       _entry = await widget.repository.entry(_entry.uuid);
       if (mounted) setState(() {});
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _workingType = null);
@@ -194,7 +194,7 @@ class _TradeJournalScreenshotsScreenState
       await widget.repository.deleteScreenshot(_entry.uuid, type);
       _entry = await widget.repository.entry(_entry.uuid);
       if (mounted) setState(() {});
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _workingType = null);

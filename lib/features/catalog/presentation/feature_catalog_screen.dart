@@ -17,13 +17,14 @@ import '../../copy_trading/presentation/copy_trading_module.dart';
 import '../../copy_trading/copy_trading_dependencies.dart';
 import '../../funded_advisor/funded_advisor_dependencies.dart';
 import '../../funded_advisor/presentation/funded_advisor_module.dart';
-import '../../journal/data/trade_journal_repository.dart';
+import '../../journal/journal_dependencies.dart';
 import '../../journal/presentation/trade_journal_home_screen.dart';
 import '../../journal/presentation/trade_journal_insights_screens.dart';
 import '../../journal/presentation/trade_journal_trade_screens.dart';
 import '../../investments/investment_dependencies.dart';
 import '../../investments/presentation/investment_module.dart';
 import '../../market/presentation/crypto_market_screen.dart';
+import '../../market/market_dependencies.dart';
 import '../../notifications/notification_dependencies.dart';
 import '../../notifications/presentation/notification_module.dart';
 import '../../risk_reward/presentation/risk_reward_module.dart';
@@ -75,7 +76,7 @@ Future<void> openTradeXFeature(
   TradeXApiClient apiClient,
   FeatureSpec spec,
 ) {
-  final journal = TradeJournalRepository(apiClient);
+  final journal = JournalDependencies(apiClient).repository;
   final workflow = switch (spec.id) {
     'investments' => InvestmentHomeScreen(
       repository: InvestmentDependencies(apiClient).repository,
@@ -83,7 +84,9 @@ Future<void> openTradeXFeature(
           .preferencesRepository,
     ),
     'economic-news' => EconomicNewsScreen(apiClient: apiClient),
-    'market-screener' => CryptoMarketScreen(apiClient: apiClient),
+    'market-screener' => CryptoMarketScreen(
+      dependencies: MarketDependencies(apiClient),
+    ),
     'trade-journal' => TradeJournalHomeScreen(
       apiClient: apiClient,
       repository: journal,

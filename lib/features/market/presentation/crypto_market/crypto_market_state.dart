@@ -3,11 +3,13 @@ part of '../crypto_market_screen.dart';
 class CryptoMarketScreen extends StatefulWidget {
   const CryptoMarketScreen({
     super.key,
-    required this.apiClient,
+    this.apiClient,
+    this.dependencies,
     this.enableDirectBubbleStream = true,
   });
 
-  final TradeXApiClient apiClient;
+  final Object? apiClient;
+  final MarketFeatureDependencies? dependencies;
   final bool enableDirectBubbleStream;
 
   @override
@@ -17,8 +19,9 @@ class CryptoMarketScreen extends StatefulWidget {
 class _CryptoMarketScreenState extends State<CryptoMarketScreen>
     with WidgetsBindingObserver {
   late final CryptoMarketCubit _cubit;
-  late final CryptoMarketRepository _cryptoRepository;
-  late final TradeIdeasRepository _tradeIdeasRepository;
+  late final CryptoMarketRepositoryContract _cryptoRepository;
+  late final DashboardTradeIdeasRepository _tradeIdeasRepository;
+  late final BinanceLiveTickerSource _liveTickerSource;
   final _search = TextEditingController();
   Timer? _searchDebounce;
   Timer? _liveRefreshTimer;
@@ -29,14 +32,15 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _cryptoRepository = CryptoMarketRepository(widget.apiClient);
+    final dependencies =
+        widget.dependencies ?? MarketDependencies(widget.apiClient as dynamic);
+    _cryptoRepository = dependencies.repository;
+    _liveTickerSource = dependencies.liveTickerSource;
     _cubit = CryptoMarketCubit(
       _cryptoRepository,
-      watchlistStore: CryptoWatchlistStore(
-        accountKey: widget.apiClient.currentAccountStorageKey(),
-      ),
+      watchlistStore: dependencies.watchlistRepository,
     );
-    _tradeIdeasRepository = TradeIdeasRepository(widget.apiClient);
+    _tradeIdeasRepository = dependencies.tradeIdeasRepository;
     _cubit.initialize();
     _liveRefreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (!mounted || !_appIsActive) return;
@@ -95,7 +99,7 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
         builder: (_) => BlocProvider.value(
           value: _cubit,
           child: CryptoWatchlistScreen(
-            apiClient: widget.apiClient,
+            repository: _cryptoRepository,
             initialAssets: assetsBySymbol.values.toList(growable: false),
           ),
         ),
@@ -320,6 +324,7 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
                           assets: market.bubbleAssets,
                           repository: _cryptoRepository,
                           segment: state.segment,
+                          liveTickerService: _liveTickerSource,
                           enableDirectStream: widget.enableDirectBubbleStream,
                         ),
                       ),
@@ -337,6 +342,7 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
                           assets: market.bubbleAssets,
                           repository: _cryptoRepository,
                           segment: state.segment,
+                          liveTickerService: _liveTickerSource,
                           enableDirectStream: widget.enableDirectBubbleStream,
                         ),
                       ),

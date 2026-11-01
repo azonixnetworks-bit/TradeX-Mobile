@@ -7,7 +7,7 @@ class TradeJournalDetailsScreen extends StatefulWidget {
     required this.entry,
   });
 
-  final TradeJournalRepository repository;
+  final TradeJournalRepositoryContract repository;
   final TradeJournalEntry entry;
 
   @override
@@ -407,7 +407,7 @@ class _TradeJournalDetailsScreenState extends State<TradeJournalDetailsScreen> {
     setState(() => _working = true);
     try {
       await operation();
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _working = false);
@@ -474,10 +474,10 @@ class _TradePlanSummary extends StatelessWidget {
     );
   }
 
-  Map<String, dynamic>? _decode() {
+  JournalData? _decode() {
     try {
-      final value = jsonDecode(entryReason.substring(_prefix.length));
-      return value is Map ? Map<String, dynamic>.from(value) : null;
+      final value = decodeStructuredText(entryReason.substring(_prefix.length));
+      return value is Map ? JournalData.from(value) : null;
     } catch (_) {
       return null;
     }

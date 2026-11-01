@@ -28,7 +28,7 @@ class _TradeIdeasTab extends StatelessWidget {
       introduction: 'Explore TradeX market-analysis tools. Protected prices, levels, charts and full analysis are requested only after the server confirms your membership.',
       protectedFeatures: [featureById('trade-idea-details')],
       activeBuilder: (_) => TradeIdeasScreen(
-        repository: TradeIdeaRepository(apiClient),
+        repository: TradeIdeasDependencies(apiClient).repository,
         warningSource: MarketNewsWarningSource(MarketNewsRepository(apiClient)),
       ),
     );

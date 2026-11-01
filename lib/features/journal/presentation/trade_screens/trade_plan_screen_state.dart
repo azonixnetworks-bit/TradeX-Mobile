@@ -777,7 +777,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       }
       if (!mounted) return;
       Navigator.pop(context, saved);
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } catch (_) {
       _message('The trade plan could not be saved.');
@@ -854,8 +854,10 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
       return;
     }
     try {
-      final decoded = jsonDecode(value.substring(_strategyReasonPrefix.length));
-      if (decoded is! Map<String, dynamic>) return;
+      final decoded = decodeStructuredText(
+        value.substring(_strategyReasonPrefix.length),
+      );
+      if (decoded is! JournalData) return;
       _htfTrends = _stringMap(decoded['htf']);
       _ltfTrends = _stringMap(decoded['ltf']);
       _htfZones = _stringSet(decoded['htf_zones']);
@@ -929,7 +931,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
   }
 
   String get _strategyReasonPayload =>
-      '$_strategyReasonPrefix${jsonEncode({
+      '$_strategyReasonPrefix${encodeStructuredText({
         'htf': _htfTrends,
         'ltf': _ltfTrends,
         'htf_zones': _htfZones.toList(growable: false),

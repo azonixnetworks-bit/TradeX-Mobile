@@ -1,4 +1,6 @@
-class ApiException implements Exception {
+import '../domain/user_facing_exception.dart';
+
+class ApiException implements UserFacingException {
   // Keep the public `message` parameter while storing only the raw private
   // value; every consumer must receive the sanitized getter below.
   const ApiException({
@@ -10,7 +12,9 @@ class ApiException implements Exception {
   }) : _message = message;
 
   final String _message;
+  @override
   final int? statusCode;
+  @override
   final String? code;
 
   final Map<String, List<String>>? validationErrors;
@@ -20,6 +24,7 @@ class ApiException implements Exception {
   /// Backend routes, URLs, SQL errors and stack details must never be exposed
   /// in the customer application. The original value remains private so every
   /// existing UI consumer automatically receives the sanitized message.
+  @override
   String get message {
     final value = _message.trim();
     if (value.isEmpty || _containsTechnicalDetail(value)) {

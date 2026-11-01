@@ -7,7 +7,7 @@ class TradeJournalEntriesScreen extends StatefulWidget {
     this.initialFilters = const {},
   });
 
-  final TradeJournalRepository repository;
+  final TradeJournalRepositoryContract repository;
   final Map<String, String> initialFilters;
 
   @override

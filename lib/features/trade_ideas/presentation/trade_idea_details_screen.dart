@@ -5,10 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/tradex_colors.dart';
-import '../../market/presentation/trading_view_chart_screen.dart';
-import '../data/trade_idea_repository.dart';
-import '../models/trade_idea_models.dart';
-import '../services/tradingview_symbol_resolver.dart';
+import '../../market/market.dart';
+import '../domain/entities/trade_idea_entities.dart';
+import '../domain/repositories/trade_idea_repository.dart';
+import '../domain/usecases/tradingview_symbol_resolver.dart';
 import 'bloc/trade_idea_details_cubit.dart';
 
 part 'trade_idea_details/trade_idea_header.dart';
@@ -22,7 +22,7 @@ class TradeIdeaDetailsScreen extends StatelessWidget {
     required this.uuid,
   });
 
-  final TradeIdeaDataSource repository;
+  final TradeIdeaRepositoryContract repository;
   final String uuid;
 
   @override
@@ -35,7 +35,7 @@ class TradeIdeaDetailsScreen extends StatelessWidget {
 
 class _TradeIdeaDetailsView extends StatelessWidget {
   const _TradeIdeaDetailsView({required this.repository});
-  final TradeIdeaDataSource repository;
+  final TradeIdeaRepositoryContract repository;
 
   @override
   Widget build(BuildContext context) => Scaffold(

@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../../../shared/widgets/no_trade_zone_warning.dart';
 import '../../home/domain/no_trade_zone_warning.dart';
-import '../data/trade_idea_repository.dart';
-import '../models/trade_idea_models.dart';
+import '../domain/entities/trade_idea_entities.dart';
+import '../domain/repositories/trade_idea_repository.dart';
 import 'trade_idea_details_screen.dart';
 
 class TradeIdeasScreen extends StatefulWidget {
@@ -16,7 +16,7 @@ class TradeIdeasScreen extends StatefulWidget {
     required this.warningSource,
   });
 
-  final TradeIdeaDataSource repository;
+  final TradeIdeaRepositoryContract repository;
   final NoTradeWarningSource warningSource;
 
   @override

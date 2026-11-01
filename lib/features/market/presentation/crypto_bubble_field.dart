@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import '../data/crypto_market_repository.dart';
+import '../domain/entities/crypto_market_entities.dart';
 
 /// Animated bubble field backed by live crypto assets.
 ///

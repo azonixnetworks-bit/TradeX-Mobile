@@ -7,7 +7,7 @@ class TradeJournalCloseScreen extends StatefulWidget {
     required this.entry,
   });
 
-  final TradeJournalRepository repository;
+  final TradeJournalRepositoryContract repository;
   final TradeJournalEntry entry;
 
   @override
@@ -281,7 +281,7 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
       }
       final result = await widget.repository.close(_entry.uuid, body);
       if (mounted) Navigator.pop(context, result);
-    } on ApiException catch (error) {
+    } on UserFacingException catch (error) {
       _message(error.message);
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -306,7 +306,7 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
     bool forceRefresh = false,
   }) async {
     if (widget.entry.uuid.trim().isEmpty) {
-      throw const ApiException(message: 'The selected trade is invalid.');
+      throw const JournalValidationException('The selected trade is invalid.');
     }
     final values = await Future.wait<Object>([
       widget.repository.meta(forceRefresh: forceRefresh),

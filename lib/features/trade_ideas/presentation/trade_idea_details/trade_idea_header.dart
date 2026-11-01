@@ -3,7 +3,7 @@ part of '../trade_idea_details_screen.dart';
 class _Header extends StatelessWidget {
   const _Header({required this.detail, required this.repository});
   final TradeIdeaDetail detail;
-  final TradeIdeaDataSource repository;
+  final TradeIdeaRepositoryContract repository;
   @override
   Widget build(BuildContext context) {
     final idea = detail.summary;

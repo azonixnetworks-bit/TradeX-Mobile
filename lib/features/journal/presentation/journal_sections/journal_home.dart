@@ -3,27 +3,26 @@ part of '../trade_journal_home_screen.dart';
 class TradeJournalHomeScreen extends StatefulWidget {
   const TradeJournalHomeScreen({
     super.key,
-    required this.apiClient,
-    this.repository,
+    this.apiClient,
+    required this.repository,
   });
 
-  final TradeXApiClient apiClient;
-  final TradeJournalRepository? repository;
+  final Object? apiClient;
+  final TradeJournalRepositoryContract repository;
 
   @override
   State<TradeJournalHomeScreen> createState() => _TradeJournalHomeScreenState();
 }
 
 class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
-  late final TradeJournalRepository _repository;
-  late Future<({TradeJournalHome home, Map<String, dynamic> analytics})>
-  _request;
+  late final TradeJournalRepositoryContract _repository;
+  late Future<({TradeJournalHome home, JournalData analytics})> _request;
   var _period = 'month';
 
   @override
   void initState() {
     super.initState();
-    _repository = widget.repository ?? TradeJournalRepository(widget.apiClient);
+    _repository = widget.repository;
     _reload();
   }
 
@@ -31,7 +30,7 @@ class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
     _request = _load(forceRefresh: forceRefresh);
   }
 
-  Future<({TradeJournalHome home, Map<String, dynamic> analytics})> _load({
+  Future<({TradeJournalHome home, JournalData analytics})> _load({
     bool forceRefresh = false,
   }) async {
     final values = await Future.wait<Object>([
@@ -40,7 +39,7 @@ class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
     ]);
     return (
       home: values[0] as TradeJournalHome,
-      analytics: values[1] as Map<String, dynamic>,
+      analytics: values[1] as JournalData,
     );
   }
 
@@ -65,27 +64,24 @@ class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
       ),
       const SizedBox(width: 7),
     ],
-    body:
-        FutureBuilder<
-          ({TradeJournalHome home, Map<String, dynamic> analytics})
-        >(
-          future: _request,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const JournalLoading();
-            }
-            if (snapshot.hasError || snapshot.data == null) {
-              return JournalError(
-                error: snapshot.error,
-                onRetry: () => setState(() => _reload(forceRefresh: true)),
-              );
-            }
-            return _content(snapshot.data!.home, snapshot.data!.analytics);
-          },
-        ),
+    body: FutureBuilder<({TradeJournalHome home, JournalData analytics})>(
+      future: _request,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const JournalLoading();
+        }
+        if (snapshot.hasError || snapshot.data == null) {
+          return JournalError(
+            error: snapshot.error,
+            onRetry: () => setState(() => _reload(forceRefresh: true)),
+          );
+        }
+        return _content(snapshot.data!.home, snapshot.data!.analytics);
+      },
+    ),
   );
 
-  Widget _content(TradeJournalHome home, Map<String, dynamic> analytics) {
+  Widget _content(TradeJournalHome home, JournalData analytics) {
     final analyticsOverview = journalMap(analytics['overview']);
     final summary = analyticsOverview.isEmpty
         ? _homeSummary(home)
@@ -234,14 +230,14 @@ class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
     });
   }
 
-  Map<String, dynamic> _homeSummary(TradeJournalHome home) => switch (_period) {
+  JournalData _homeSummary(TradeJournalHome home) => switch (_period) {
     'today' => home.today,
     'week' => home.week,
     _ => home.month,
   };
 
   ({List<double> values, String? currency}) _equityCurve(
-    Map<String, dynamic> analytics,
+    JournalData analytics,
     TradeJournalHome home,
   ) {
     final performance = journalMap(analytics['performance']);

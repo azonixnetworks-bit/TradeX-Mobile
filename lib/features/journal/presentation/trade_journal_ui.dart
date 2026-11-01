@@ -2,9 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../core/network/api_exception.dart';
+import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
-import '../data/trade_journal_models.dart';
+import '../domain/entities/trade_journal_entities.dart';
 
 const journalPanel = Color(0xFF151D27);
 const journalPanelRaised = Color(0xFF1B2633);
@@ -479,8 +479,8 @@ class JournalError extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            error is ApiException
-                ? (error! as ApiException).message
+            error is UserFacingException
+                ? (error! as UserFacingException).message
                 : 'Trade Journal is temporarily unavailable.',
             textAlign: TextAlign.center,
             style: const TextStyle(color: TradeXColors.secondaryText),

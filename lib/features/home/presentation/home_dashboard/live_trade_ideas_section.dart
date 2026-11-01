@@ -226,7 +226,7 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
             onTap: () => Navigator.of(context).push<void>(
               MaterialPageRoute<void>(
                 builder: (_) => TradeIdeaDetailsScreen(
-                  repository: TradeIdeaRepository(widget.repository.apiClient),
+                  repository: widget.repository.detailsRepository,
                   uuid: idea.uuid,
                 ),
               ),

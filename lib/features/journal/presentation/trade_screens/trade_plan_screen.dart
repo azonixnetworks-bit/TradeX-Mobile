@@ -7,7 +7,7 @@ class TradeJournalPlanScreen extends StatefulWidget {
     this.entry,
   });
 
-  final TradeJournalRepository repository;
+  final TradeJournalRepositoryContract repository;
   final TradeJournalEntry? entry;
 
   @override

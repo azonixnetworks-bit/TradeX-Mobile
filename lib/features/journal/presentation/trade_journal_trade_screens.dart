@@ -1,14 +1,14 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/network/api_exception.dart';
+import '../../../core/domain/user_facing_exception.dart';
+import '../../../core/serialization/structured_text_codec.dart';
 import '../../../core/theme/tradex_colors.dart';
-import '../data/trade_journal_models.dart';
-import '../data/trade_journal_repository.dart';
+import '../domain/entities/trade_journal_entities.dart';
+import '../domain/repositories/trade_journal_repository.dart';
 import 'trade_journal_close_sections.dart';
 import 'trade_journal_risk_psychology_sections.dart';
 import 'trade_journal_strategy_section.dart';
