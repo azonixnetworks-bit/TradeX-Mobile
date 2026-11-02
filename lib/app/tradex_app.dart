@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../core/theme/tradex_theme.dart';
+import '../core/activity/activity_tracker.dart';
+import '../core/activity/activity_tracking_scope.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/data/password_recovery_repository.dart';
 import '../features/auth/data/registration_repository.dart';
@@ -22,6 +24,7 @@ class TradeXApp extends StatelessWidget {
     required this.registrationRepository,
     required this.passwordRecoveryRepository,
     required this.apiClient,
+    this.activityTracker,
     required this.tradeIdeasRepository,
     required this.learningRepository,
   });
@@ -30,6 +33,7 @@ class TradeXApp extends StatelessWidget {
   final RegistrationRepository registrationRepository;
   final PasswordRecoveryRepository passwordRecoveryRepository;
   final TradeXApiClient apiClient;
+  final ActivityTracker? activityTracker;
   final TradeIdeasRepository tradeIdeasRepository;
   final LearningRepository learningRepository;
 
@@ -53,21 +57,33 @@ class TradeXApp extends StatelessWidget {
               previous.themeMode != current.themeMode,
           builder: (context, preferences) => MaterialApp(
             title: 'Trade X',
+            navigatorObservers: activityTracker == null
+                ? <NavigatorObserver>[]
+                : <NavigatorObserver>[
+                    ActivityNavigationObserver(activityTracker!),
+                  ],
             restorationScopeId: 'tradex-app',
             debugShowCheckedModeBanner: false,
             scaffoldMessengerKey: AppMessenger.key,
             theme: TradeXTheme.light,
             darkTheme: TradeXTheme.dark,
             themeMode: preferences.themeMode,
-            builder: (context, child) => ConnectivityObserver(
-              apiClient: apiClient,
-              child: child ?? const SizedBox.shrink(),
+            builder: (context, child) => ActivityTrackingScope(
+              tracker: activityTracker,
+              child: ActivityLifecycleObserver(
+                tracker: activityTracker,
+                child: ConnectivityObserver(
+                  apiClient: apiClient,
+                  child: child ?? const SizedBox.shrink(),
+                ),
+              ),
             ),
             home: SessionGate(
               authRepository: authRepository,
               registrationRepository: registrationRepository,
               passwordRecoveryRepository: passwordRecoveryRepository,
               apiClient: apiClient,
+              activityTracker: activityTracker,
               tradeIdeasRepository: tradeIdeasRepository,
               learningRepository: learningRepository,
             ),
