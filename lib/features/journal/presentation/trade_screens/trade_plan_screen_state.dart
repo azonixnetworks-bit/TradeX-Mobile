@@ -776,6 +776,8 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
         saved = await widget.repository.create(payload);
       }
       if (!mounted) return;
+      ActivityTrackingScope.maybeOf(context)
+          ?.track('journal', 'journal_saved', subjectId: saved.uuid);
       Navigator.pop(context, saved);
     } on UserFacingException catch (error) {
       _message(error.message);

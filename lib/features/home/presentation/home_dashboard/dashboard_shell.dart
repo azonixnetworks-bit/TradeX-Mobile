@@ -95,6 +95,22 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       _tabPages[index] ??= _buildTab(index);
     });
     _navigationCubit.select(index);
+    const modules = <String>[
+      'app',
+      'learning',
+      'trade_ideas',
+      'affiliate',
+      'profile',
+    ];
+    const screens = <String>[
+      'dashboard_home',
+      'dashboard_learn',
+      'dashboard_ideas',
+      'dashboard_affiliate',
+      'dashboard_profile',
+    ];
+    ActivityTrackingScope.maybeOf(context)
+        ?.view(modules[index], screens[index]);
   }
 
   void _beginHorizontalSwipe(DragStartDetails _) {
@@ -176,6 +192,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       return;
     }
     if (normalized == 'services') {
+      ActivityTrackingScope.maybeOf(context)?.openedFeature('services');
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => FeatureCatalogScreen(
@@ -186,6 +203,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       return;
     }
     if (normalized == 'crypto trade ideas') {
+      ActivityTrackingScope.maybeOf(context)?.openedFeature('crypto-market');
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => CryptoMarketScreen(

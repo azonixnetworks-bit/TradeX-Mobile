@@ -195,6 +195,7 @@ class _ForexDerivCalculatorScreenState
 
   Future<void> _calculate(BuildContext context) async {
     final cubit = context.read<RiskRewardCubit>();
+    final activity = ActivityTrackingScope.maybeOf(context);
     final input = <String, dynamic>{
       'market': _market,
       'symbol': _symbol,
@@ -206,7 +207,16 @@ class _ForexDerivCalculatorScreenState
     };
     _lastInput = input;
     await cubit.repository.saveDraft('forex_deriv', input);
-    if (mounted) await cubit.calculate(input);
+    if (mounted) {
+      final result = await cubit.calculate(input);
+      if (mounted && result != null) {
+        activity?.track(
+          'calculator',
+          'calculator_used',
+          subjectId: 'forex_deriv',
+        );
+      }
+    }
   }
 
   void _reset() {

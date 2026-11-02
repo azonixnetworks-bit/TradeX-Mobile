@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/activity/activity_tracking_scope.dart';
 import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/domain/api_gateway.dart';
 import '../../../core/domain/user_facing_exception.dart';
@@ -51,7 +52,33 @@ Future<void> openTradeXFeature(
   CatalogDependencies dependencies,
   FeatureSpec spec,
 ) {
+  ActivityTrackingScope.maybeOf(context)?.openedFeature(spec.id);
+  if (spec.id == 'trade-journal') {
+    ActivityTrackingScope.maybeOf(context)?.track('journal', 'journal_opened');
+  }
+  final module = switch (spec.group) {
+    'Home & Market' => 'news',
+    'Trade Ideas' => 'trade_ideas',
+    'Copy Trading' => 'copy_trading',
+    'Affiliate & Referrals' => 'affiliate',
+    'Profile & Security' => 'profile',
+    'Notifications & Support' => 'support',
+    'Journal & Tools' =>
+      spec.id == 'risk-reward-calculator'
+          ? 'calculator'
+          : spec.id == 'funded-advisor'
+          ? 'funded_accounts'
+          : 'journal',
+    _ => 'app',
+  };
   return Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => dependencies.buildFeature(spec)),
+    MaterialPageRoute<void>(
+      builder: (_) => ActivityTrackedScreen(
+        module: module,
+        eventName: 'screen_viewed',
+        subjectId: spec.id.replaceAll('-', '_'),
+        child: dependencies.buildFeature(spec),
+      ),
+    ),
   );
 }

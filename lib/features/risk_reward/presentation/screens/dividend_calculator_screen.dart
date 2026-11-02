@@ -168,6 +168,7 @@ class _DividendCalculatorScreenState extends State<DividendCalculatorScreen> {
 
   Future<void> _calculate(BuildContext context, StockInstrument stock) async {
     final cubit = context.read<RiskRewardCubit>();
+    final activity = ActivityTrackingScope.maybeOf(context);
     final input = <String, dynamic>{
       'symbol': stock.symbol,
       'company_name': stock.name,
@@ -183,7 +184,10 @@ class _DividendCalculatorScreenState extends State<DividendCalculatorScreen> {
     _lastInput = input;
     await cubit.repository.saveDraft('dividend', input);
     if (mounted) {
-      await cubit.calculateDividend(input);
+      final result = await cubit.calculateDividend(input);
+      if (mounted && result != null) {
+        activity?.track('calculator', 'calculator_used', subjectId: 'dividend');
+      }
     }
   }
 

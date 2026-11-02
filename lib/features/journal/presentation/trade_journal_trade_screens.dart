@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/activity/activity_tracking_scope.dart';
 import '../../../core/domain/app_platform.dart';
 
 import '../../../core/domain/user_facing_exception.dart';

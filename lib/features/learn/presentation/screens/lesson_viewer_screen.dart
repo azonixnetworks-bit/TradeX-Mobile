@@ -22,6 +22,14 @@ class _UniversalLessonViewerScreenState
   void initState() {
     super.initState();
     widget.repository.updateProgress(widget.lessonUuid, status: 'IN_PROGRESS');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ActivityTrackingScope.maybeOf(context)?.track(
+        'learning',
+        'lesson_viewed',
+        subjectId: widget.lessonUuid,
+      );
+    });
   }
 
   @override
@@ -101,6 +109,11 @@ class _UniversalLessonViewerScreenState
                         status: 'COMPLETED',
                       );
                       if (context.mounted) {
+                        ActivityTrackingScope.maybeOf(context)?.track(
+                          'learning',
+                          'lesson_completed',
+                          subjectId: widget.lessonUuid,
+                        );
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Lesson completed')),
                         );

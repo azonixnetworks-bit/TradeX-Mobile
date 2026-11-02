@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../core/activity/activity_tracking_scope.dart';
 import '../../../core/domain/app_platform.dart';
 
 import '../../../core/bloc/bloc_future_builder.dart';

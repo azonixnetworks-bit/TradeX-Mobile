@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/activity/activity_tracking_scope.dart';
 import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/domain/api_gateway.dart';
 import '../../../core/domain/app_platform.dart';

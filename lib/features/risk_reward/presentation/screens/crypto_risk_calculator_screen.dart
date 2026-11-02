@@ -255,6 +255,7 @@ class _CryptoRiskCalculatorScreenState
 
   Future<void> _calculate(BuildContext context) async {
     final cubit = context.read<RiskRewardCubit>();
+    final activity = ActivityTrackingScope.maybeOf(context);
     final input = <String, dynamic>{
       'market': _market,
       'symbol': _symbol,
@@ -281,7 +282,12 @@ class _CryptoRiskCalculatorScreenState
     };
     _lastInput = input;
     await cubit.repository.saveDraft('crypto', input);
-    if (mounted) await cubit.calculate(input);
+    if (mounted) {
+      final result = await cubit.calculate(input);
+      if (mounted && result != null) {
+        activity?.track('calculator', 'calculator_used', subjectId: 'crypto');
+      }
+    }
   }
 
   Future<void> _loadLivePrice(String symbol) async {

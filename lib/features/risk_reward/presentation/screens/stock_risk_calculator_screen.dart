@@ -206,6 +206,7 @@ class _StockRiskCalculatorScreenState extends State<StockRiskCalculatorScreen> {
     required String currency,
   }) async {
     final cubit = context.read<RiskRewardCubit>();
+    final activity = ActivityTrackingScope.maybeOf(context);
     final symbol = selected?.symbol ?? _manualSymbol.text.trim().toUpperCase();
     final input = <String, dynamic>{
       'market': 'stocks',
@@ -235,7 +236,12 @@ class _StockRiskCalculatorScreenState extends State<StockRiskCalculatorScreen> {
     };
     _lastInput = input;
     await cubit.repository.saveDraft('stocks', input);
-    if (mounted) await cubit.calculate(input);
+    if (mounted) {
+      final result = await cubit.calculate(input);
+      if (mounted && result != null) {
+        activity?.track('calculator', 'calculator_used', subjectId: 'stocks');
+      }
+    }
   }
 
   void _reset() {

@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../../core/activity/activity_tracking_scope.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/tradex_colors.dart';
