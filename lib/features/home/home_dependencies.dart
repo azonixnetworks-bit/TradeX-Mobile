@@ -24,6 +24,8 @@ import 'domain/home_feature_dependencies.dart';
 import 'domain/market_news_repository.dart';
 import 'domain/no_trade_zone_warning.dart';
 import 'domain/trade_ideas_repository.dart';
+import 'domain/home_widget_publisher.dart';
+import 'data/android_home_widget_publisher.dart';
 
 final class HomeDependencies implements HomeFeatureDependencies {
   HomeDependencies(
@@ -77,6 +79,13 @@ final class HomeDependencies implements HomeFeatureDependencies {
   @override
   late final DashboardLearningRepository dashboardLearningRepository =
       LearningRepository(apiGateway as dynamic);
+  @override
+  late final HomeWidgetPublisher homeWidgetPublisher =
+      AndroidHomeWidgetPublisher(
+        apiGateway: apiGateway,
+        newsRepository: marketNewsRepository,
+        tradeIdeasRepository: dashboardTradeIdeasRepository,
+      );
   @override
   late final WithdrawalDraftStore withdrawalDraftStore =
       _withdrawalDraftStore ?? WithdrawalDraftStoreImpl();

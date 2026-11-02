@@ -20,6 +20,7 @@ class MainActivity : FlutterFragmentActivity() {
     private val channelName = "com.azonixnetworks.tradex_mobile/device_credential"
     private val lifecycleChannelName = "com.azonixnetworks.tradex_mobile/app_lifecycle"
     private val notificationsChannelName = "com.azonixnetworks.tradex_mobile/notifications"
+    private val homeWidgetChannelName = "com.azonixnetworks.tradex_mobile/home_widget"
     private val notificationPermissionRequestCode = 2401
     private val aliasPrefix = "tradex.quick.login."
     private var notificationPermissionResult: MethodChannel.Result? = null
@@ -87,6 +88,32 @@ class MainActivity : FlutterFragmentActivity() {
                 when (call.method) {
                     "status" -> result.success(notificationPermissionStatus())
                     "request" -> requestNotificationPermission(result)
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, homeWidgetChannelName)
+            .setMethodCallHandler { call, result ->
+                val preferences = getSharedPreferences("tradex_home_widget", Context.MODE_PRIVATE)
+                when (call.method) {
+                    "update" -> {
+                        val editor = preferences.edit()
+                        call.arguments<Map<String, Any?>>()?.forEach { (key, value) ->
+                            when (value) {
+                                is String -> editor.putString(key, value.take(500))
+                                is Int -> editor.putLong(key, value.toLong())
+                                is Long -> editor.putLong(key, value)
+                            }
+                        }
+                        editor.apply()
+                        TradeXHomeWidgetProvider.updateAll(this)
+                        result.success(null)
+                    }
+                    "clear" -> {
+                        preferences.edit().clear().apply()
+                        TradeXHomeWidgetProvider.updateAll(this)
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }

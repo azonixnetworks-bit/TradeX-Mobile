@@ -32,9 +32,15 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     _tabPages = List<Widget?>.filled(5, null);
     _tabPages[_navigationCubit.state] = _buildTab(_navigationCubit.state);
     unawaited(_primeDailyEconomicNews());
+    unawaited(widget.dependencies.homeWidgetPublisher.refresh());
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _restorePendingFinancialForm(),
     );
+  }
+
+  Future<void> _logout() async {
+    await widget.dependencies.homeWidgetPublisher.clear();
+    await widget.onLogout();
   }
 
   @override
@@ -140,7 +146,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     0 => _HomeContent(
       key: const PageStorageKey('home-tab'),
       onActionTap: _openAction,
-      onLogout: widget.onLogout,
+      onLogout: _logout,
       apiClient: widget.dependencies.apiGateway,
       marketNewsRepository: widget.dependencies.marketNewsRepository,
       tradeIdeasRepository: widget.dependencies.dashboardTradeIdeasRepository,
@@ -170,7 +176,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     _ => _ProfileTab(
       key: const PageStorageKey('profile-tab'),
       onActionTap: _openAction,
-      onLogout: widget.onLogout,
+      onLogout: _logout,
       onForgetDevice: widget.onForgetDevice,
       onLogoutAll: widget.onLogoutAll,
       apiClient: widget.dependencies.apiGateway,

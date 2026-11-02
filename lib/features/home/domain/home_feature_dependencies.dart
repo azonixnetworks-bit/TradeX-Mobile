@@ -11,6 +11,7 @@ import 'market_news_repository.dart';
 import 'no_trade_zone_warning.dart';
 import 'trade_ideas_repository.dart';
 import 'learning_repository.dart';
+import 'home_widget_publisher.dart';
 
 abstract interface class HomeFeatureDependencies {
   ApiGateway get apiGateway;
@@ -26,4 +27,5 @@ abstract interface class HomeFeatureDependencies {
   WithdrawalDraftStore get withdrawalDraftStore;
   DashboardTradeIdeasRepository get dashboardTradeIdeasRepository;
   DashboardLearningRepository get dashboardLearningRepository;
+  HomeWidgetPublisher get homeWidgetPublisher;
 }
