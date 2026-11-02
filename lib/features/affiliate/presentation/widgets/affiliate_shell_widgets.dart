@@ -34,22 +34,17 @@ class AffiliateScaffold extends StatelessWidget {
       children: [
         Row(
           children: [
-            IconButton(
-              onPressed: showBack ? () => Navigator.maybePop(context) : onMenu,
-              icon: dashboardHeader
-                  ? Image.asset(
-                      _AffiliateAssets.dashboardMenu,
-                      width: 34,
-                      height: 34,
-                      fit: BoxFit.contain,
-                      semanticLabel: 'Affiliate menu',
-                    )
-                  : Icon(
-                      showBack ? Icons.arrow_back_rounded : Icons.menu_rounded,
-                    ),
-              color: _gold,
-              tooltip: showBack ? 'Back' : 'Affiliate menu',
-            ),
+            if (!dashboardHeader)
+              IconButton(
+                onPressed: showBack
+                    ? () => Navigator.maybePop(context)
+                    : onMenu,
+                icon: Icon(
+                  showBack ? Icons.arrow_back_rounded : Icons.menu_rounded,
+                ),
+                color: _gold,
+                tooltip: showBack ? 'Back' : 'Affiliate menu',
+              ),
             if (!dashboardHeader && showBrand) ...[
               const SizedBox(width: 6),
               Image.asset(

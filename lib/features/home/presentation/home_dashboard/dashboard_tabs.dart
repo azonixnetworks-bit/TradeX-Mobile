@@ -1,12 +1,18 @@
 part of '../home_dashboard_screen.dart';
 
 class _LearnTab extends StatelessWidget {
-  const _LearnTab({super.key, required this.repository});
+  const _LearnTab({
+    super.key,
+    required this.repository,
+    required this.onNotifications,
+  });
 
   final LearnRepository repository;
+  final VoidCallback onNotifications;
 
   @override
-  Widget build(BuildContext context) => LearnHomeScreen(repository: repository);
+  Widget build(BuildContext context) =>
+      LearnHomeScreen(repository: repository, onNotifications: onNotifications);
 }
 
 class _TradeIdeasTab extends StatelessWidget {
@@ -30,12 +36,13 @@ class _TradeIdeasTab extends StatelessWidget {
     return _EntitlementAwareTab(
       apiClient: apiClient,
       title: 'Trade Ideas',
-      introduction: 'Explore TradeX market-analysis tools. Protected prices, levels, charts and full analysis are requested only after the server confirms your membership.',
+      introduction: '',
       protectedFeatures: [featureById('trade-idea-details')],
       learnRepository: learnRepository,
       activeBuilder: (_) => TradeIdeasScreen(
         repository: repository,
         warningSource: warningSource,
+        onNotifications: () => onActionTap('notifications'),
       ),
     );
   }
@@ -242,8 +249,10 @@ class _ProtectedFeaturePreview extends StatelessWidget {
           style: Theme.of(context).textTheme.headlineMedium
               ?.copyWith(fontWeight: FontWeight.w900),
         ),
-        const SizedBox(height: 8),
-        Text(introduction, style: Theme.of(context).textTheme.bodyLarge),
+        if (introduction.trim().isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(introduction, style: Theme.of(context).textTheme.bodyLarge),
+        ],
         const SizedBox(height: 16),
         BlocFutureBuilder<JsonMap>(
           future: products,

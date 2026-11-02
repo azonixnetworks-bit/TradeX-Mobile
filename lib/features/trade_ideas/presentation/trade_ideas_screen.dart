@@ -14,10 +14,12 @@ class TradeIdeasScreen extends StatefulWidget {
     super.key,
     required this.repository,
     required this.warningSource,
+    this.onNotifications,
   });
 
   final TradeIdeaRepositoryContract repository;
   final NoTradeWarningSource warningSource;
+  final VoidCallback? onNotifications;
 
   @override
   State<TradeIdeasScreen> createState() => _TradeIdeasScreenState();
@@ -74,6 +76,14 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
             (incoming) => !_items.any((item) => item.uuid == incoming.uuid),
           ),
         );
+        _items.sort((left, right) {
+          final leftDate = left.publishedAt;
+          final rightDate = right.publishedAt;
+          if (leftDate == null && rightDate == null) return 0;
+          if (leftDate == null) return 1;
+          if (rightDate == null) return -1;
+          return rightDate.compareTo(leftDate);
+        });
         _page = result.currentPage;
         _hasMore = result.hasMore;
         _loading = false;
@@ -114,13 +124,29 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
               padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
               sliver: SliverList.list(
                 children: [
-                  const Text(
-                    'Trade Ideas',
-                    style: TextStyle(
-                      color: TradeXColors.primaryText,
-                      fontSize: 29,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Trade Ideas',
+                          style: TextStyle(
+                            color: TradeXColors.primaryText,
+                            fontSize: 29,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      if (widget.onNotifications != null)
+                        IconButton(
+                          key: const ValueKey(
+                            'trade-ideas-notifications-button',
+                          ),
+                          onPressed: widget.onNotifications,
+                          tooltip: 'Notifications',
+                          color: TradeXColors.goldBright,
+                          icon: const Icon(Icons.notifications_none_rounded),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 2),
                   const Text(

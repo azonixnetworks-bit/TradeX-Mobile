@@ -1,8 +1,13 @@
 part of '../learn_module.dart';
 
 class LearnHomeScreen extends StatefulWidget {
-  const LearnHomeScreen({super.key, required this.repository});
+  const LearnHomeScreen({
+    super.key,
+    required this.repository,
+    this.onNotifications,
+  });
   final LearnRepository repository;
+  final VoidCallback? onNotifications;
 
   @override
   State<LearnHomeScreen> createState() => _LearnHomeScreenState();
@@ -116,7 +121,14 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
             key: const ValueKey('learn-dashboard-scroll'),
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 34),
             children: [
-              const LearnDashboardHeader(),
+              LearnDashboardHeader(onNotifications: widget.onNotifications),
+              if (!isPremium) ...[
+                const SizedBox(height: 16),
+                UnlockPremiumCard(
+                  onTap: () =>
+                      _open(PremiumAccessScreen(repository: widget.repository)),
+                ),
+              ],
               const SizedBox(height: 22),
               LearningSectionHeader(
                 icon: Icons.play_arrow_rounded,

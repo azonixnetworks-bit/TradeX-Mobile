@@ -149,6 +149,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     1 => _LearnTab(
       key: const PageStorageKey('learn-tab'),
       repository: widget.dependencies.learnRepository,
+      onNotifications: () => _openAction('notifications'),
     ),
     2 => _TradeIdeasTab(
       key: const PageStorageKey('ideas-tab'),

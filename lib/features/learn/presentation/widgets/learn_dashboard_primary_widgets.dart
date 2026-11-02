@@ -1,39 +1,99 @@
 part of '../learn_dashboard_widgets.dart';
 
 class LearnDashboardHeader extends StatelessWidget {
-  const LearnDashboardHeader({super.key});
+  const LearnDashboardHeader({super.key, this.onNotifications});
+
+  final VoidCallback? onNotifications;
 
   @override
-  Widget build(BuildContext context) => const Column(
+  Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text.rich(
-        TextSpan(
+      const Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextSpan(text: 'Learn'),
-            TextSpan(
-              text: '.',
-              style: TextStyle(color: learnGold),
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: 'Learn'),
+                  TextSpan(
+                    text: '.',
+                    style: TextStyle(color: learnGold),
+                  ),
+                ],
+              ),
+              style: TextStyle(
+                color: learnText,
+                fontSize: 30,
+                height: 1,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Build skill, discipline and consistency.',
+              style: TextStyle(
+                color: learnMuted,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
-        style: TextStyle(
-          color: learnText,
-          fontSize: 30,
-          height: 1,
-          fontWeight: FontWeight.w900,
-        ),
       ),
-      SizedBox(height: 8),
-      Text(
-        'Build skill, discipline and consistency.',
-        style: TextStyle(
-          color: learnMuted,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
+      if (onNotifications != null)
+        IconButton(
+          key: const ValueKey('learn-notifications-button'),
+          onPressed: onNotifications,
+          tooltip: 'Notifications',
+          icon: const Icon(Icons.notifications_none_rounded),
+          color: learnGold,
         ),
-      ),
     ],
+  );
+}
+
+class UnlockPremiumCard extends StatelessWidget {
+  const UnlockPremiumCard({super.key, required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      key: const ValueKey('learn-unlock-premium-card'),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Ink(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF33270C), Color(0xFF171A15)],
+          ),
+          border: Border.all(color: learnGold.withValues(alpha: .55)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.workspace_premium_rounded, color: learnGold),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Unlock Premium',
+                style: TextStyle(
+                  color: learnText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            Icon(Icons.arrow_forward_rounded, color: learnGold),
+          ],
+        ),
+      ),
+    ),
   );
 }
 

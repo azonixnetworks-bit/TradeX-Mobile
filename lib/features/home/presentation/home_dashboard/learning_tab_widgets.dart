@@ -20,13 +20,6 @@ class _TabScrollView extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              Image.asset(
-                'assets/branding/trade_x_wordmark.png',
-                width: 128,
-                height: 32,
-                alignment: Alignment.centerLeft,
-              ),
-              const SizedBox(height: 24),
               Text(
                 title,
                 style: const TextStyle(

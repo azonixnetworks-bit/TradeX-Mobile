@@ -58,8 +58,6 @@ abstract final class _AffiliateAssets {
       'assets/affiliate/illustrations/dashboard_referrals_icon.png';
   static const dashboardLevel =
       'assets/affiliate/illustrations/dashboard_level_icon.png';
-  static const dashboardMenu =
-      'assets/affiliate/illustrations/dashboard_menu_icon.png';
   static const dashboardWhatsApp =
       'assets/affiliate/illustrations/dashboard_whatsapp_button.png';
   static const dashboardTelegram =

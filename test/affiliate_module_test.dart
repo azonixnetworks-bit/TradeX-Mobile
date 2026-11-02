@@ -44,7 +44,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('affiliate dashboard header omits the TradeX wordmark', (
+  testWidgets('affiliate dashboard header omits wordmark and hamburger', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -65,7 +65,7 @@ void main() {
     expect(find.text('Affiliate Dashboard'), findsOneWidget);
     expect(find.text('Trade'), findsNothing);
     expect(find.text('X'), findsNothing);
-    expect(find.bySemanticsLabel('Affiliate menu'), findsOneWidget);
+    expect(find.bySemanticsLabel('Affiliate menu'), findsNothing);
     expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
