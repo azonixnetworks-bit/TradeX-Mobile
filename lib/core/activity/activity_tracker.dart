@@ -156,7 +156,11 @@ class ActivityTracker {
 
   Future<void> sync() async {
     if (!isActive || !_foreground || _endpointUnavailable) return;
-    if (_syncing != null) return _syncing;
+    final ongoing = _syncing;
+    if (ongoing != null) {
+      await ongoing;
+      return;
+    }
     final operation = _syncPending(_accountId!);
     _syncing = operation;
     try {
