@@ -257,6 +257,14 @@ class TradeXApiClient implements ApiGateway {
     String path,
     Map<String, dynamic> fields,
     Map<String, String> filePaths,
+  ) => postMultipartWithHeaders(path, fields, filePaths, const {});
+
+  @override
+  Future<Map<String, dynamic>> postMultipartWithHeaders(
+    String path,
+    Map<String, dynamic> fields,
+    Map<String, String> filePaths,
+    Map<String, String> headers,
   ) async {
     var session = await _sessionStore.readSession();
     if (session == null) {
@@ -289,6 +297,7 @@ class TradeXApiClient implements ApiGateway {
             headers: <String, String>{
               'Accept': 'application/json',
               'Authorization': 'Bearer ${active.accessToken}',
+              ...headers,
             },
           ),
         );

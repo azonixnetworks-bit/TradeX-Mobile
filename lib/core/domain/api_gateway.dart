@@ -22,6 +22,12 @@ abstract interface class ApiGateway {
     Map<String, dynamic> fields,
     Map<String, String> filePaths,
   );
+  Future<Map<String, dynamic>> postMultipartWithHeaders(
+    String path,
+    Map<String, dynamic> fields,
+    Map<String, String> filePaths,
+    Map<String, String> headers,
+  );
   Future<Map<String, dynamic>> putJson(String path, Map<String, dynamic> body);
   Future<Map<String, dynamic>> patchJson(
     String path,

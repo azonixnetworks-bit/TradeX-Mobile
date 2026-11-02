@@ -193,6 +193,52 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('checkout supports configured legacy bank and USDT methods', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: PaymentCheckoutScreen(apiClient: _LegacyManualCatalogApiClient()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Local Bank Deposit'), findsOneWidget);
+    expect(find.textContaining('USDT TRC20'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('legacy bank selection opens secure deposit submission', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: PaymentCheckoutScreen(apiClient: _LegacyManualCatalogApiClient()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Local Bank Deposit').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(CheckboxListTile));
+    await tester.pump();
+    await tester.tap(find.text('Continue with manual payment'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Upload Payment Proof'), findsOneWidget);
+    expect(find.text('Bank transfer details'), findsOneWidget);
+    expect(find.text('TradeX Local Bank'), findsOneWidget);
+    expect(find.textContaining('Payment order UUID'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('checkout never exposes the internal product UUID', (
     tester,
   ) async {
@@ -269,6 +315,65 @@ class _ManualPaymentCatalogApiClient extends _CatalogApiClient {
             },
           ],
         },
+      };
+    }
+    return super.getJson(path);
+  }
+}
+
+class _LegacyManualCatalogApiClient extends _CatalogApiClient {
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async {
+    if (path == '/api/v1/payments/methods') {
+      return const {
+        'data': {
+          'purchase_allowed': true,
+          'product': {
+            'name': 'Education Premium',
+            'base_price': {'currency': 'USD', 'amount': '79.00'},
+          },
+          'methods': [
+            {
+              'code': 'stripe',
+              'display_name': 'Stripe',
+              'available': true,
+              'mode': 'REDIRECT',
+              'amount': {'currency': 'USD', 'amount': '79.00'},
+            },
+            {
+              'code': 'LOCAL_BANK',
+              'display_name': 'Local Bank Deposit',
+              'available': true,
+              'mode': 'MANUAL_REVIEW',
+              'amount': {'currency': 'LKR', 'amount': '25000.00'},
+              'instructions': {
+                'bank_name': 'TradeX Local Bank',
+                'branch': 'Colombo',
+                'account_holder': 'TradeX',
+                'account_number': '1234567890',
+              },
+              'submit_endpoint': 'POST /api/v1/payments/bank-deposits',
+            },
+            {
+              'code': 'USDT_TRC20',
+              'display_name': 'USDT TRC20',
+              'available': true,
+              'mode': 'MANUAL_REVIEW',
+              'amount': {'currency': 'USDT', 'amount': '79.000000'},
+              'instructions': {
+                'token': 'USDT',
+                'network': 'TRC20',
+                'wallet_address': 'TExampleWalletAddress',
+              },
+              'submit_endpoint': 'POST /api/v1/payments/usdt-deposits',
+            },
+          ],
+        },
+      };
+    }
+    if (path == '/api/v1/payments/manual-accounts') {
+      return const {
+        'data': {'accounts': <Map<String, dynamic>>[]},
       };
     }
     return super.getJson(path);

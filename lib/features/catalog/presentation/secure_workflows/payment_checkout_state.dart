@@ -105,6 +105,8 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
             !accounts.any((item) => item['uuid'] == _receivingAccount)) {
           _receivingAccount = accounts.first['uuid']?.toString();
         }
+        final legacyManual =
+            manual && accounts.isEmpty && _legacySubmitPath(method).isNotEmpty;
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -146,25 +148,26 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
               ),
               const SizedBox(height: 12),
               if (manual)
-                DropdownButtonFormField<String>(
-                  key: ValueKey(_receivingAccount),
-                  initialValue: _receivingAccount,
-                  decoration: const InputDecoration(
-                    labelText: 'Receiving account',
-                  ),
-                  items: accounts
-                      .map(
-                        (account) => DropdownMenuItem<String>(
-                          value: account['uuid']?.toString(),
-                          child: Text(
-                            '${account['display_name'] ?? account['type']} • ${_money(account['tender'])}',
+                if (accounts.isNotEmpty)
+                  DropdownButtonFormField<String>(
+                    key: ValueKey(_receivingAccount),
+                    initialValue: _receivingAccount,
+                    decoration: const InputDecoration(
+                      labelText: 'Receiving account',
+                    ),
+                    items: accounts
+                        .map(
+                          (account) => DropdownMenuItem<String>(
+                            value: account['uuid']?.toString(),
+                            child: Text(
+                              '${account['display_name'] ?? account['type']} • ${_money(account['tender'])}',
+                            ),
                           ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) =>
-                      setState(() => _receivingAccount = value),
-                ),
+                        )
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => _receivingAccount = value),
+                  ),
               const SizedBox(height: 12),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
@@ -180,7 +183,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
                     !_confirmed ||
                         _working ||
                         method == null ||
-                        (manual && _receivingAccount == null)
+                        (manual && !legacyManual && _receivingAccount == null)
                     ? null
                     : () => _startCheckout(method!),
                 icon: _working
@@ -194,7 +197,9 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
                   _working
                       ? 'Preparing…'
                       : manual
-                      ? 'Prepare payment order'
+                      ? legacyManual
+                            ? 'Continue with manual payment'
+                            : 'Prepare payment order'
                       : 'Continue to provider',
                 ),
               ),
@@ -222,6 +227,22 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
     try {
       final code = (method['code']?.toString() ?? '').toLowerCase();
       if (_isManualMethod(method)) {
+        final legacyEndpoint = _legacySubmitPath(method);
+        if (_receivingAccount == null && legacyEndpoint.isNotEmpty) {
+          final type = code.contains('bank') ? 'bank' : 'usdt';
+          if (!mounted) return;
+          await Navigator.of(context).push<void>(
+            MaterialPageRoute<void>(
+              builder: (_) => PaymentProofScreen(
+                apiClient: widget.apiClient,
+                initialEvidenceType: type,
+                preparedOrder: _legacyInstructions(method, type),
+                legacySubmitEndpoint: legacyEndpoint,
+              ),
+            ),
+          );
+          return;
+        }
         final response = await widget.apiClient.postJsonWithHeaders(
           '/api/v1/payments/manual-orders',
           {'receiving_account_uuid': _receivingAccount},
@@ -391,6 +412,31 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
 
   bool _isManualMethod(Map<String, dynamic> method) =>
       method['mode']?.toString().toUpperCase() == 'MANUAL_REVIEW';
+
+  String _legacySubmitPath(Map<String, dynamic> method) {
+    final value = method['submit_endpoint']?.toString().trim() ?? '';
+    final match = RegExp(
+      r'^(?:POST\s+)?(/api/\S+)$',
+      caseSensitive: false,
+    ).firstMatch(value);
+    return match?.group(1) ?? '';
+  }
+
+  Map<String, dynamic> _legacyInstructions(
+    Map<String, dynamic> method,
+    String type,
+  ) {
+    final instructions = _map(method['instructions']);
+    return {
+      'manual_payment': {
+        'type': type == 'bank' ? 'BANK' : 'CRYPTO',
+        'amount': _map(method['amount']),
+        ...instructions,
+        if (type == 'usdt')
+          'coin_symbol': instructions['token']?.toString() ?? 'USDT',
+      },
+    };
+  }
 
   Map<String, dynamic> _map(Object? value) =>
       value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};

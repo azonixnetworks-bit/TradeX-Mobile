@@ -7,11 +7,13 @@ class PaymentProofScreen extends StatefulWidget {
     this.initialOrderUuid,
     this.initialEvidenceType,
     this.preparedOrder = const <String, dynamic>{},
+    this.legacySubmitEndpoint,
   });
   final ApiGateway apiClient;
   final String? initialOrderUuid;
   final String? initialEvidenceType;
   final Map<String, dynamic> preparedOrder;
+  final String? legacySubmitEndpoint;
 
   @override
   State<PaymentProofScreen> createState() => _PaymentProofScreenState();
@@ -88,11 +90,12 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
             ),
           ],
           const SizedBox(height: 14),
-          _input(
-            _order,
-            'Payment order UUID',
-            readOnly: widget.initialOrderUuid != null,
-          ),
+          if (widget.legacySubmitEndpoint == null)
+            _input(
+              _order,
+              'Payment order UUID',
+              readOnly: widget.initialOrderUuid != null,
+            ),
           DropdownButtonFormField<String>(
             key: ValueKey(_type),
             initialValue: _type,
@@ -181,11 +184,13 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
     setState(() => _working = true);
     try {
       final order = _order.text.trim();
-      final endpoint = switch (_type) {
-        'bank' => '/api/v1/payments/manual-orders/$order/bank-evidence',
-        'usdt' => '/api/v1/payments/manual-orders/$order/usdt-evidence',
-        _ => '/api/v1/payments/manual-orders/$order/crypto-evidence',
-      };
+      final endpoint =
+          widget.legacySubmitEndpoint ??
+          switch (_type) {
+            'bank' => '/api/v1/payments/manual-orders/$order/bank-evidence',
+            'usdt' => '/api/v1/payments/manual-orders/$order/usdt-evidence',
+            _ => '/api/v1/payments/manual-orders/$order/crypto-evidence',
+          };
       final fields = _type == 'bank'
           ? {
               'depositor_name': _name.text.trim(),
@@ -198,14 +203,30 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
               if (_sender.text.trim().isNotEmpty)
                 'sender_address': _sender.text.trim(),
             };
-      final response = await widget.apiClient.postMultipart(endpoint, fields, {
-        if (_file != null) 'proof_file': _file!.path,
-      });
+      final legacy = widget.legacySubmitEndpoint != null;
+      final idempotencyKey = SecureWorkflowPlatformRegistry.current.newUuid();
+      final response = legacy && _type != 'bank'
+          ? await widget.apiClient.postJsonWithHeaders(endpoint, fields, {
+              'Idempotency-Key': idempotencyKey,
+            })
+          : legacy
+          ? await widget.apiClient.postMultipartWithHeaders(
+              endpoint,
+              fields,
+              {if (_file != null) 'proof_file': _file!.path},
+              {'Idempotency-Key': idempotencyKey},
+            )
+          : await widget.apiClient.postMultipart(endpoint, fields, {
+              if (_file != null) 'proof_file': _file!.path,
+            });
       final data = _asMap(response['data']);
       final submission = _asMap(data['manual_submission']);
       if (!mounted) return;
       setState(() {
         _submitted = true;
+        if (legacy && data['uuid']?.toString().isNotEmpty == true) {
+          _order.text = data['uuid'].toString();
+        }
         _submissionStatus = submission['status']?.toString() ?? 'PENDING';
       });
       _message('Evidence submitted securely. Payment is pending review.');
