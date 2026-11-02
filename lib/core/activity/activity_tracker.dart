@@ -41,7 +41,7 @@ class ActivityTracker {
   };
   static const events = <String>{
     'screen_viewed', 'lesson_viewed', 'lesson_completed',
-    'signal_viewed', 'journal_opened', 'calculator_used',
+    'signal_viewed', 'journal_opened', 'journal_saved', 'calculator_used',
     'news_viewed', 'feature_opened', 'session_started',
     'session_resumed', 'session_paused', 'session_ended',
   };
@@ -57,7 +57,12 @@ class ActivityTracker {
 
   Future<void> activate() async {
     if (!enabled) return;
-    final userId = await _accountResolver();
+    String? userId;
+    try {
+      userId = await _accountResolver();
+    } catch (_) {
+      return; // Telemetry failures cannot break authentication.
+    }
     if (userId == null ||
         !RegExp(r'^[A-Za-z0-9_-]{1,80}$').hasMatch(userId)) {
       return;
@@ -67,8 +72,16 @@ class ActivityTracker {
     _accountId = userId;
     _visitId = _uuid.v4();
     _foreground = true;
-    await _enqueue('app', 'session_started');
-    await _enqueue('app', 'screen_viewed', subjectId: 'dashboard_home');
+    try {
+      await _enqueue('app', 'session_started');
+    } catch (_) {
+      // Secure-storage failures must not affect login or navigation.
+    }
+    try {
+      await _enqueue('app', 'screen_viewed', subjectId: 'dashboard_home');
+    } catch (_) {
+      // Best effort only.
+    }
     _timer = Timer.periodic(const Duration(minutes: 2), (_) {
       unawaited(sync().catchError((Object _) {}));
     });
