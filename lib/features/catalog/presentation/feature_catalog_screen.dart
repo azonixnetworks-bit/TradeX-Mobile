@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/bloc/bloc_future_builder.dart';
+import '../../../core/activity/activity_tracking_scope.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
 import '../../../core/theme/tradex_colors.dart';
@@ -70,6 +71,7 @@ Future<void> openTradeXFeature(
   TradeXApiClient apiClient,
   FeatureSpec spec,
 ) {
+  ActivityTrackingScope.maybeOf(context)?.openedFeature(spec.id);
   final journal = TradeJournalRepository(apiClient);
   final workflow = switch (spec.id) {
     'economic-news' => EconomicNewsScreen(apiClient: apiClient),
@@ -106,10 +108,28 @@ Future<void> openTradeXFeature(
     'checkout' => PaymentCheckoutScreen(apiClient: apiClient),
     _ => null,
   };
+  final module = switch (spec.group) {
+    'Home & Market' => 'news',
+    'Trade Ideas' => 'trade_ideas',
+    'Copy Trading' => 'copy_trading',
+    'Affiliate & Referrals' => 'affiliate',
+    'Profile & Security' => 'profile',
+    'Notifications & Support' => 'support',
+    'Journal & Tools' => spec.id == 'risk-reward-calculator'
+        ? 'calculator'
+        : spec.id == 'funded-advisor'
+        ? 'funded_accounts'
+        : 'journal',
+    _ => 'app',
+  };
   return Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) =>
-          workflow ?? TradeXFeatureScreen(apiClient: apiClient, spec: spec),
+      builder: (_) => ActivityTrackedScreen(
+        module: module,
+        eventName: 'screen_viewed',
+        subjectId: spec.id.replaceAll('-', '_'),
+        child: workflow ?? TradeXFeatureScreen(apiClient: apiClient, spec: spec),
+      ),
     ),
   );
 }
