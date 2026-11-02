@@ -12,6 +12,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/network/tradex_api_client.dart';
+import '../../../core/activity/activity_tracking_scope.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/platform/app_background_service.dart';
@@ -150,6 +151,17 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       _tabPages[index] ??= _buildTab(index);
     });
     _navigationCubit.select(index);
+    const modules = <String>[
+      'app', 'learning', 'trade_ideas', 'affiliate', 'profile',
+    ];
+    const screens = <String>[
+      'dashboard_home', 'dashboard_learn', 'dashboard_ideas',
+      'dashboard_affiliate', 'dashboard_profile',
+    ];
+    ActivityTrackingScope.maybeOf(context)?.view(
+      modules[index],
+      screens[index],
+    );
   }
 
   void _beginHorizontalSwipe(DragStartDetails _) {
@@ -222,6 +234,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       return;
     }
     if (normalized == 'services') {
+      ActivityTrackingScope.maybeOf(context)?.openedFeature('services');
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => FeatureCatalogScreen(apiClient: widget.apiClient),
@@ -230,6 +243,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       return;
     }
     if (normalized == 'crypto trade ideas') {
+      ActivityTrackingScope.maybeOf(context)?.openedFeature('crypto-market');
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => CryptoMarketScreen(apiClient: widget.apiClient),
