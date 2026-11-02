@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/activity/activity_tracking_scope.dart';
 import '../../market/presentation/trading_view_chart_screen.dart';
 import '../data/trade_idea_repository.dart';
 import '../models/trade_idea_models.dart';
@@ -25,7 +26,12 @@ class TradeIdeaDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) => BlocProvider(
     create: (_) =>
         TradeIdeaDetailsCubit(repository: repository, uuid: uuid)..load(),
-    child: _TradeIdeaDetailsView(repository: repository),
+    child: ActivityTrackedScreen(
+      module: 'trade_ideas',
+      eventName: 'signal_viewed',
+      subjectId: uuid,
+      child: _TradeIdeaDetailsView(repository: repository),
+    ),
   );
 }
 
