@@ -741,6 +741,11 @@ class _UniversalLessonViewerScreenState
                         status: 'COMPLETED',
                       );
                       if (context.mounted) {
+                        ActivityTrackingScope.maybeOf(context)?.track(
+                          'learning',
+                          'lesson_completed',
+                          subjectId: widget.lessonUuid,
+                        );
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Lesson completed')),
                         );
