@@ -72,6 +72,9 @@ Future<void> openTradeXFeature(
   FeatureSpec spec,
 ) {
   ActivityTrackingScope.maybeOf(context)?.openedFeature(spec.id);
+  if (spec.id == 'trade-journal') {
+    ActivityTrackingScope.maybeOf(context)?.track('journal', 'journal_opened');
+  }
   final journal = TradeJournalRepository(apiClient);
   final workflow = switch (spec.id) {
     'economic-news' => EconomicNewsScreen(apiClient: apiClient),
