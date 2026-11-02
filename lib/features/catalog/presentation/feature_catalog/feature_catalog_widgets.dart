@@ -439,23 +439,19 @@ Map<String, dynamic>? _findMapNamed(Object? value, String key) {
 }
 
 Iterable<MapEntry<String, dynamic>> _visibleScalars(Map<String, dynamic> map) {
-  const hidden = {'id', 'user_id', 'created_by', 'updated_by'};
+  const hidden = {'id', 'uuid', 'user_id', 'created_by', 'updated_by'};
   return map.entries.where((entry) {
-    if (hidden.contains(entry.key) || entry.value == null) return false;
+    if (hidden.contains(entry.key) ||
+        entry.key.endsWith('_uuid') ||
+        entry.value == null) {
+      return false;
+    }
     return entry.value is String || entry.value is num || entry.value is bool;
   });
 }
 
 String _titleFor(Map<String, dynamic> record) {
-  const keys = [
-    'title',
-    'name',
-    'symbol',
-    'subject',
-    'label',
-    'status',
-    'uuid',
-  ];
+  const keys = ['title', 'name', 'symbol', 'subject', 'label', 'status'];
   for (final key in keys) {
     final value = record[key]?.toString().trim();
     if (value != null && value.isNotEmpty) return value;

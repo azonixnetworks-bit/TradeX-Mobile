@@ -65,6 +65,29 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('premium access shows one secure customer-facing product card', (
+    tester,
+  ) async {
+    const productUuid = '123e4567-e89b-42d3-a456-426614174000';
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: PremiumAccessScreen(
+          repository: LearnRepository(_PremiumProductsLearnApiClient()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('TradeX Education Premium'), findsOneWidget);
+    expect(find.text('Choose payment method'), findsOneWidget);
+    expect(find.text('Premium lessons'), findsOneWidget);
+    expect(find.text(productUuid), findsNothing);
+    expect(find.textContaining('EDUCATION_PREMIUM'), findsNothing);
+    expect(find.text('Unrelated Product'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('learn dashboard falls back when overview service returns 500', (
     tester,
   ) async {
@@ -405,6 +428,38 @@ class _LessonDetailFailureLearnApiClient extends _LearnApiClient {
     if (path.startsWith('/api/v1/education/lessons/')) {
       lessonDetailRequests += 1;
       throw const ApiException(message: 'Server Error', statusCode: 500);
+    }
+    return super.getJson(path);
+  }
+}
+
+class _PremiumProductsLearnApiClient extends _LearnApiClient {
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async {
+    if (path == '/api/v1/products') {
+      return const {
+        'data': {
+          'items': [
+            {
+              'uuid': 'unrelated-uuid',
+              'code': 'OTHER_PRODUCT',
+              'name': 'Unrelated Product',
+            },
+            {
+              'uuid': '123e4567-e89b-42d3-a456-426614174000',
+              'code': 'EDUCATION_PREMIUM',
+              'name': 'TradeX Education Premium',
+              'description': 'Premium trading education and course access.',
+              'price': {'currency': 'USD', 'amount': '79.00'},
+            },
+          ],
+        },
+      };
+    }
+    if (path == '/api/v1/payments/activation-status') {
+      return const {
+        'data': {'premium_active': false, 'status': 'INACTIVE'},
+      };
     }
     return super.getJson(path);
   }

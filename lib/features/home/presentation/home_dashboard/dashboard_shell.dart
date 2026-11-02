@@ -210,12 +210,21 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       );
       return;
     }
+    if (normalized == 'premium access') {
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => PremiumAccessScreen(
+            repository: widget.dependencies.learnRepository,
+          ),
+        ),
+      );
+      return;
+    }
 
     final id = switch (normalized) {
       'notifications' => 'notifications',
       'market categories' => 'market-screener',
       'economic news' => 'economic-news',
-      'premium access' => 'products',
       'share referral link' => 'direct-referrals',
       'affiliate milestones' => 'qualified-sales',
       'my referrals' => 'direct-referrals',

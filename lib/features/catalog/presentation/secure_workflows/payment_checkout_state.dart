@@ -2,7 +2,6 @@ part of '../secure_workflow_screens.dart';
 
 class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
     with WidgetsBindingObserver {
-  late final TextEditingController _product;
   late Future<Map<String, dynamic>> _catalog;
   String? _provider;
   String? _receivingAccount;
@@ -15,14 +14,12 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _product = TextEditingController(text: widget.productUuid ?? '');
     _catalog = _loadCatalog();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _product.dispose();
     super.dispose();
   }
 
@@ -168,16 +165,6 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
                   onChanged: (value) =>
                       setState(() => _receivingAccount = value),
                 ),
-              if ((_provider ?? '').toLowerCase() == 'paypal') ...[
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _product,
-                  readOnly: widget.productUuid != null,
-                  decoration: const InputDecoration(
-                    labelText: 'Product UUID (optional)',
-                  ),
-                ),
-              ],
               const SizedBox(height: 12),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
@@ -277,8 +264,8 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
       final response = await widget.apiClient.postJsonWithHeaders(
         endpoint,
         {
-          if (code == 'paypal' && _product.text.trim().isNotEmpty)
-            'product_uuid': _product.text.trim(),
+          if (code == 'paypal' && widget.productUuid?.isNotEmpty == true)
+            'product_uuid': widget.productUuid,
         },
         {'Idempotency-Key': SecureWorkflowPlatformRegistry.current.newUuid()},
       );

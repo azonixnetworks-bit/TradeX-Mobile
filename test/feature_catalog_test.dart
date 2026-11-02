@@ -192,6 +192,26 @@ void main() {
     expect(find.textContaining('USDT manual deposit'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('checkout never exposes the internal product UUID', (
+    tester,
+  ) async {
+    const productUuid = '123e4567-e89b-42d3-a456-426614174000';
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: PaymentCheckoutScreen(
+          apiClient: _ManualPaymentCatalogApiClient(),
+          productUuid: productUuid,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(productUuid), findsNothing);
+    expect(find.textContaining('Product UUID'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class _CatalogApiClient extends TradeXApiClient {
