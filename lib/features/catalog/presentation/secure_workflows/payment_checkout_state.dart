@@ -127,6 +127,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
               DropdownButtonFormField<String>(
                 key: ValueKey(_provider),
                 initialValue: _provider,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Available payment method',
                 ),
@@ -136,6 +137,8 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
                         value: item['code']?.toString(),
                         child: Text(
                           '${item['display_name'] ?? item['code']} • ${_money(item['amount'])}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     )
@@ -152,6 +155,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
                   DropdownButtonFormField<String>(
                     key: ValueKey(_receivingAccount),
                     initialValue: _receivingAccount,
+                    isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Receiving account',
                     ),
@@ -161,6 +165,8 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
                             value: account['uuid']?.toString(),
                             child: Text(
                               '${account['display_name'] ?? account['type']} • ${_money(account['tender'])}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         )

@@ -193,6 +193,29 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('checkout payment method stays responsive on narrow phones', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: PaymentCheckoutScreen(
+          apiClient: _ManualPaymentCatalogApiClient(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Payment Checkout'), findsOneWidget);
+    expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('checkout supports configured legacy bank and USDT methods', (
     tester,
   ) async {

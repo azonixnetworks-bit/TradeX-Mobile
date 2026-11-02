@@ -55,7 +55,20 @@ class AffiliateScaffold extends StatelessWidget {
                 semanticLabel: 'TradeX logo',
               ),
             ],
-            const Spacer(),
+            if (dashboardHeader)
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              )
+            else
+              const Spacer(),
             ...actions,
             if (onNotifications != null)
               IconButton(
@@ -70,11 +83,13 @@ class AffiliateScaffold extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 14),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 4),
+        if (!dashboardHeader) ...[
+          Text(
+            title,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 4),
+        ],
         Text(subtitle, style: const TextStyle(color: _muted, fontSize: 14)),
         const SizedBox(height: 20),
         child,
