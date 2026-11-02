@@ -4,7 +4,7 @@
 
 - This is additive telemetry; it does not replace the existing server-side security audit log.
 - Disabled by default with compile-time flag TRADEX_ACTIVITY_TRACKING_ENABLED.
-- Enable ONLY after Laravel PR #98 is deployed, migrated and tested.
+- Enable ONLY after Laravel PR #98 is deployed, migrated and tested (including its journal_saved event allowlist update).
 - Enable via: flutter run --dart-define=TRADEX_ACTIVITY_TRACKING_ENABLED=true
 - Backend contract: POST /api/v1/activity/events (Sanctum authenticated).
 - Offline retry uses an encrypted, account-scoped outbox with a maximum of 300 events and 6-day local retention.
@@ -18,9 +18,10 @@
 - Flutter app background/foreground transitions produce session pause/resume events; session end is best effort.
 - Dashboard Home, Learn, Trade Ideas, Affiliate, Profile tab visits.
 - Feature catalogue opens and named navigation category visits.
-- Lessons viewed by UUID and lessons marked complete after successful progress API response.
+- Lessons viewed by UUID and lessons marked complete after updateProgress was accepted; the existing API may queue progress offline, so completion is client-reported until confirmed server-side.
 - Trade idea details viewed by UUID.
 - Journal screen opened; journal save after successful API create/update response.
+- Risk/reward calculations tracked only when a non-null calculator result is returned (Forex/Deriv, Crypto, Stocks, Dividend).
 
 ## Important safety rules
 
