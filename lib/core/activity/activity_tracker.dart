@@ -95,17 +95,27 @@ class ActivityTracker {
     if (account == null) return;
     _timer?.cancel();
     _timer = null;
-    if (_foreground) {
-      await _enqueue('app', 'session_ended');
-    }
     try {
-      await sync().timeout(const Duration(milliseconds: 750));
-    } catch (_) {
-      // Security/privacy wins: never keep unsent analytics after sign-out.
+      if (_foreground) {
+        try {
+          await _enqueue('app', 'session_ended');
+        } catch (_) {
+          // Telemetry storage failures never block logout.
+        }
+      }
+      try {
+        await sync().timeout(const Duration(milliseconds: 750));
+      } catch (_) {
+        // A short best-effort flush is enough.
+      }
     } finally {
       _accountId = null;
       _visitId = null;
-      await _store.clear(account);
+      try {
+        await _store.clear(account);
+      } catch (_) {
+        // Sign-out must always complete.
+      }
     }
   }
 
