@@ -118,3 +118,42 @@ class ActivityNavigationObserver extends NavigatorObserver {
     _record(newRoute);
   }
 }
+
+
+/// Wraps an opened feature screen and emits a single view per mounted screen.
+/// It never changes layout, navigation or the feature's business logic.
+class ActivityTrackedScreen extends StatefulWidget {
+  const ActivityTrackedScreen({
+    super.key,
+    required this.module,
+    required this.eventName,
+    required this.subjectId,
+    required this.child,
+  });
+
+  final String module;
+  final String eventName;
+  final String subjectId;
+  final Widget child;
+
+  @override
+  State<ActivityTrackedScreen> createState() => _ActivityTrackedScreenState();
+}
+
+class _ActivityTrackedScreenState extends State<ActivityTrackedScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ActivityTrackingScope.maybeOf(context)?.track(
+        widget.module,
+        widget.eventName,
+        subjectId: widget.subjectId,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
