@@ -94,75 +94,98 @@ class _ProductOfferCard extends StatelessWidget {
       product['currency'],
       LearnRepository.text(price['currency']),
     );
-    return _PremiumCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+    final subscribe = uuid.isEmpty ? null : () => onPurchase(uuid);
+    return Semantics(
+      button: subscribe != null,
+      label: 'Subscribe to TradeX Education Premium',
+      child: InkWell(
+        key: const ValueKey('education-premium-product-card'),
+        borderRadius: BorderRadius.circular(17),
+        onTap: subscribe,
+        child: _PremiumCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: TradeXColors.goldSoft,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: const Icon(Icons.school_rounded, color: _gold),
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: TradeXColors.goldSoft,
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: const Icon(Icons.school_rounded, color: _gold),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'TradeX Education Premium',
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'TradeX Education Premium',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+              if (amount.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    '$currency $amount'.trim(),
+                    style: const TextStyle(
+                      color: _gold,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Text(
+                LearnRepository.text(
+                  product['description'],
+                  'Unlock the complete TradeX learning experience with verified premium access.',
+                ),
+                style: const TextStyle(color: TradeXColors.secondaryText),
+              ),
+              const SizedBox(height: 12),
+              const Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _PremiumBenefitChip(
+                    icon: Icons.play_circle_outline_rounded,
+                    label: 'Premium lessons',
+                  ),
+                  _PremiumBenefitChip(
+                    icon: Icons.verified_user_outlined,
+                    label: 'Secure checkout',
+                  ),
+                  _PremiumBenefitChip(
+                    icon: Icons.all_inclusive_rounded,
+                    label: 'Full course access',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: subscribe,
+                icon: const Icon(Icons.lock_outline_rounded),
+                label: const Text('Subscribe securely'),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Choose an available payment method on the next secure screen.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: TradeXColors.tertiaryText,
+                  fontSize: 11,
                 ),
               ),
             ],
           ),
-          if (amount.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                '$currency $amount'.trim(),
-                style: const TextStyle(
-                  color: _gold,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          const SizedBox(height: 8),
-          Text(
-            LearnRepository.text(
-              product['description'],
-              'Unlock the complete TradeX learning experience with verified premium access.',
-            ),
-            style: const TextStyle(color: TradeXColors.secondaryText),
-          ),
-          const SizedBox(height: 12),
-          const Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _PremiumBenefitChip(
-                icon: Icons.play_circle_outline_rounded,
-                label: 'Premium lessons',
-              ),
-              _PremiumBenefitChip(
-                icon: Icons.verified_user_outlined,
-                label: 'Secure checkout',
-              ),
-              _PremiumBenefitChip(
-                icon: Icons.all_inclusive_rounded,
-                label: 'Full course access',
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: uuid.isEmpty ? null : () => onPurchase(uuid),
-            child: const Text('Choose payment method'),
-          ),
-        ],
+        ),
       ),
     );
   }

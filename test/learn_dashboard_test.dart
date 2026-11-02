@@ -12,6 +12,7 @@ import 'package:tradex_mobile/features/learn/data/learn_repository.dart';
 import 'package:tradex_mobile/features/learn/presentation/course_video_player_screen.dart';
 import 'package:tradex_mobile/features/learn/presentation/learn_dashboard_widgets.dart';
 import 'package:tradex_mobile/features/learn/presentation/learn_module.dart';
+import 'package:tradex_mobile/features/catalog/presentation/secure_workflow_screens.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -80,12 +81,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('TradeX Education Premium'), findsOneWidget);
-    expect(find.text('Choose payment method'), findsOneWidget);
+    expect(find.text('Subscribe securely'), findsOneWidget);
     expect(find.text('Premium lessons'), findsOneWidget);
     expect(find.text(productUuid), findsNothing);
     expect(find.textContaining('EDUCATION_PREMIUM'), findsNothing);
     expect(find.text('Unrelated Product'), findsNothing);
     expect(tester.takeException(), isNull);
+
+    await tester.tap(
+      find.byKey(const ValueKey('education-premium-product-card')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(PaymentCheckoutScreen), findsOneWidget);
+    expect(find.text(productUuid), findsNothing);
   });
 
   testWidgets('learn dashboard falls back when overview service returns 500', (
