@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../../core/activity/activity_tracking_scope.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/tradex_colors.dart';
@@ -477,7 +478,16 @@ class _ForexDerivCalculatorScreenState
     };
     _lastInput = input;
     await cubit.repository.saveDraft('forex_deriv', input);
-    if (mounted) await cubit.calculate(input);
+    if (mounted) {
+      final result = await cubit.calculate(input);
+      if (mounted && result != null) {
+        ActivityTrackingScope.maybeOf(context)?.track(
+          'calculator',
+          'calculator_used',
+          subjectId: 'forex_deriv',
+        );
+      }
+    }
   }
 
   void _reset() {
@@ -772,7 +782,16 @@ class _CryptoRiskCalculatorScreenState
     };
     _lastInput = input;
     await cubit.repository.saveDraft('crypto', input);
-    if (mounted) await cubit.calculate(input);
+    if (mounted) {
+      final result = await cubit.calculate(input);
+      if (mounted && result != null) {
+        ActivityTrackingScope.maybeOf(context)?.track(
+          'calculator',
+          'calculator_used',
+          subjectId: 'crypto',
+        );
+      }
+    }
   }
 
   Future<void> _loadLivePrice(String symbol) async {
@@ -1091,7 +1110,16 @@ class _StockRiskCalculatorScreenState extends State<StockRiskCalculatorScreen> {
     };
     _lastInput = input;
     await cubit.repository.saveDraft('stocks', input);
-    if (mounted) await cubit.calculate(input);
+    if (mounted) {
+      final result = await cubit.calculate(input);
+      if (mounted && result != null) {
+        ActivityTrackingScope.maybeOf(context)?.track(
+          'calculator',
+          'calculator_used',
+          subjectId: 'stocks',
+        );
+      }
+    }
   }
 
   void _reset() {
@@ -1298,7 +1326,14 @@ class _DividendCalculatorScreenState extends State<DividendCalculatorScreen> {
     _lastInput = input;
     await cubit.repository.saveDraft('dividend', input);
     if (mounted) {
-      await cubit.calculateDividend(input);
+      final result = await cubit.calculateDividend(input);
+      if (mounted && result != null) {
+        ActivityTrackingScope.maybeOf(context)?.track(
+          'calculator',
+          'calculator_used',
+          subjectId: 'dividend',
+        );
+      }
     }
   }
 
