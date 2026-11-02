@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import '../../../core/activity/activity_tracking_scope.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -653,6 +654,14 @@ class _UniversalLessonViewerScreenState
   void initState() {
     super.initState();
     widget.repository.updateProgress(widget.lessonUuid, status: 'IN_PROGRESS');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ActivityTrackingScope.maybeOf(context)?.track(
+        'learning',
+        'lesson_viewed',
+        subjectId: widget.lessonUuid,
+      );
+    });
   }
 
   @override
