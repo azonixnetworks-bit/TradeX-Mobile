@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/auth/secure_session_store.dart';
+import '../../../core/activity/activity_tracker.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../../../core/network/tradex_api_client.dart';
@@ -25,6 +26,7 @@ class SessionGate extends StatefulWidget {
     required this.registrationRepository,
     required this.passwordRecoveryRepository,
     required this.apiClient,
+    this.activityTracker,
     required this.tradeIdeasRepository,
     required this.learningRepository,
     this.now,
@@ -34,6 +36,7 @@ class SessionGate extends StatefulWidget {
   final RegistrationRepository registrationRepository;
   final PasswordRecoveryRepository passwordRecoveryRepository;
   final TradeXApiClient apiClient;
+  final ActivityTracker? activityTracker;
   final TradeIdeasRepository tradeIdeasRepository;
   final LearningRepository learningRepository;
   final DateTime Function()? now;
@@ -238,6 +241,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
               _privacyShielded = false;
               _loading = false;
             });
+            unawaited(widget.activityTracker?.activate() ?? Future<void>.value());
             unawaited(_refreshQuickUnlockPolicy());
             return;
           }
@@ -266,6 +270,9 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
         _quickUnlockLocked = false;
         _loading = false;
       });
+      if (session != null) {
+        unawaited(widget.activityTracker?.activate() ?? Future<void>.value());
+      }
     } on ApiException catch (error) {
       if (!mounted) {
         return;
@@ -301,7 +308,10 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
         _quickUnlock = session == null ? null : _quickUnlock;
         _error = null;
       });
-      if (session != null) unawaited(_refreshQuickUnlockPolicy());
+      if (session != null) {
+        unawaited(widget.activityTracker?.activate() ?? Future<void>.value());
+        unawaited(_refreshQuickUnlockPolicy());
+      }
     } on ApiException catch (error) {
       final enrollmentInvalid = <String>{
         'QUICK_UNLOCK_ENROLLMENT_UNAVAILABLE',
@@ -335,6 +345,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       _privacyShielded = false;
       _error = null;
     });
+    unawaited(widget.activityTracker?.activate() ?? Future<void>.value());
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _offerQuickUnlockSetup(),
     );
@@ -352,6 +363,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
       _privacyShielded = false;
       _error = null;
     });
+    unawaited(widget.activityTracker?.activate() ?? Future<void>.value());
     unawaited(_refreshQuickUnlockPolicy());
   }
 
@@ -405,11 +417,20 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _stopActivityTracking() async {
+    try {
+      await widget.activityTracker?.deactivate();
+    } catch (_) {
+      // Analytics must never prevent logout.
+    }
+  }
+
   Future<void> _logout() async {
     final configuredQuickUnlock =
         _quickUnlock ?? await widget.authRepository.quickUnlockConfiguration();
 
     if (configuredQuickUnlock != null) {
+      await _stopActivityTracking();
       await widget.authRepository.logout();
       await _clearPendingFinancialDraft();
       await AppPreferences.instance.setDashboardTab(0);
@@ -429,6 +450,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
   }
 
   Future<void> _signOutCompletely() async {
+    await _stopActivityTracking();
     await widget.authRepository.logout();
     await _clearPendingFinancialDraft();
     await AppPreferences.instance.setDashboardTab(0);
@@ -448,6 +470,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
   }
 
   Future<void> _signOutAndForgetDevice() async {
+    await _stopActivityTracking();
     await widget.authRepository.logout(forgetDevice: true);
     await _clearPendingFinancialDraft();
     await AppPreferences.instance.setDashboardTab(0);
@@ -463,6 +486,7 @@ class _SessionGateState extends State<SessionGate> with WidgetsBindingObserver {
   }
 
   Future<void> _signOutAllDevices() async {
+    await _stopActivityTracking();
     await widget.authRepository.logoutAll();
     await _clearPendingFinancialDraft();
     await AppPreferences.instance.setDashboardTab(0);
