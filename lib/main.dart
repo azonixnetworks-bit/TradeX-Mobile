@@ -38,9 +38,8 @@ Future<void> main() async {
       final session = await sessionStore.readSession();
       return session?.user['uuid']?.toString();
     },
-    sendBatch: (events) async {
-      await apiClient.postJson('/api/v1/activity/events', {'events': events});
-    },
+    availabilityProbe: apiClient.activityTrackingAvailable,
+    sendBatch: apiClient.sendActivityEvents,
   );
 
   final authRepository = AuthRepository(
