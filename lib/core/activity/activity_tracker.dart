@@ -79,6 +79,7 @@ class ActivityTracker {
     'news_viewed',
     'feature_opened',
     'session_started',
+    'session_heartbeat',
     'session_resumed',
     'session_paused',
     'session_ended',
@@ -131,6 +132,9 @@ class ActivityTracker {
     }
 
     _timer = Timer.periodic(const Duration(minutes: 2), (_) {
+      if (isActive && _foreground) {
+        track('app', 'session_heartbeat');
+      }
       unawaited(sync().catchError((Object _) {}));
     });
 

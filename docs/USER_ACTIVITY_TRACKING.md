@@ -8,6 +8,12 @@ The Laravel side is **disabled by default** using `TRADEX_ACTIVITY_ENABLED=false
 
 The network handshake and batched activity upload do not show connectivity banners, do not refresh sessions solely for analytics, do not cache endpoints, and do not enqueue mutations through TradeX's business-data offline queue. If the access token expires, telemetry retries only after normal app flows refresh the session.
 
+## Phase 2 heartbeat and reporting
+
+- While the app is foregrounded and the backend readiness flag is true, a session_heartbeat event is added every two minutes. No heartbeat is emitted while backgrounded or before server authorization.
+- The Laravel Super Admin analytics dashboard uses heartbeat plus pause/resume events to estimate foreground minutes, capped at three minutes per event interval. These are not exact OS screen-time measurements.
+- Phase 2 is stacked on the Phase 1 feature branch; merge Phase 1 first, then Phase 2, with a staged migration and real-device smoke test.
+
 ## Data captured
 
 - Authenticated session started/paused/resumed/ended (best effort; app force-stop may omit end).
