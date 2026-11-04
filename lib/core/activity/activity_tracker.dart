@@ -257,7 +257,7 @@ class ActivityTracker {
     } catch (_) {
       // Backend not deployed, user offline, or auth token not yet refreshed.
     }
-    if (_accountId != account) return false;
+    if (_accountId != account || !_foreground) return false;
     if (!ready) {
       _nextProbeAt = _clock().add(const Duration(minutes: 2));
       return false;
