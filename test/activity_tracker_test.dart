@@ -119,6 +119,38 @@ void main() {
     tracker.dispose();
   });
 
+  testWidgets('foreground heartbeat is emitted but background is quiet', (tester) async {
+    final store = ActivityEventStore();
+    final emitted = <String>[];
+    final tracker = ActivityTracker(
+      enabled: true,
+      accountResolver: () async => 'account_heartbeat',
+      availabilityProbe: () async => true,
+      store: store,
+      sendBatch: (_, batch) async {
+        emitted.addAll(batch.map((event) => event['event_name'] as String));
+      },
+    );
+
+    await tracker.activate();
+    await tester.pump(const Duration(minutes: 2));
+    await tracker.sync();
+    expect(emitted, contains('session_heartbeat'));
+
+    final beforeBackground = emitted.where(
+      (name) => name == 'session_heartbeat',
+    ).length;
+    tracker.onBackground();
+    await tester.pump(const Duration(minutes: 4));
+    tracker.onForeground();
+    await tracker.sync();
+    final afterBackground = emitted.where(
+      (name) => name == 'session_heartbeat',
+    ).length;
+    expect(afterBackground, beforeBackground);
+    tracker.dispose();
+  });
+
   test('feature opt-out prevents all tracking and probes', () async {
     var probes = 0;
     var sends = 0;
