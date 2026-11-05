@@ -1,0 +1,38 @@
+name: TradeX Replay Flutter Integration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "lib/features/replay/**"
+      - "lib/features/catalog/**"
+      - "test/features/replay/**"
+      - "assets/replay_terminal/**"
+      - "pubspec.yaml"
+      - ".github/workflows/replay-flutter.yml"
+  pull_request:
+    paths:
+      - "lib/features/replay/**"
+      - "lib/features/catalog/**"
+      - "test/features/replay/**"
+      - "assets/replay_terminal/**"
+      - "pubspec.yaml"
+      - ".github/workflows/replay-flutter.yml"
+
+jobs:
+  replay-flutter:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install Flutter dependencies
+        run: flutter pub get
+      - name: Analyze Replay integration
+        run: flutter analyze lib/features/replay test/features/replay
+      - name: Run Replay Cubit bridge tests
+        run: flutter test test/features/replay/replay_terminal_cubit_test.dart
