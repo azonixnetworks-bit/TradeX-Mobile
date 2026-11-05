@@ -13,6 +13,7 @@ import '../home/presentation/economic_news_screen.dart';
 import '../investments/investment_dependencies.dart';
 import '../investments/presentation/investment_module.dart';
 import '../journal/journal_dependencies.dart';
+import '../replay/presentation/replay_terminal_screen.dart';
 import '../journal/presentation/trade_journal_home_screen.dart';
 import '../journal/presentation/trade_journal_insights_screens.dart';
 import '../journal/presentation/trade_journal_trade_screens.dart';
@@ -53,6 +54,7 @@ class CatalogDependencies {
           ),
         ),
       ),
+      'replay-backtesting' => const ReplayTerminalScreen(),
       'trade-journal' => TradeJournalHomeScreen(
         apiClient: apiClient,
         repository: journal,
