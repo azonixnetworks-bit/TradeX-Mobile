@@ -1,43 +1,38 @@
-# TradeX Flutter — Activity tracking (feature branch)
+# TradeX Flutter — Phase 1 user activity rollout
 
-## Scope and rollout
+## Server-controlled activation
 
-- This is additive telemetry; it does not replace the existing server-side security audit log.
-- Disabled by default with compile-time flag TRADEX_ACTIVITY_TRACKING_ENABLED.
-- Enable ONLY after Laravel PR #98 is deployed, migrated and tested (including its journal_saved event allowlist update).
-- Enable via: flutter run --dart-define=TRADEX_ACTIVITY_TRACKING_ENABLED=true
-- Backend contract: POST /api/v1/activity/events (Sanctum authenticated).
-- Offline retry uses an encrypted, account-scoped outbox with a maximum of 300 events and 6-day local retention.
-- Event batches have at most 25 items; event_id is a UUID for idempotent server ingestion.
-- Periodic batch upload every 2 minutes, on session activation, and on app resume.
-- Explicit logout purges the pending outbox for the signed-out account.
+The client is now **ready to track by default**, but it must first call the authenticated/device-bound `GET /api/v1/activity/config`. No session or behavior events are stored before the Laravel server responds with `data.enabled=true` and `policy_version=1`.
 
-## Instrumentation
+The Laravel side is **disabled by default** using `TRADEX_ACTIVITY_ENABLED=false`. Do not enable until its schema/API and privacy disclosures are ready. A kill-switch build is available through `--dart-define=TRADEX_ACTIVITY_TRACKING_ENABLED=false`.
 
-- Successful sign-in, unlock and restored authenticated session activate tracking.
-- Flutter app background/foreground transitions produce session pause/resume events; session end is best effort.
-- Dashboard Home, Learn, Trade Ideas, Affiliate, Profile tab visits.
-- Feature catalogue opens and named navigation category visits.
-- Lessons viewed by UUID and lessons marked complete after updateProgress was accepted; the existing API may queue progress offline, so completion is client-reported until confirmed server-side.
-- Trade idea details viewed by UUID.
-- Journal screen opened; journal save after successful API create/update response.
-- Risk/reward calculations tracked only when a non-null calculator result is returned (Forex/Deriv, Crypto, Stocks, Dividend).
+The network handshake and batched activity upload do not show connectivity banners, do not refresh sessions solely for analytics, do not cache endpoints, and do not enqueue mutations through TradeX's business-data offline queue. If the access token expires, telemetry retries only after normal app flows refresh the session.
 
-## Important safety rules
+## Phase 2 heartbeat and reporting
 
-- The server determines user_id from the authenticated token. Client-reported payment/admin/security actions are not accepted.
-- Only allowlisted module/event values and safe identifiers; no journal notes, chat text, emails, prices or secrets.
-- Signal/lesson views mean opened screens, NOT proof of trading or reading.
-- Failed telemetry must never stop login, navigation, payments, or other business logic.
-- HTTP 403/404 disables upload for this app process; 400/422 invalid batches are dropped; temporary failures retry.
-- Session duration is an estimate: OS process termination can prevent an end event.
-- Publish appropriate privacy notice and retention policy before enabling.
+- While the app is foregrounded and the backend readiness flag is true, a session_heartbeat event is added every two minutes. No heartbeat is emitted while backgrounded or before server authorization.
+- The Laravel Super Admin analytics dashboard uses heartbeat plus pause/resume events to estimate foreground minutes, capped at three minutes per event interval. These are not exact OS screen-time measurements.
+- Phase 2 is stacked on the Phase 1 feature branch; merge Phase 1 first, then Phase 2, with a staged migration and real-device smoke test.
 
-## Local verification before merge
+## Data captured
 
-dart format lib/core/activity lib/main.dart lib/app/tradex_app.dart lib/features/auth/presentation/session_gate.dart lib/features/home/presentation/home_dashboard_screen.dart lib/features/catalog/presentation/feature_catalog_screen.dart lib/features/learn/presentation/learn_module.dart lib/features/trade_ideas/presentation/trade_idea_details_screen.dart lib/features/journal/presentation/trade_journal_trade_screens.dart test/activity_tracker_test.dart
-flutter analyze
-flutter test test/activity_tracker_test.dart
-flutter test
+- Authenticated session started/paused/resumed/ended (best effort; app force-stop may omit end).
+- Dashboard tab and feature entry, lesson viewed/completion interaction, trade-idea detail viewed, journal viewed/saved, and successful calculator use.
+- Events use allowlisted categories/IDs only: no passwords, TOTP, email, journal notes, trade financial figures, or chat content.
+- Events are not evidence of a real trade, completed learning, financial approval, or successful security operation.
 
-Main remains untouched; tests not executed in this environment (Flutter/Dart SDK unavailable).
+## Delivery and safety
+
+- Account-bound encrypted local outbox (existing `flutter_secure_storage`), maximum 300 records and up to 6 days pending.
+- Up to 25 events per API batch with UUID idempotency on Laravel.
+- Silent retries every 2 minutes, on session resumption and app activation.
+- Backend disabled/unsupported response suspends and clears queued telemetry; readiness is retried later.
+- The API checks the **current session user UUID** before every batch to prevent cross-account event attribution.
+- Logout clears pending activity for that account. Telemetry never prevents logout.
+- User can disable local collection entirely at build time; business features and BLoC flows are unchanged.
+
+## Verification
+
+The GitHub activity-phase1 CI workflow runs `flutter analyze` on the modified components and `flutter test test/activity_tracker_test.dart`. Test on a real staging device as well: app login/unlock, foreground/background, online/offline transitions, logout/account switch and server kill switch. Confirm events arrive in Laravel's `user_activity_events` and the Super Admin customer activity panel.
+
+For rollout order, staging smoke tests, scheduler and rollback commands, see the Laravel repository's `docs/USER_ACTIVITY_PHASE1_ROLLOUT.md`. GitHub merge alone does not establish production activation.

@@ -1,0 +1,30 @@
+name: User Activity Phase 1 - Flutter
+
+on:
+  pull_request:
+    paths:
+      - 'lib/core/activity/**'
+      - 'lib/core/network/tradex_api_client.dart'
+      - 'lib/main.dart'
+      - 'test/activity_tracker_test.dart'
+      - '.github/workflows/activity-phase1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  activity-client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install Flutter dependencies
+        run: flutter pub get
+      - name: Analyze changed activity components
+        run: flutter analyze --no-pub lib/core/activity lib/core/network/tradex_api_client.dart lib/main.dart
+      - name: Verify activity unit tests
+        run: flutter test test/activity_tracker_test.dart

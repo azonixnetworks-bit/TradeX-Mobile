@@ -238,6 +238,57 @@ class TradeXApiClient implements ApiGateway {
     retryAfterRefresh: true,
   );
 
+  /// Analytics transport bypasses user-facing connectivity banners and
+  /// never refreshes an auth token solely to transmit telemetry.
+  /// Business requests keep their existing behavior unchanged.
+  Future<Map<String, dynamic>> _activityRequest(
+    String method,
+    String path, {
+    Map<String, dynamic>? body,
+    String? expectedUserUuid,
+  }) async {
+    final session = await _sessionStore.readSession();
+    if (session == null ||
+        session.accessTokenExpired ||
+        (expectedUserUuid != null &&
+            session.user['uuid']?.toString() != expectedUserUuid)) {
+      throw const ApiException(
+        message: 'Activity session is unavailable.',
+        statusCode: 401,
+        code: 'ACTIVITY_SESSION_UNAVAILABLE',
+      );
+    }
+    final response = await _request(
+      method: method,
+      path: path,
+      body: body,
+      accessToken: session.accessToken,
+      quiet: true,
+    );
+    return _decodeResponse(response);
+  }
+
+  Future<bool> activityTrackingAvailable() async {
+    final response = await _activityRequest(
+      'GET',
+      '/api/v1/activity/config',
+    );
+    final data = response['data'];
+    return data is Map && data['enabled'] == true && data['policy_version'] == 1;
+  }
+
+  Future<void> sendActivityEvents(
+    String accountUuid,
+    List<Map<String, dynamic>> events,
+  ) async {
+    await _activityRequest(
+      'POST',
+      '/api/v1/activity/events',
+      body: <String, dynamic>{'events': events},
+      expectedUserUuid: accountUuid,
+    );
+  }
+
   @override
   Future<Map<String, dynamic>> postJsonWithHeaders(
     String path,
@@ -494,6 +545,7 @@ class TradeXApiClient implements ApiGateway {
     String? accessToken,
     ResponseType? responseType,
     Map<String, String>? headers,
+    bool quiet = false,
   }) async {
     try {
       return await _dio.request<dynamic>(
@@ -519,7 +571,7 @@ class TradeXApiClient implements ApiGateway {
       }
 
       if (_isNoInternetError(error)) {
-        AppMessenger.showNoInternetConnection();
+        if (!quiet) AppMessenger.showNoInternetConnection();
         throw const ApiException(
           message:
               'No internet connection. Connect your internet and try again.',
