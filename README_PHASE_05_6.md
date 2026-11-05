@@ -10,9 +10,10 @@ In Windows PowerShell (replace the mobile path with your actual folder):
 
 ```powershell
 cd G:\TradeX-Replay
-# Pull Phase 05.6 changes in Replay repository
 git pull origin main
-cd .\apps\replay-terminal
+cd G:\TradeX-Mobile
+git pull origin main
+cd G:\TradeX-Replay\apps\replay-terminal
 npm install
 npm test
 npm run build
