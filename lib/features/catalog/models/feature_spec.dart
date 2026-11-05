@@ -67,6 +67,14 @@ const tradeXFeatureSpecs = <FeatureSpec>[
     endpoint: '/api/v1/trade-ideas',
   ),
   FeatureSpec(
+    id: 'replay-backtesting',
+    group: 'Journal & Tools',
+    title: 'XAUUSD Replay Backtesting',
+    subtitle: 'Manual candle replay · synthetic visual demo',
+    icon: Icons.auto_graph_rounded,
+    kind: FeatureKind.local,
+  ),
+  FeatureSpec(
     id: 'trade-journal',
     group: 'Journal & Tools',
     title: 'Trade Journal Dashboard',
