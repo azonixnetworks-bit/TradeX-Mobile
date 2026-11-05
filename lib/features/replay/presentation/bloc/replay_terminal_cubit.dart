@@ -156,11 +156,12 @@ class ReplayTerminalCubit extends Cubit<ReplayTerminalState> {
       throw ArgumentError.value(payload, 'payload', 'Unsupported speed');
     }
     _sequence++;
-    return <String, Object?>{
+    final command = <String, Object?>{
       'version': 1,
       'id': 'flutter-$_sequence',
       'type': type,
-      if (payload != null) 'payload': payload,
     };
+    if (payload != null) command['payload'] = payload;
+    return command;
   }
 }
