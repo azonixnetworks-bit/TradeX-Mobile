@@ -64,7 +64,9 @@ Future<void> openTradeXFeature(
     'Profile & Security' => 'profile',
     'Notifications & Support' => 'support',
     'Journal & Tools' =>
-      spec.id == 'risk-reward-calculator'
+      spec.id == 'replay-backtesting'
+          ? 'replay'
+          : spec.id == 'risk-reward-calculator'
           ? 'calculator'
           : spec.id == 'funded-advisor'
           ? 'funded_accounts'
