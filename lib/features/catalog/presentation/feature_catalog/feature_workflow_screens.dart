@@ -107,7 +107,9 @@ class _TradeXFeatureScreenState extends State<TradeXFeatureScreen>
                   ),
                   const SizedBox(height: 12),
                 ],
-                if (_supportsSearch(widget.spec)) ...[
+                if (widget.spec.id == 'trading-routine')
+                  _TradingRoutineView(payload: _dataMap(payload))
+                else if (_supportsSearch(widget.spec)) ...[
                   TextField(
                     controller: _search,
                     onChanged: (value) =>
@@ -119,20 +121,22 @@ class _TradeXFeatureScreenState extends State<TradeXFeatureScreen>
                   ),
                   const SizedBox(height: 14),
                 ],
-                if (_isFinancial(widget.spec)) const _FinancialNotice(),
-                if (_isFinancial(widget.spec)) const SizedBox(height: 12),
-                if (records.isEmpty)
-                  _ObjectPanel(payload: _dataMap(payload))
-                else if (filtered.isEmpty)
-                  const _EmptyState(message: 'No matching records found.')
-                else
-                  for (final record in filtered) ...[
-                    _RecordCard(
-                      record: record,
-                      onTap: () => _openRecord(context, record),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
+                if (widget.spec.id != 'trading-routine') ...[
+                  if (_isFinancial(widget.spec)) const _FinancialNotice(),
+                  if (_isFinancial(widget.spec)) const SizedBox(height: 12),
+                  if (records.isEmpty)
+                    _ObjectPanel(payload: _dataMap(payload))
+                  else if (filtered.isEmpty)
+                    const _EmptyState(message: 'No matching records found.')
+                  else
+                    for (final record in filtered) ...[
+                      _RecordCard(
+                        record: record,
+                        onTap: () => _openRecord(context, record),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                ],
               ],
             ),
           );

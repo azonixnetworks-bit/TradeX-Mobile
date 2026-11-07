@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
+import '../../../core/theme/tradex_palette.dart';
 import '../domain/repositories/learn_repository.dart';
 
 class CourseVideoPlayerScreen extends StatefulWidget {
@@ -165,43 +167,83 @@ class _CourseVideoPlayerScreenState extends State<CourseVideoPlayerScreen>
     final ready = _controller.value.isInitialized;
     final duration = ready ? _controller.value.duration : Duration.zero;
     final position = ready ? _controller.value.position : Duration.zero;
+    final palette = TradeXPalette.of(context);
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: _fullscreen ? Colors.black : palette.background,
       appBar: _fullscreen
           ? null
           : AppBar(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              title: Text(widget.title),
+              backgroundColor: palette.background,
+              surfaceTintColor: Colors.transparent,
+              foregroundColor: palette.primaryText,
+              titleSpacing: 4,
+              title: Row(
+                children: [
+                  Image.asset(
+                    'assets/branding/trade_x_final_logo.png',
+                    width: 34,
+                    height: 34,
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ],
+              ),
             ),
       body: SafeArea(
-        child: Center(
-          child: _error != null
-              ? _PlayerError(onRetry: _retry)
-              : !ready
-              ? const CircularProgressIndicator(color: TradeXColors.goldBright)
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Center(
-                        child: AspectRatio(
-                          aspectRatio: _controller.value.aspectRatio == 0
-                              ? 16 / 9
-                              : _controller.value.aspectRatio,
-                          child: VideoPlayer(_controller),
-                        ),
+        child: Padding(
+          padding: _fullscreen ? EdgeInsets.zero : const EdgeInsets.all(16),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: _fullscreen ? null : TradeXRadii.card,
+              boxShadow: _fullscreen
+                  ? null
+                  : TradeXElevation.surface(
+                      brightness: Theme.of(context).brightness,
+                      palette: palette,
+                    ),
+            ),
+            child: ClipRRect(
+              borderRadius: _fullscreen ? BorderRadius.zero : TradeXRadii.card,
+              child: Center(
+                child: _error != null
+                    ? _PlayerError(onRetry: _retry)
+                    : !ready
+                    ? const CircularProgressIndicator(
+                        color: TradeXColors.goldBright,
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Center(
+                              child: AspectRatio(
+                                aspectRatio: _controller.value.aspectRatio == 0
+                                    ? 16 / 9
+                                    : _controller.value.aspectRatio,
+                                child: VideoPlayer(_controller),
+                              ),
+                            ),
+                          ),
+                          _PlayerControls(
+                            controller: _controller,
+                            position: position,
+                            duration: duration,
+                            fullscreen: _fullscreen,
+                            onFullscreen: _toggleFullscreen,
+                          ),
+                        ],
                       ),
-                    ),
-                    _PlayerControls(
-                      controller: _controller,
-                      position: position,
-                      duration: duration,
-                      fullscreen: _fullscreen,
-                      onFullscreen: _toggleFullscreen,
-                    ),
-                  ],
-                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

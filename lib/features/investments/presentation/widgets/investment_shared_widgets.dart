@@ -1,14 +1,16 @@
 part of '../investment_module.dart';
 
-const _investmentBackground = Color(0xFF080A0E);
-const _investmentCard = Color(0xFF15171B);
-const _investmentCardBorder = Color(0xFF303238);
-const _investmentText = Color(0xFFF3F3F1);
-const _investmentMuted = Color(0xFFA3A4A7);
-const _investmentGreen = Color(0xFF4BDD8A);
-const _investmentWarning = Color(0xFFFBD26F);
-const _investmentNegative = Color(0xFFE87980);
-const _investmentInfo = Color(0xFFA3CAFF);
+// This feature remains intentionally self-contained, but now follows the
+// application's default light visual language used by the supplied redesign.
+const _investmentBackground = Color(0xFFF5F7FA);
+const _investmentCard = Color(0xFFFFFFFF);
+const _investmentCardBorder = Color(0xFFE3E7ED);
+const _investmentText = Color(0xFF101828);
+const _investmentMuted = Color(0xFF5D6878);
+const _investmentGreen = Color(0xFF067A55);
+const _investmentWarning = Color(0xFF946200);
+const _investmentNegative = Color(0xFFB42318);
+const _investmentInfo = Color(0xFF175CD3);
 
 class _InvestmentScaffold extends StatelessWidget {
   const _InvestmentScaffold({required this.title, required this.child});
@@ -19,9 +21,9 @@ class _InvestmentScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Theme(
     data: Theme.of(context).copyWith(
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       scaffoldBackgroundColor: _investmentBackground,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: const ColorScheme.light(
         primary: TradeXColors.goldBright,
         surface: _investmentCard,
       ),
@@ -58,8 +60,16 @@ class _InvestmentScaffold extends StatelessWidget {
                 ],
               ),
             ),
-            const Divider(height: 1, color: Color(0xFF232527)),
-            Expanded(child: child),
+            const Divider(height: 1, color: _investmentCardBorder),
+            Expanded(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: child,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -81,33 +91,35 @@ class _InvestmentCard extends StatelessWidget {
   final bool emphasized;
 
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: _investmentCard,
-      gradient: emphasized
-          ? const LinearGradient(colors: [Color(0xFF2B2515), Color(0xFF17191E)])
-          : null,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(
-        color: emphasized ? const Color(0xFF9B681E) : _investmentCardBorder,
-      ),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x66000000),
-          blurRadius: 14,
-          offset: Offset(0, 7),
+  Widget build(BuildContext context) {
+    final palette = TradeXPalette.light;
+    return Container(
+      decoration: BoxDecoration(
+        color: _investmentCard,
+        gradient: emphasized
+            ? const LinearGradient(
+                colors: [Color(0xFFFFF8E7), Color(0xFFFFFFFF)],
+              )
+            : null,
+        borderRadius: TradeXRadii.card,
+        border: Border.all(
+          color: emphasized ? const Color(0xFF9B681E) : _investmentCardBorder,
         ),
-      ],
-    ),
-    child: Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(padding: padding, child: child),
+        boxShadow: TradeXElevation.surface(
+          brightness: Brightness.light,
+          palette: palette,
+        ),
       ),
-    ),
-  );
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: TradeXRadii.card,
+          child: Padding(padding: padding, child: child),
+        ),
+      ),
+    );
+  }
 }
 
 class _InvestmentSectionTitle extends StatelessWidget {
@@ -204,7 +216,7 @@ class _InvestmentStatusBadge extends StatelessWidget {
         decoration: BoxDecoration(
           color: color.withValues(alpha: .15),
           border: Border.all(color: color.withValues(alpha: .45)),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(TradeXRadii.sm),
         ),
         child: Text(
           label.toUpperCase(),
@@ -348,7 +360,7 @@ class _InvestmentLoading extends StatelessWidget {
       height: index == 0 ? 150 : 92,
       decoration: BoxDecoration(
         color: _investmentCard,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: TradeXRadii.card,
         border: Border.all(color: _investmentCardBorder),
       ),
       padding: const EdgeInsets.all(16),
@@ -374,7 +386,7 @@ class _InvestmentRiskNotice extends StatelessWidget {
     decoration: BoxDecoration(
       color: const Color(0xFF2A210C),
       border: Border.all(color: const Color(0xFF9B681E)),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: TradeXRadii.control,
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,

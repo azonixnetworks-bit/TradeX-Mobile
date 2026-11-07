@@ -13,7 +13,11 @@ class CloseTradeSummaryCard extends StatelessWidget {
     return Container(
       key: const ValueKey('close-trade-summary'),
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
-      decoration: _premiumDecoration(accent: closeTradeGreen, radius: 18),
+      decoration: _premiumDecoration(
+        context,
+        accent: closeTradeGreen,
+        radius: 18,
+      ),
       child: Row(
         children: [
           Container(
@@ -593,7 +597,7 @@ class CloseTradeReflectionField extends StatelessWidget {
       inputFormatters: [LengthLimitingTextInputFormatter(300)],
       keyboardType: TextInputType.multiline,
       textCapitalization: TextCapitalization.sentences,
-      style: const TextStyle(color: closeTradeText, fontSize: 13),
+      style: TextStyle(color: context.palette.primaryText, fontSize: 13),
       buildCounter:
           (_, {required currentLength, required isFocused, maxLength}) => Text(
             '$currentLength / ${maxLength ?? 300}',
@@ -602,7 +606,7 @@ class CloseTradeReflectionField extends StatelessWidget {
               fontSize: 10,
             ),
           ),
-      decoration: _inputDecoration(hint).copyWith(
+      decoration: _inputDecoration(context, hint).copyWith(
         counterStyle: const TextStyle(color: closeTradeMuted, fontSize: 10),
       ),
     ),

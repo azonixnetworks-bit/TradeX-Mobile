@@ -25,21 +25,27 @@ class CalculationResultScreen extends StatelessWidget {
         key: const ValueKey('calculation-result-details'),
         padding: const EdgeInsets.fromLTRB(18, 22, 18, 32),
         children: [
-          const _GradientTitle(first: 'Calculation', second: 'Result'),
-          const SizedBox(height: 8),
-          const _PageSubtitle(
-            'Server-calculated position size and planning details.',
-          ),
+          if (isDividend)
+            const _CalculatorHero(
+              eyebrow: 'DIVIDEND PROJECTION',
+              title: 'Result Details',
+              subtitle: 'A complete breakdown of the server-calculated dividend estimate.',
+            )
+          else ...[
+            const _GradientTitle(first: 'Calculation', second: 'Result'),
+            const SizedBox(height: 8),
+            const _PageSubtitle(
+              'Server-calculated position size and planning details.',
+            ),
+          ],
           const SizedBox(height: 18),
           _GoldCard(
             child: Row(
               children: [
-                _AssetImage(
-                  isDividend
-                      ? '24_dividend_hand_coin_tile.png'
-                      : '09_eurusd_currency_badge.png',
-                  size: 64,
-                ),
+                if (isDividend)
+                  _DividendStockBadge(symbol: title, size: 64)
+                else
+                  const _AssetImage('09_eurusd_currency_badge.png', size: 64),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -426,7 +432,7 @@ class _MetricTile extends StatelessWidget {
     width: width,
     padding: const EdgeInsets.all(11),
     decoration: BoxDecoration(
-      color: TradeXColors.surfaceRaised,
+      color: context.palette.surfaceMuted,
       borderRadius: BorderRadius.circular(14),
       border: Border.all(color: color.withValues(alpha: .45)),
     ),
@@ -469,7 +475,7 @@ class _RatioBar extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     decoration: BoxDecoration(
-      color: TradeXColors.surface,
+      color: context.palette.surface,
       borderRadius: BorderRadius.circular(14),
       border: Border.all(color: TradeXColors.gold.withValues(alpha: .55)),
     ),

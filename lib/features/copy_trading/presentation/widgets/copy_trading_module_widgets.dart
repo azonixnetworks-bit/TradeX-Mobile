@@ -158,15 +158,17 @@ class _MarketSelector extends StatelessWidget {
                       decoration: BoxDecoration(
                         gradient: selected
                             ? const LinearGradient(
-                                colors: [Color(0xFF6A4A00), Color(0xFF1B1508)],
+                                colors: [Color(0xFFFFD45B), Color(0xFFD79B00)],
                               )
                             : null,
-                        color: selected ? null : const Color(0xFF0B0E0D),
+                        color: selected
+                            ? null
+                            : Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(15),
                         border: Border.all(
                           color: selected
-                              ? copyGold
-                              : copyGold.withValues(alpha: .4),
+                              ? const Color(0xFFD79B00)
+                              : Theme.of(context).colorScheme.outlineVariant,
                         ),
                       ),
                       child: Column(
@@ -178,7 +180,11 @@ class _MarketSelector extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
-                              color: selected ? copyGold : Colors.white70,
+                              color: selected
+                                  ? Colors.black
+                                  : Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -323,16 +329,20 @@ class _VerificationSteps extends StatelessWidget {
                     shape: BoxShape.circle,
                     color: active
                         ? copyGold.withValues(alpha: .16)
-                        : Colors.white.withValues(alpha: .04),
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
                     border: Border.all(
-                      color: active ? copyGold : Colors.white30,
+                      color: active
+                          ? copyGold
+                          : Theme.of(context).colorScheme.outlineVariant,
                       width: 2,
                     ),
                   ),
                   child: Text(
                     '${index + 1}',
                     style: TextStyle(
-                      color: active ? copyGold : Colors.white38,
+                      color: active
+                          ? const Color(0xFF8A6200)
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -417,11 +427,18 @@ class _TimelineRow extends StatelessWidget {
             width: 12,
             height: 12,
             decoration: BoxDecoration(
-              color: active ? copyGold : Colors.white24,
+              color: active
+                  ? copyGold
+                  : Theme.of(context).colorScheme.outlineVariant,
               shape: BoxShape.circle,
             ),
           ),
-          if (!last) Container(width: 2, height: 36, color: Colors.white24),
+          if (!last)
+            Container(
+              width: 2,
+              height: 36,
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
         ],
       ),
       const SizedBox(width: 12),
@@ -456,9 +473,9 @@ class _ReadOnlyField extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(13),
     decoration: BoxDecoration(
-      color: Colors.black.withValues(alpha: .35),
+      color: Theme.of(context).colorScheme.surfaceContainerLowest,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: Colors.white.withValues(alpha: .16)),
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     child: Row(
       children: [

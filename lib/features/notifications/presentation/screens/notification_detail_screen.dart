@@ -38,6 +38,15 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 30),
           children: [
             _BackHeading(title: 'Notification details'),
+            const SizedBox(height: 8),
+            Text(
+              'View the complete message and available related action.',
+              style: TextStyle(
+                color: context.palette.secondaryText,
+                fontSize: 14,
+                height: 1.35,
+              ),
+            ),
             const SizedBox(height: 22),
             _PremiumCard(
               borderColor: tone.color.withValues(alpha: .45),
@@ -72,8 +81,8 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                   const SizedBox(height: 22),
                   Text(
                     item.title,
-                    style: const TextStyle(
-                      color: TradeXColors.primaryText,
+                    style: TextStyle(
+                      color: context.palette.primaryText,
                       fontSize: 28,
                       height: 1.15,
                       fontWeight: FontWeight.w900,
@@ -82,18 +91,18 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                   const SizedBox(height: 10),
                   Text(
                     _absoluteTime(item.publishedAt),
-                    style: const TextStyle(
-                      color: TradeXColors.secondaryText,
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
                       fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Divider(color: TradeXColors.border),
+                  Divider(color: context.palette.border),
                   const SizedBox(height: 20),
                   Text(
                     item.body,
-                    style: const TextStyle(
-                      color: TradeXColors.primaryText,
+                    style: TextStyle(
+                      color: context.palette.primaryText,
                       fontSize: 18,
                       height: 1.55,
                     ),
@@ -102,7 +111,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                   Text(
                     'NOTIFICATION INFORMATION',
                     style: TextStyle(
-                      color: TradeXColors.tertiaryText,
+                      color: context.palette.tertiaryText,
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                       letterSpacing: .5,
@@ -114,7 +123,7 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
                     value: _titleCase(item.priority),
                     valueColor: item.priority == 'CRITICAL'
                         ? const Color(0xFFFF7272)
-                        : TradeXColors.primaryText,
+                        : context.palette.primaryText,
                   ),
                   _InfoRow(label: 'Category', value: tone.label),
                 ],
@@ -146,8 +155,8 @@ class _NotificationDetailScreenState extends State<NotificationDetailScreen> {
               onPressed: () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(56),
-                foregroundColor: TradeXColors.primaryText,
-                side: const BorderSide(color: TradeXColors.borderStrong),
+                foregroundColor: context.palette.primaryText,
+                side: BorderSide(color: context.palette.borderStrong),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

@@ -46,13 +46,14 @@ class _NotificationPreferencesScreenState
             children: [
               const _PageHeading(
                 eyebrow: 'NOTIFICATION CONTROL',
-                title: 'Preferences',
-                subtitle: 'Choose which updates matter to you.',
+                title: 'Notification Preferences',
+                subtitle:
+                    'Choose what updates you want to receive from TradeX.',
               ),
               const SizedBox(height: 20),
               _PremiumCard(
-                borderColor: const Color(0xFF315D49),
-                color: const Color(0xFF102019),
+                borderColor: context.palette.gold.withValues(alpha: .34),
+                color: context.palette.goldSoft,
                 padding: const EdgeInsets.all(16),
                 onTap: () => Navigator.of(context).push<void>(
                   MaterialPageRoute<void>(

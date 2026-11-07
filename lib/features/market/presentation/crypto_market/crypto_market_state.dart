@@ -154,7 +154,24 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
     child: Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Crypto Market'),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Market Screener',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+            ),
+            Text(
+              'Crypto Market',
+              style: TextStyle(
+                color: TradeXColors.secondaryText,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
         actions: [
           BlocBuilder<CryptoMarketCubit, CryptoMarketState>(
             buildWhen: (previous, current) =>
@@ -233,13 +250,13 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
                   onChanged: _searchCoins,
                   decoration: InputDecoration(
                     hintText: 'Search BTC, ETH, SOL...',
-                    hintStyle: const TextStyle(
-                      color: Color(0xFF7F8DA1),
+                    hintStyle: TextStyle(
+                      color: context.palette.secondaryText,
                       fontSize: 13,
                     ),
-                    prefixIcon: const Icon(
+                    prefixIcon: Icon(
                       Icons.search_rounded,
-                      color: Color(0xFF91A1B7),
+                      color: context.palette.secondaryText,
                       size: 20,
                     ),
                     suffixIcon: _typedQuery.isEmpty
@@ -250,7 +267,7 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
                             icon: const Icon(Icons.close_rounded),
                           ),
                     filled: true,
-                    fillColor: const Color(0xFF102035),
+                    fillColor: context.palette.surface,
                     contentPadding: const EdgeInsets.symmetric(vertical: 13),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -258,7 +275,7 @@ class _CryptoMarketScreenState extends State<CryptoMarketScreen>
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: context.palette.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),

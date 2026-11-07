@@ -87,6 +87,11 @@ class _TradeJournalAnalyticsScreenState
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
         children: [
+          const JournalSectionTitle(
+            title: 'Performance Overview',
+            subtitle: 'Real journal results for the selected period',
+          ),
+          const SizedBox(height: 10),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SegmentedButton<String>(
@@ -399,6 +404,13 @@ class _TradeJournalReviewScreenState extends State<TradeJournalReviewScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
         children: [
+          JournalSectionTitle(
+            title: 'Journal Review',
+            subtitle: _monthly
+                ? 'Monthly reflection and improvement plan'
+                : 'Weekly reflection and improvement plan',
+          ),
+          const SizedBox(height: 10),
           JournalPanel(
             borderColor: TradeXColors.goldBright.withValues(alpha: .32),
             child: Column(

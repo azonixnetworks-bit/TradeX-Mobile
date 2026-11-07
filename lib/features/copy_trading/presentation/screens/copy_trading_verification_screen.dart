@@ -80,17 +80,15 @@ class _CopyTradingVerificationScreenState
 
     return CopyTradingScrollPage(
       children: [
-        const CopyHeroCard(
-          child: CopyPageHeading(
-            title: 'Account',
-            goldTitle: 'Verification',
-            subtitle: 'Connect your LIVE cTrader account through secure verification.',
-          ),
+        const CopyPageHeading(
+          title: 'Account',
+          goldTitle: 'Verification',
+          subtitle: 'Verify and activate your broker account using the secure workflow.',
+          icon: Icons.verified_user_outlined,
         ),
-        const SizedBox(height: 14),
-        _VerificationSteps(status: status),
-        const SizedBox(height: 12),
+        const SizedBox(height: 18),
         CopySectionCard(
+          highlight: true,
           child: Row(
             children: [
               CopyBrokerLogo(
@@ -122,6 +120,12 @@ class _CopyTradingVerificationScreenState
           ),
         ),
         const SizedBox(height: 12),
+        _VerificationSteps(status: status),
+        const SizedBox(height: 12),
+        if (account != null) ...[
+          _SubmittedAccountDetails(account: account, currency: currency),
+          const SizedBox(height: 12),
+        ],
         if (canSubmit)
           CopySectionCard(
             highlight: true,
@@ -193,4 +197,45 @@ class _CopyTradingVerificationScreenState
           .showSnackBar(SnackBar(content: Text(value)));
     }
   }
+}
+
+class _SubmittedAccountDetails extends StatelessWidget {
+  const _SubmittedAccountDetails({
+    required this.account,
+    required this.currency,
+  });
+
+  final CopyTradingAccount account;
+  final String currency;
+
+  @override
+  Widget build(BuildContext context) => CopySectionCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const CopySectionHeading(
+          title: 'Submitted Account Details',
+          subtitle: 'Sensitive account information remains protected.',
+        ),
+        const SizedBox(height: 14),
+        _ReadOnlyField(
+          icon: Icons.person_outline_rounded,
+          label: 'Account Number',
+          value: account.accountNumberMasked,
+        ),
+        const SizedBox(height: 10),
+        _ReadOnlyField(
+          icon: Icons.layers_outlined,
+          label: 'Market',
+          value: account.marketCategory,
+        ),
+        const SizedBox(height: 10),
+        _ReadOnlyField(
+          icon: Icons.paid_outlined,
+          label: 'Verified Currency',
+          value: currency,
+        ),
+      ],
+    ),
+  );
 }

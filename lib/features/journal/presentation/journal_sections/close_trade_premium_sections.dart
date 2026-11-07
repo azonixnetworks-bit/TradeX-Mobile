@@ -22,6 +22,7 @@ class PremiumCloseTradeSection extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(15),
     decoration: _premiumDecoration(
+      context,
       accent: accent,
       radius: 20,
       prominent: prominentBorder,
@@ -48,8 +49,8 @@ class PremiumCloseTradeSection extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: closeTradeText,
+                    style: TextStyle(
+                      color: context.palette.primaryText,
                       fontSize: 17,
                       fontWeight: FontWeight.w900,
                     ),
@@ -57,8 +58,8 @@ class PremiumCloseTradeSection extends StatelessWidget {
                   if (subtitle != null)
                     Text(
                       subtitle!,
-                      style: const TextStyle(
-                        color: closeTradeMuted,
+                      style: TextStyle(
+                        color: context.palette.secondaryText,
                         fontSize: 11,
                       ),
                     ),
@@ -106,19 +107,19 @@ class PremiumCloseTradePicker extends StatelessWidget {
       child: Container(
         height: 50,
         padding: const EdgeInsets.symmetric(horizontal: 13),
-        decoration: _inputBoxDecoration(),
+        decoration: _inputBoxDecoration(context),
         child: Row(
           children: [
             Expanded(
               child: Text(
                 value,
-                style: const TextStyle(
-                  color: closeTradeText,
+                style: TextStyle(
+                  color: context.palette.primaryText,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ),
-            Icon(icon, color: closeTradeMuted, size: 18),
+            Icon(icon, color: context.palette.secondaryText, size: 18),
           ],
         ),
       ),
@@ -164,9 +165,11 @@ class PremiumCloseTradeNumberField extends StatelessWidget {
         signed: signed,
       ),
       inputFormatters: [_DecimalTextInputFormatter(signed: signed)],
-      style: const TextStyle(color: closeTradeText, fontSize: 15),
-      decoration: _inputDecoration(hint)
-          .copyWith(helperText: helperText, suffixIcon: suffix),
+      style: TextStyle(color: context.palette.primaryText, fontSize: 15),
+      decoration: _inputDecoration(
+        context,
+        hint,
+      ).copyWith(helperText: helperText, suffixIcon: suffix),
       validator: validator,
       onChanged: onChanged,
     ),
@@ -213,8 +216,8 @@ class PremiumCloseTradeTextField extends StatelessWidget {
       inputFormatters: [
         if (maxLength != null) LengthLimitingTextInputFormatter(maxLength),
       ],
-      style: const TextStyle(color: closeTradeText),
-      decoration: _inputDecoration(hint),
+      style: TextStyle(color: context.palette.primaryText),
+      decoration: _inputDecoration(context, hint),
       validator: validator,
     ),
   );
@@ -250,13 +253,16 @@ class PremiumCloseTradeDropdown extends StatelessWidget {
       child: DropdownButtonFormField<String>(
         initialValue: selected,
         isExpanded: true,
-        dropdownColor: closeTradeRaised,
+        dropdownColor: context.palette.surfaceRaised,
         icon: const Icon(Icons.keyboard_arrow_down_rounded),
-        style: const TextStyle(color: closeTradeText, fontSize: 14),
-        decoration: _inputDecoration(''),
+        style: TextStyle(color: context.palette.primaryText, fontSize: 14),
+        decoration: _inputDecoration(context, ''),
         hint: hint == null
             ? null
-            : Text(hint!, style: const TextStyle(color: closeTradeMuted)),
+            : Text(
+                hint!,
+                style: TextStyle(color: context.palette.secondaryText),
+              ),
         items: [
           for (final item in items)
             DropdownMenuItem(value: item, child: Text(titleCase(item))),
@@ -428,64 +434,71 @@ class _DecimalTextInputFormatter extends TextInputFormatter {
   }
 }
 
-BoxDecoration _premiumDecoration({
+BoxDecoration _premiumDecoration(
+  BuildContext context, {
   required Color accent,
   required double radius,
   bool prominent = false,
 }) => BoxDecoration(
-  gradient: const LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF1B2633), closeTradeSurface, Color(0xFF0B1017)],
-  ),
+  color: context.palette.surface,
+  gradient: context.isDarkMode
+      ? LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            context.palette.surfaceRaised,
+            context.palette.surface,
+            context.palette.background,
+          ],
+        )
+      : null,
   borderRadius: BorderRadius.circular(radius),
   border: Border.all(
     color: accent.withValues(alpha: prominent ? .9 : .42),
     width: prominent ? 1.2 : 1,
   ),
-  boxShadow: [
-    BoxShadow(
-      color: accent.withValues(alpha: prominent ? .10 : .05),
-      blurRadius: prominent ? 18 : 12,
-    ),
-  ],
+  boxShadow: TradeXElevation.surface(
+    brightness: Theme.of(context).brightness,
+    palette: context.palette,
+  ),
 );
 
-BoxDecoration _inputBoxDecoration() => BoxDecoration(
-  color: const Color(0xFF111923),
+BoxDecoration _inputBoxDecoration(BuildContext context) => BoxDecoration(
+  color: context.palette.surfaceMuted,
   borderRadius: BorderRadius.circular(11),
-  border: Border.all(color: closeTradeMuted.withValues(alpha: .45)),
+  border: Border.all(color: context.palette.border),
 );
 
-InputDecoration _inputDecoration(String hint) => InputDecoration(
-  hintText: hint,
-  hintStyle: const TextStyle(color: Color(0xFF6F84A3)),
-  filled: true,
-  fillColor: const Color(0xFF111923),
-  contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
-  isDense: true,
-  border: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(11),
-    borderSide: BorderSide(color: closeTradeMuted.withValues(alpha: .45)),
-  ),
-  enabledBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(11),
-    borderSide: BorderSide(color: closeTradeMuted.withValues(alpha: .45)),
-  ),
-  focusedBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(11),
-    borderSide: const BorderSide(color: closeTradeBlue, width: 1.3),
-  ),
-  errorBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(11),
-    borderSide: const BorderSide(color: closeTradeRed),
-  ),
-  focusedErrorBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(11),
-    borderSide: const BorderSide(color: closeTradeRed, width: 1.3),
-  ),
-  errorStyle: const TextStyle(color: closeTradeRed, fontSize: 10),
-);
+InputDecoration _inputDecoration(BuildContext context, String hint) =>
+    InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Color(0xFF6F84A3)),
+      filled: true,
+      fillColor: context.palette.surfaceMuted,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
+      isDense: true,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: BorderSide(color: context.palette.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: BorderSide(color: context.palette.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: closeTradeBlue, width: 1.3),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: closeTradeRed),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: closeTradeRed, width: 1.3),
+      ),
+      errorStyle: const TextStyle(color: closeTradeRed, fontSize: 10),
+    );
 
 Color _statusColor(String status) => switch (status.toLowerCase()) {
   'open' => closeTradeGreen,

@@ -60,11 +60,18 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
   @override
   Widget build(BuildContext context) => _WorkflowScaffold(
     title: 'Upload Payment Proof',
+    subtitle: 'Secure manual verification',
     child: Form(
       key: _key,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const _WorkflowIntro(
+            icon: Icons.receipt_long_outlined,
+            title: 'Payment Evidence',
+            message: 'Submit your transfer details and receipt for secure backend verification.',
+          ),
+          const SizedBox(height: 18),
           const _SecurityNotice(
             'Complete the transfer and submit proof before the backend expiry time. Proof submission never activates access by itself.',
           ),
@@ -90,6 +97,10 @@ class _PaymentProofScreenState extends State<PaymentProofScreen> {
             ),
           ],
           const SizedBox(height: 14),
+          const _WorkflowSectionTitle(
+            icon: Icons.upload_file_rounded,
+            title: 'Evidence details',
+          ),
           if (widget.legacySubmitEndpoint == null)
             _input(
               _order,

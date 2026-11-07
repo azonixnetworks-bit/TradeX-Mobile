@@ -5,6 +5,7 @@ import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/domain/api_gateway.dart';
 import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../../../core/serialization/structured_text_codec.dart';
 import '../catalog_dependencies.dart';
 import '../models/feature_spec.dart';
@@ -30,6 +31,17 @@ class FeatureCatalogScreen extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
         children: [
+          Text(
+            'Services',
+            style: Theme.of(context).textTheme.headlineMedium
+                ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -.6),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Access TradeX services and secure account workflows in one place.',
+            style: TextStyle(color: context.palette.secondaryText),
+          ),
+          const SizedBox(height: 16),
           const _SafetyNotice(),
           const SizedBox(height: 14),
           for (final entry in groups.entries) ...[

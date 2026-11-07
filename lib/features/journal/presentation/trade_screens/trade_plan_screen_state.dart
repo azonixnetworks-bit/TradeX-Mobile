@@ -425,9 +425,9 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
           Container(
             key: const ValueKey('trade-symbol-suggestions'),
             decoration: BoxDecoration(
-              color: journalPanelRaised,
+              color: context.palette.surfaceRaised,
               borderRadius: BorderRadius.circular(13),
-              border: Border.all(color: Colors.white.withValues(alpha: .1)),
+              border: Border.all(color: context.palette.border),
             ),
             child: Column(
               children: [
@@ -438,10 +438,7 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
                 ) ...[
                   _symbolSuggestionTile(_symbolSuggestions[index]),
                   if (index < _symbolSuggestions.length - 1)
-                    Divider(
-                      height: 1,
-                      color: Colors.white.withValues(alpha: .07),
-                    ),
+                    Divider(height: 1, color: context.palette.border),
                 ],
               ],
             ),

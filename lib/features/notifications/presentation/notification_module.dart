@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/entities/notification_entities.dart';
 import '../domain/repositories/notification_repository.dart';
 import 'bloc/notification_cubit.dart';

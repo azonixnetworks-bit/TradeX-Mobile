@@ -86,19 +86,40 @@ class _CopyTradingBrokerDirectoryScreenState
       final visible = brokers.where((item) => item.marketCategory == _market);
       return CopyTradingScrollPage(
         children: [
-          const CopyHeroCard(
-            child: CopyPageHeading(
-              title: 'Choose Your',
-              goldTitle: 'Broker',
-              subtitle: 'Open a LIVE account through TradeX and connect cTrader only.',
-            ),
+          const CopyPageHeading(
+            title: 'Choose Your',
+            goldTitle: 'Broker',
+            subtitle: 'Choose a configured broker to start your secure TradeX connection.',
+            icon: Icons.account_balance_outlined,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 18),
           _MarketSelector(
             value: _market,
             onChanged: (value) => setState(() => _market = value),
           ),
           const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Available $_market brokers',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                '${visible.length} configured',
+                style: const TextStyle(
+                  color: copyGold,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
           if (visible.isEmpty)
             CopyEmptyState(
               icon: Icons.business_outlined,

@@ -15,24 +15,24 @@ class SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final body = Container(
       padding: padding,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF111614), Color(0xFF07100E)],
-        ),
+        color: palette.surface,
+        gradient: context.isDarkMode
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [palette.surfaceRaised, palette.surface],
+              )
+            : null,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor ?? TradeXColors.border),
-        boxShadow: borderColor == null
-            ? null
-            : [
-                BoxShadow(
-                  color: borderColor!.withValues(alpha: .12),
-                  blurRadius: 18,
-                ),
-              ],
+        border: Border.all(color: borderColor ?? palette.border),
+        boxShadow: TradeXElevation.surface(
+          brightness: Theme.of(context).brightness,
+          palette: palette,
+        ),
       ),
       child: child,
     );
@@ -137,9 +137,9 @@ class LoadingSkeleton extends StatelessWidget {
         Container(
           height: index == 0 ? 180 : 84,
           decoration: BoxDecoration(
-            color: TradeXColors.surfaceRaised,
+            color: context.palette.surfaceRaised,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: TradeXColors.border),
+            border: Border.all(color: context.palette.border),
           ),
           child: const Center(
             child: SizedBox.square(
@@ -219,9 +219,9 @@ class _FilterButton extends StatelessWidget {
       gradient: selected
           ? const LinearGradient(colors: [_gold, Color(0xFFF0A900)])
           : null,
-      color: selected ? null : TradeXColors.surfaceRaised,
+      color: selected ? null : context.palette.surfaceMuted,
       borderRadius: BorderRadius.circular(13),
-      border: Border.all(color: selected ? _gold : TradeXColors.border),
+      border: Border.all(color: selected ? _gold : context.palette.border),
     ),
     child: InkWell(
       onTap: onTap,
@@ -232,7 +232,7 @@ class _FilterButton extends StatelessWidget {
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: selected ? Colors.black : Colors.white,
+            color: selected ? Colors.black : context.palette.primaryText,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -288,13 +288,11 @@ class _AffiliateArt extends StatelessWidget {
     required this.path,
     required this.fallback,
     required this.size,
-    this.tint,
   });
 
   final String path;
   final IconData fallback;
   final double size;
-  final Color? tint;
 
   @override
   Widget build(BuildContext context) => SizedBox.square(
@@ -303,10 +301,7 @@ class _AffiliateArt extends StatelessWidget {
       path,
       fit: BoxFit.contain,
       filterQuality: FilterQuality.high,
-      color: tint,
-      colorBlendMode: tint == null ? null : BlendMode.modulate,
-      errorBuilder: (_, _, _) =>
-          Icon(fallback, color: tint ?? _gold, size: size * .65),
+      errorBuilder: (_, _, _) => Icon(fallback, color: _gold, size: size * .65),
     ),
   );
 }
@@ -525,7 +520,7 @@ Future<void> _showQr(BuildContext context, String url) async {
   await showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
-      backgroundColor: TradeXColors.surfaceRaised,
+      backgroundColor: context.palette.surfaceRaised,
       title: const Text('Referral QR Code'),
       content: Container(
         color: Colors.white,

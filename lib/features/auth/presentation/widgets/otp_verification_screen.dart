@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/theme/tradex_colors.dart';
+import '../../../../core/theme/tradex_design_system.dart';
 import 'auth_form_components.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
@@ -63,7 +64,7 @@ class MobileOtpVerificationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return OtpVerificationScreen(
       key: const ValueKey('mobile-single-digit-otp'),
-      title: 'Verify Mobile Number',
+      title: 'Verify WhatsApp',
       subtitle: subtitle,
       codeLength: 6,
       forceSingleDigitBoxes: true,
@@ -110,6 +111,32 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   String get _code =>
       _codeControllers.map((controller) => controller.text).join();
+
+  void _applyFullCode(String value) {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.length != widget.codeLength) return;
+    for (var index = 0; index < _codeControllers.length; index++) {
+      final start = index * _digitsPerBox;
+      final end = start + _digitsPerBox;
+      _codeControllers[index].text = digits.substring(start, end);
+    }
+    _codeFocusNodes.last.requestFocus();
+    if (_errorMessage != null) setState(() => _errorMessage = null);
+  }
+
+  Future<void> _pasteCode() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!mounted) return;
+    final digits = (data?.text ?? '').replaceAll(RegExp(r'\D'), '');
+    if (digits.length != widget.codeLength) {
+      setState(
+        () => _errorMessage =
+            'Clipboard must contain exactly ${widget.codeLength} digits.',
+      );
+      return;
+    }
+    _applyFullCode(digits);
+  }
 
   int get _boxCount => widget.forceSingleDigitBoxes
       ? widget.codeLength
@@ -239,6 +266,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEmailVerification = widget.codeLength == 8;
     final resendLabel = _secondsRemaining > 0
         ? 'Resend in ${_secondsRemaining}s'
         : 'Resend Code';
@@ -248,11 +276,29 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       subtitle: widget.subtitle,
       onBack: widget.onBack,
       titleIconAsset: widget.titleIconAsset,
+      decorTopAsset: isEmailVerification
+          ? 'assets/auth_recovery_ui/subtle_gold_uptrend_candlesticks.png'
+          : null,
+      decorFooterAsset: isEmailVerification
+          ? 'assets/auth_recovery_ui/soft_ivory_wave_layers.png'
+          : null,
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (isEmailVerification) ...[
+              Center(
+                child: Image.asset(
+                  'assets/auth_recovery_ui/secure_email_verification_icon.png',
+                  width: 126,
+                  height: 112,
+                  fit: BoxFit.contain,
+                  semanticLabel: 'Secure email verification',
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
             if (widget.channelLabel != null) ...[
               TradeXInfoBanner(
                 message: widget.channelLabel!,
@@ -264,8 +310,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               widget.codeLength == 8
                   ? 'Email verification code'
                   : 'Verification code',
-              style: const TextStyle(
-                color: TradeXColors.secondaryText,
+              style: TextStyle(
+                color: context.palette.secondaryText,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -296,7 +342,20 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       focusNode: _codeFocusNodes[index],
                       autofocus: index == 0,
                       digitsPerBox: _digitsPerBox,
+                      maxInputLength: widget.codeLength,
+                      enableOtpAutofill: index == 0,
                       onChanged: (value) {
+                        if (value.length == widget.codeLength) {
+                          _applyFullCode(value);
+                          return;
+                        }
+                        if (value.length > _digitsPerBox) {
+                          _codeControllers[index].text = value.substring(
+                            0,
+                            _digitsPerBox,
+                          );
+                          return;
+                        }
                         if (value.length == _digitsPerBox &&
                             index < _codeFocusNodes.length - 1) {
                           _codeFocusNodes[index + 1].requestFocus();
@@ -318,6 +377,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     const SizedBox(width: 8),
                 ],
               ],
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: _verifying ? null : _pasteCode,
+                icon: const Icon(Icons.content_paste_rounded, size: 18),
+                label: const Text('Paste code'),
+              ),
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 14),
@@ -378,6 +446,8 @@ class _OtpCodeField extends StatelessWidget {
     required this.focusNode,
     required this.autofocus,
     required this.digitsPerBox,
+    required this.maxInputLength,
+    required this.enableOtpAutofill,
     required this.onChanged,
     required this.onSubmitted,
   });
@@ -386,6 +456,8 @@ class _OtpCodeField extends StatelessWidget {
   final FocusNode focusNode;
   final bool autofocus;
   final int digitsPerBox;
+  final int maxInputLength;
+  final bool enableOtpAutofill;
   final ValueChanged<String> onChanged;
   final VoidCallback onSubmitted;
 
@@ -395,9 +467,12 @@ class _OtpCodeField extends StatelessWidget {
     focusNode: focusNode,
     autofocus: autofocus,
     keyboardType: TextInputType.number,
+    autofillHints: enableOtpAutofill
+        ? const <String>[AutofillHints.oneTimeCode]
+        : null,
     textAlign: TextAlign.center,
-    style: const TextStyle(
-      color: Colors.white,
+    style: TextStyle(
+      color: context.palette.primaryText,
       fontSize: 18,
       fontWeight: FontWeight.w800,
       letterSpacing: 2,
@@ -405,18 +480,18 @@ class _OtpCodeField extends StatelessWidget {
     textInputAction: TextInputAction.next,
     inputFormatters: [
       FilteringTextInputFormatter.digitsOnly,
-      LengthLimitingTextInputFormatter(digitsPerBox),
+      LengthLimitingTextInputFormatter(maxInputLength),
     ],
     onChanged: onChanged,
     onSubmitted: (_) => onSubmitted(),
     decoration: InputDecoration(
       counterText: '',
       filled: true,
-      fillColor: const Color(0xFF08100E),
+      fillColor: context.palette.surfaceMuted,
       contentPadding: const EdgeInsets.symmetric(vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF334138)),
+        borderSide: BorderSide(color: context.palette.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),

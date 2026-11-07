@@ -194,79 +194,33 @@ class _TradingThumbnailFallback extends StatelessWidget {
   const _TradingThumbnailFallback();
 
   @override
-  Widget build(BuildContext context) => CustomPaint(
-    painter: _TradingThumbnailPainter(),
-    child: const Align(
-      alignment: Alignment.bottomLeft,
-      child: Padding(
-        padding: EdgeInsets.all(10),
-        child: Text(
-          'TradeX',
-          style: TextStyle(
-            color: learnText,
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            fontStyle: FontStyle.italic,
+  Widget build(BuildContext context) => Container(
+    color: const Color(0xFFFFFBF2),
+    child: Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          'assets/learning_ui/illustrations_png/featured_bull_on_rock.png',
+          fit: BoxFit.contain,
+        ),
+        const Align(
+          alignment: Alignment.bottomLeft,
+          child: Padding(
+            padding: EdgeInsets.all(10),
+            child: Text(
+              'TradeX',
+              style: TextStyle(
+                color: Color(0xFF292720),
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     ),
   );
-}
-
-class _TradingThumbnailPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final background = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [TradeXColors.surfaceRaised, TradeXColors.background],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, background);
-    final grid = Paint()
-      ..color = learnBorder.withValues(alpha: .24)
-      ..strokeWidth = 1;
-    for (var i = 1; i < 5; i++) {
-      final y = size.height * i / 5;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
-    }
-    for (var i = 1; i < 7; i++) {
-      final x = size.width * i / 7;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
-    }
-    final random = math.Random(19);
-    var price = size.height * .62;
-    final candleWidth = size.width / 17;
-    for (var i = 0; i < 14; i++) {
-      final delta = (random.nextDouble() - .46) * size.height * .15;
-      final next = (price + delta).clamp(size.height * .18, size.height * .83);
-      final x = size.width * .08 + i * candleWidth;
-      final rising = next < price;
-      final color = rising ? learnGold : TradeXColors.goldSoft;
-      final candle = Paint()
-        ..color = color
-        ..strokeWidth = 1.5;
-      canvas.drawLine(
-        Offset(x, math.min(price, next) - size.height * .07),
-        Offset(x, math.max(price, next) + size.height * .07),
-        candle,
-      );
-      canvas.drawRect(
-        Rect.fromLTRB(
-          x - candleWidth * .22,
-          math.min(price, next),
-          x + candleWidth * .22,
-          math.max(price, next) + 2,
-        ),
-        candle,
-      );
-      price = next;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 String? _thumbnailUrl(String value) {

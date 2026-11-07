@@ -77,18 +77,21 @@ class _NoTradeIdeasCard extends StatelessWidget {
       height: 146,
       padding: const EdgeInsets.all(18),
       decoration: _panelDecoration(context),
-      child: const Row(
+      child: Row(
         children: [
           Icon(
             Icons.insights_outlined,
-            color: TradeXColors.goldBright,
+            color: context.palette.goldText,
             size: 30,
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               'New TradeX market analysis will appear here as soon as it is published.',
-              style: TextStyle(color: TradeXColors.secondaryText, height: 1.35),
+              style: TextStyle(
+                color: context.palette.secondaryText,
+                height: 1.35,
+              ),
             ),
           ),
         ],
@@ -116,11 +119,12 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
   @override
   Widget build(BuildContext context) {
     final idea = widget.idea;
+    final palette = context.palette;
     final directionColor = idea.direction == 'BUY'
-        ? TradeXColors.success
+        ? palette.success
         : idea.direction == 'SELL'
-        ? TradeXColors.error
-        : TradeXColors.goldBright;
+        ? palette.error
+        : palette.goldText;
     final label = switch (widget.position) {
       0 => 'LATEST',
       1 => 'RECENT',
@@ -140,8 +144,8 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
               const Spacer(),
               Text(
                 idea.timeframe,
-                style: const TextStyle(
-                  color: TradeXColors.secondaryText,
+                style: TextStyle(
+                  color: palette.secondaryText,
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                 ),
@@ -163,8 +167,8 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
                         idea.symbol,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: TradeXColors.primaryText,
+                        style: TextStyle(
+                          color: palette.primaryText,
                           fontSize: 19,
                           fontWeight: FontWeight.w900,
                         ),
@@ -198,10 +202,7 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
               idea.latestUpdate!.message,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: TradeXColors.secondaryText,
-                fontSize: 10,
-              ),
+              style: TextStyle(color: palette.secondaryText, fontSize: 10),
             ),
           const SizedBox(height: 8),
           Row(
@@ -236,24 +237,22 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 8),
               decoration: BoxDecoration(
-                border: Border.all(
-                  color: TradeXColors.gold.withValues(alpha: .7),
-                ),
+                border: Border.all(color: palette.gold.withValues(alpha: .7)),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.insights_rounded,
                     size: 15,
-                    color: TradeXColors.goldBright,
+                    color: palette.goldText,
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Text(
                     'View Analysis',
                     style: TextStyle(
-                      color: TradeXColors.goldBright,
+                      color: palette.goldText,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                     ),
@@ -294,9 +293,12 @@ class _TradeChartPreview extends StatelessWidget {
     child: ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        color: const Color(0xFF0A1514),
+        color: context.palette.surfaceMuted,
         alignment: Alignment.center,
-        child: const _MiniCandles(),
+        child: Image.asset(
+          'assets/home_ui/complex_png/upward_green_and_red_candlestick_chart.png',
+          fit: BoxFit.contain,
+        ),
       ),
     ),
   );

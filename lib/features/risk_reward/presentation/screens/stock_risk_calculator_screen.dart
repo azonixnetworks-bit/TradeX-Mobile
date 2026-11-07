@@ -81,121 +81,120 @@ class _StockRiskCalculatorScreenState extends State<StockRiskCalculatorScreen> {
         ? (_region == 'SRI_LANKA' ? 'LKR' : 'USD')
         : selected.currency;
     return _FeaturePage(
-      child: ListView(
-        key: const ValueKey('stock-risk-calculator'),
-        padding: const EdgeInsets.fromLTRB(18, 22, 18, 32),
-        children: [
-          const _GradientTitle(
-            first: 'Stocks Risk Reward',
-            second: 'Calculator',
-          ),
-          const SizedBox(height: 8),
-          const _PageSubtitle(
-            'Risk-based whole-share sizing with explicit FX provenance.',
-          ),
-          const SizedBox(height: 18),
-          _SegmentedControl(
-            values: const ['SRI_LANKA', 'INDIA', 'INTERNATIONAL'],
-            labels: const ['Sri Lanka', 'India', 'International'],
-            selected: _region,
-            onSelected: (value) => setState(() {
-              _region = value;
-              _symbol = null;
-              context.read<RiskRewardCubit>().clearResult();
-            }),
-          ),
-          const SizedBox(height: 16),
-          if (isManual)
-            _CalculatorField(
-              label: 'Symbol / Company (Manual)',
-              controller: _manualSymbol,
-              icon: Icons.search_rounded,
-              numeric: false,
-            )
-          else
-            _StockSearchField(
-              key: ValueKey(_region),
-              selected: selected,
-              stocks: visible,
-              onSelected: (value) => setState(() => _symbol = value.symbol),
+      child: _CalculatorCanvas(
+        child: ListView(
+          key: const ValueKey('stock-risk-calculator'),
+          padding: const EdgeInsets.fromLTRB(18, 22, 18, 32),
+          children: [
+            const _CalculatorHero(
+              title: 'Stock Calculator',
+              eyebrow: 'Stocks Risk Reward',
+              subtitle: 'Calculate share quantity, risk and expected reward with current market metadata.',
             ),
-          if (_region == 'SRI_LANKA')
-            const _StatusNotice(
-              text: 'CSE live quotes are not connected. Enter prices manually; no live price is simulated.',
+            const SizedBox(height: 18),
+            _SegmentedControl(
+              values: const ['SRI_LANKA', 'INDIA', 'INTERNATIONAL'],
+              labels: const ['Sri Lanka', 'India', 'International'],
+              selected: _region,
+              onSelected: (value) => setState(() {
+                _region = value;
+                _symbol = null;
+                context.read<RiskRewardCubit>().clearResult();
+              }),
             ),
-          const SizedBox(height: 12),
-          const _TradeSideControl(selected: 'BUY'),
-          const SizedBox(height: 14),
-          _CalculatorField(
-            label: 'Entry Price ($currency)',
-            controller: _entry,
-            icon: Icons.login,
-          ),
-          _CalculatorField(
-            label: 'Stop Loss Price ($currency)',
-            controller: _stop,
-            icon: Icons.shield_outlined,
-          ),
-          _CalculatorField(
-            label: 'Risk Amount (USD)',
-            controller: _risk,
-            icon: Icons.savings_outlined,
-          ),
-          _CalculatorField(
-            label: 'Take Profit Price (Optional)',
-            controller: _target,
-            icon: Icons.track_changes,
-          ),
-          _CalculatorField(
-            label: 'Buying Power (Optional)',
-            controller: _buyingPower,
-            icon: Icons.account_balance_wallet_outlined,
-          ),
-          ExpansionTile(
-            tilePadding: EdgeInsets.zero,
-            title: const Text('Fees & Slippage (Optional)'),
-            children: [
+            const SizedBox(height: 16),
+            if (isManual)
               _CalculatorField(
-                label: 'Fees per Share',
-                controller: _feesPerShare,
-                icon: Icons.receipt_long_outlined,
+                label: 'Symbol / Company (Manual)',
+                controller: _manualSymbol,
+                icon: Icons.search_rounded,
+                numeric: false,
+              )
+            else
+              _StockSearchField(
+                key: ValueKey(_region),
+                selected: selected,
+                stocks: visible,
+                onSelected: (value) => setState(() => _symbol = value.symbol),
+              ),
+            if (_region == 'SRI_LANKA')
+              const _StatusNotice(
+                text: 'CSE live quotes are not connected. Enter prices manually; no live price is simulated.',
+              ),
+            const SizedBox(height: 12),
+            const _TradeSideControl(selected: 'BUY'),
+            const SizedBox(height: 14),
+            _CalculatorField(
+              label: 'Entry Price ($currency)',
+              controller: _entry,
+              icon: Icons.login,
+            ),
+            _CalculatorField(
+              label: 'Stop Loss Price ($currency)',
+              controller: _stop,
+              icon: Icons.shield_outlined,
+            ),
+            _CalculatorField(
+              label: 'Risk Amount (USD)',
+              controller: _risk,
+              icon: Icons.savings_outlined,
+            ),
+            _CalculatorField(
+              label: 'Take Profit Price (Optional)',
+              controller: _target,
+              icon: Icons.track_changes,
+            ),
+            _CalculatorField(
+              label: 'Buying Power (Optional)',
+              controller: _buyingPower,
+              icon: Icons.account_balance_wallet_outlined,
+            ),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('Fees & Slippage (Optional)'),
+              children: [
+                _CalculatorField(
+                  label: 'Fees per Share',
+                  controller: _feesPerShare,
+                  icon: Icons.receipt_long_outlined,
+                ),
+                _CalculatorField(
+                  label: 'Slippage (%)',
+                  controller: _slippage,
+                  icon: Icons.percent_rounded,
+                ),
+              ],
+            ),
+            if (currency != 'USD') ...[
+              _CalculatorField(
+                label: '$currency to USD Rate',
+                controller: _fxRate,
+                icon: Icons.currency_exchange_rounded,
               ),
               _CalculatorField(
-                label: 'Slippage (%)',
-                controller: _slippage,
-                icon: Icons.percent_rounded,
+                label: 'FX Rate Source',
+                controller: _fxSource,
+                icon: Icons.source_outlined,
+                numeric: false,
               ),
             ],
-          ),
-          if (currency != 'USD') ...[
-            _CalculatorField(
-              label: '$currency to USD Rate',
-              controller: _fxRate,
-              icon: Icons.currency_exchange_rounded,
+            _CalculateButton(
+              onPressed: () =>
+                  _calculate(context, selected: selected, currency: currency),
             ),
-            _CalculatorField(
-              label: 'FX Rate Source',
-              controller: _fxSource,
-              icon: Icons.source_outlined,
-              numeric: false,
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => _open(
+                context,
+                DividendCalculatorScreen(initialStock: selected),
+              ),
+              icon: const Icon(Icons.savings_rounded),
+              label: const Text('Open Dividend Calculator'),
             ),
+            const SizedBox(height: 16),
+            _CurrentResult(input: _lastInput, onNewCalculation: _reset),
           ],
-          _CalculateButton(
-            onPressed: () =>
-                _calculate(context, selected: selected, currency: currency),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => _open(
-              context,
-              DividendCalculatorScreen(initialStock: selected),
-            ),
-            icon: const Icon(Icons.savings_rounded),
-            label: const Text('Open Dividend Calculator'),
-          ),
-          const SizedBox(height: 16),
-          _CurrentResult(input: _lastInput, onNewCalculation: _reset),
-        ],
+        ),
       ),
     );
   }

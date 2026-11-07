@@ -12,7 +12,7 @@ class FundedCompanyDetailsScreen extends StatelessWidget {
       if (partner == null) return const _MissingPartnerPage();
       return FundedPage(
         title: 'Company Details',
-        subtitle: 'Review verified partner information.',
+        subtitle: 'Review provider information, available programs and terms.',
         children: [
           NoTradeZoneWarningBanner(
             source: context.read<NoTradeWarningSource>(),
@@ -20,25 +20,42 @@ class FundedCompanyDetailsScreen extends StatelessWidget {
           ),
           FundedCard(
             gold: true,
-            child: Column(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _PartnerLogo(partner: partner, size: 82),
-                const SizedBox(height: 12),
-                Text(
-                  partner.name,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
+                _PartnerLogo(partner: partner, size: 72),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        partner.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        '${partner.challengeTypes.length} program option${partner.challengeTypes.length == 1 ? '' : 's'} · ${partner.accountSizes.length} account size${partner.accountSizes.length == 1 ? '' : 's'}',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (partner.isFeatured) ...[
+                        const SizedBox(height: 8),
+                        const FundedPill(
+                          label: 'TRADEX FEATURED PARTNER',
+                          selected: true,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                if (partner.isFeatured) ...[
-                  const SizedBox(height: 8),
-                  const FundedPill(
-                    label: 'TRADEX FEATURED PARTNER',
-                    selected: true,
-                  ),
-                ],
               ],
             ),
           ),
@@ -100,7 +117,10 @@ class FundedCompanyDetailsScreen extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 20),
-          const FundedSectionTitle(title: 'Available Programs'),
+          const FundedSectionTitle(
+            title: 'Provider Programs',
+            subtitle: 'All values below come from the funded catalog',
+          ),
           _ValueSection(
             icon: Icons.flag_outlined,
             title: 'Supported countries',

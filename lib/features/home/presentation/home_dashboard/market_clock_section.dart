@@ -112,70 +112,89 @@ class _SessionClockCardState extends State<_SessionClockCard>
       key: const ValueKey('world-market-sessions'),
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
       decoration: _panelDecoration(context),
-      child: Column(
+      child: Stack(
         children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.public_rounded,
-                color: TradeXColors.goldBright,
-                size: 19,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'World Market Sessions',
-                      style: TextStyle(
-                        color: TradeXColors.primaryText,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${_twoDigits(now.hour)}:${_twoDigits(now.minute)}:${_twoDigits(now.second)}  $_timezone',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: TradeXColors.secondaryText,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ],
+          Positioned(
+            left: -8,
+            right: -8,
+            top: 42,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: context.isDarkMode ? .06 : .25,
+                child: Image.asset(
+                  'assets/home_ui/complex_png/soft_beige_london_skyline.png',
+                  height: 112,
+                  fit: BoxFit.cover,
                 ),
               ),
-              const _LivePill(),
-            ],
+            ),
           ),
-          const SizedBox(height: 10),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final dialSize = math.min(450.0, constraints.maxWidth);
-              return Center(
-                child: SizedBox.square(
-                  dimension: dialSize,
-                  child: RepaintBoundary(
-                    child: CustomPaint(
-                      key: const ValueKey('market-24h-clock'),
-                      painter: _MarketClockDialPainter(
-                        sessions: dialSessions,
-                        now: now,
-                      ),
+          Column(
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.public_rounded,
+                    color: TradeXColors.goldBright,
+                    size: 19,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'World Market Sessions',
+                          style: TextStyle(
+                            color: TradeXColors.primaryText,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${_twoDigits(now.hour)}:${_twoDigits(now.minute)}:${_twoDigits(now.second)}  $_timezone',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: TradeXColors.secondaryText,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              );
-            },
+                  const _LivePill(),
+                ],
+              ),
+              const SizedBox(height: 10),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final dialSize = math.min(450.0, constraints.maxWidth);
+                  return Center(
+                    child: SizedBox.square(
+                      dimension: dialSize,
+                      child: RepaintBoundary(
+                        child: CustomPaint(
+                          key: const ValueKey('market-24h-clock'),
+                          painter: _MarketClockDialPainter(
+                            sessions: dialSessions,
+                            now: now,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 7),
+              const _ClockLegend(),
+              const SizedBox(height: 12),
+              _WorldClockGrid(now: now, sessions: sessions),
+            ],
           ),
-          const SizedBox(height: 7),
-          const _ClockLegend(),
-          const SizedBox(height: 12),
-          _WorldClockGrid(now: now, sessions: sessions),
         ],
       ),
     );

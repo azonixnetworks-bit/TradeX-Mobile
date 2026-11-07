@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/entities/copy_trading_entities.dart';
 import '../domain/usecases/copy_trading_use_cases.dart';
 
@@ -23,7 +24,7 @@ class CopyTradingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
+    backgroundColor: context.palette.background,
     body: SafeArea(
       child: Padding(padding: padding, child: child),
     ),
@@ -48,7 +49,7 @@ class CopyTradingScrollPage extends StatelessWidget {
       children: children,
     );
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: context.palette.background,
       body: SafeArea(
         child: onRefresh == null
             ? list
@@ -78,28 +79,28 @@ class CopySectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final content = Container(
       padding: padding,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: highlight
-              ? const [Color(0xFF211906), Color(0xFF080A09)]
-              : const [Color(0xFF111513), Color(0xFF050706)],
-        ),
+        color: palette.surface,
+        gradient: context.isDarkMode
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: highlight
+                    ? [palette.goldSoft, palette.surface]
+                    : [palette.surfaceRaised, palette.surface],
+              )
+            : null,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: highlight
-              ? copyGold.withValues(alpha: .88)
-              : TradeXColors.gold.withValues(alpha: .52),
+          color: highlight ? copyGold.withValues(alpha: .88) : palette.border,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: copyGold.withValues(alpha: highlight ? .12 : .05),
-            blurRadius: highlight ? 22 : 12,
-          ),
-        ],
+        boxShadow: TradeXElevation.surface(
+          brightness: Theme.of(context).brightness,
+          palette: palette,
+        ),
       ),
       child: child,
     );

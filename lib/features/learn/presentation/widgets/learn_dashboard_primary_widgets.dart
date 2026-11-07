@@ -6,50 +6,59 @@ class LearnDashboardHeader extends StatelessWidget {
   final VoidCallback? onNotifications;
 
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(text: 'Learn'),
-                  TextSpan(
-                    text: '.',
-                    style: TextStyle(color: learnGold),
-                  ),
-                ],
-              ),
-              style: TextStyle(
-                color: learnText,
-                fontSize: 30,
-                height: 1,
-                fontWeight: FontWeight.w900,
+      Row(
+        children: [
+          Image.asset(
+            'assets/branding/trade_x_final_logo.png',
+            width: 58,
+            height: 58,
+            fit: BoxFit.contain,
+          ),
+          const Spacer(),
+          if (onNotifications != null)
+            IconButton(
+              key: const ValueKey('learn-notifications-button'),
+              onPressed: onNotifications,
+              tooltip: 'Notifications',
+              icon: SvgPicture.asset(
+                'assets/learning_ui/icons_svg/bell_notification.svg',
+                width: 23,
+                height: 23,
+                colorFilter: const ColorFilter.mode(learnGold, BlendMode.srcIn),
               ),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Build skill, discipline and consistency.',
-              style: TextStyle(
-                color: learnMuted,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+        ],
+      ),
+      const SizedBox(height: 6),
+      const Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: 'Learn'),
+            TextSpan(
+              text: '.',
+              style: TextStyle(color: learnGold),
             ),
           ],
         ),
-      ),
-      if (onNotifications != null)
-        IconButton(
-          key: const ValueKey('learn-notifications-button'),
-          onPressed: onNotifications,
-          tooltip: 'Notifications',
-          icon: const Icon(Icons.notifications_none_rounded),
-          color: learnGold,
+        style: TextStyle(
+          color: learnText,
+          fontSize: 30,
+          height: 1,
+          fontWeight: FontWeight.w900,
         ),
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'Your Trading Learning Hub',
+        style: TextStyle(
+          color: learnMuted,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     ],
   );
 }

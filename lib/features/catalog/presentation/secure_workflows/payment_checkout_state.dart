@@ -150,6 +150,23 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
                 }),
               ),
               const SizedBox(height: 12),
+              Text(
+                'Payment Method',
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 10),
+              _PaymentMethodGrid(
+                methods: methods,
+                selectedCode: _provider,
+                money: _money,
+                onSelected: (value) => setState(() {
+                  _provider = value;
+                  _receivingAccount = null;
+                  _confirmed = false;
+                }),
+              ),
+              const SizedBox(height: 12),
               if (manual)
                 if (accounts.isNotEmpty)
                   DropdownButtonFormField<String>(
@@ -468,5 +485,109 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
     }
+  }
+}
+
+class _PaymentMethodGrid extends StatelessWidget {
+  const _PaymentMethodGrid({
+    required this.methods,
+    required this.selectedCode,
+    required this.money,
+    required this.onSelected,
+  });
+
+  final List<Map<String, dynamic>> methods;
+  final String? selectedCode;
+  final String Function(Object?) money;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 560 ? 3 : 2;
+        final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: methods
+              .map((method) {
+                final code = method['code']?.toString() ?? '';
+                final selected = code == selectedCode;
+                final lower = code.toLowerCase();
+                final icon = lower.contains('bank')
+                    ? Icons.account_balance_rounded
+                    : lower.contains('usdt') || lower.contains('crypto')
+                    ? Icons.currency_bitcoin_rounded
+                    : lower.contains('wallet')
+                    ? Icons.account_balance_wallet_rounded
+                    : Icons.credit_card_rounded;
+                final label =
+                    method['display_name']?.toString() ?? code.toUpperCase();
+                return SizedBox(
+                  width: width,
+                  child: Semantics(
+                    button: true,
+                    selected: selected,
+                    label: '$label, ${money(method['amount'])}',
+                    child: Material(
+                      color: selected
+                          ? palette.goldSoft
+                          : palette.surfaceRaised,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: code.isEmpty ? null : () => onSelected(code),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          constraints: const BoxConstraints(minHeight: 112),
+                          padding: const EdgeInsets.all(13),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: selected ? palette.gold : palette.border,
+                              width: selected ? 1.6 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(icon, color: palette.goldText, size: 27),
+                              const SizedBox(height: 8),
+                              RichText(
+                                text: TextSpan(
+                                  text: label,
+                                  style: TextStyle(
+                                    color: palette.primaryText,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                money(method['amount']),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: palette.secondaryText,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              })
+              .toList(growable: false),
+        );
+      },
+    );
   }
 }

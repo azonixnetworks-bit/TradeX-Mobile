@@ -17,7 +17,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
   late String access = widget.initialAccess;
   @override
   Widget build(BuildContext context) => _LearnScaffold(
-    title: 'Subjects & Courses',
+    title: 'All Courses',
     child: Column(
       children: [
         TextField(
@@ -87,7 +87,7 @@ class SubjectDetailsScreen extends StatelessWidget {
   final String courseUuid;
   @override
   Widget build(BuildContext context) => _LearnScaffold(
-    title: 'Subject Details',
+    title: 'Course Details',
     child: _FutureBody(
       future: repository.course(courseUuid),
       builder: (data) {
@@ -144,6 +144,7 @@ class ModuleLessonsScreen extends StatelessWidget {
       builder: (data) {
         final module = LearnRepository.map(data['module']);
         final lessons = LearnRepository.list(data['lessons']);
+        final progress = LearnRepository.map(module['progress']);
         return ListView(
           children: [
             if (_thumbnailValue(module).isNotEmpty) ...[
@@ -160,7 +161,25 @@ class ModuleLessonsScreen extends StatelessWidget {
                 LearnRepository.text(module['short_description']),
               ),
             ),
+            if (progress.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _ProgressSummary(
+                completed: LearnRepository.number(
+                  progress['completed_lessons'],
+                ),
+                total: LearnRepository.number(
+                  progress['total_lessons'] ?? module['lesson_count'],
+                ),
+                percent: LearnRepository.number(progress['percent']),
+              ),
+            ],
             const SizedBox(height: 14),
+            const _SectionHeading(
+              icon: Icons.play_lesson_outlined,
+              title: 'Lessons',
+            ),
+            const SizedBox(height: 10),
+            if (lessons.isEmpty) const _EmptyState('No lessons available yet.'),
             ...lessons.map((raw) {
               final lesson = LearnRepository.map(raw);
               return Padding(

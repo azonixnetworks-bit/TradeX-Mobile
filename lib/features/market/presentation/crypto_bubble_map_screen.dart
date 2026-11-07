@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/entities/crypto_market_entities.dart';
 import '../domain/repositories/crypto_market_repository.dart';
 import 'crypto_bubble_field.dart';
@@ -76,8 +77,27 @@ class _CryptoBubbleMapScreenState extends State<CryptoBubbleMapScreen>
   Widget build(BuildContext context) => BlocProvider.value(
     value: _cubit,
     child: Scaffold(
-      backgroundColor: const Color(0xFF07111C),
-      appBar: AppBar(title: const Text('Live Crypto Map')),
+      backgroundColor: context.palette.background,
+      appBar: AppBar(
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Crypto Bubble Map',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            ),
+            Text(
+              'Live Crypto Map',
+              style: TextStyle(
+                color: TradeXColors.secondaryText,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
       body: BlocConsumer<CryptoBubbleMapCubit, CryptoBubbleMapState>(
         listenWhen: (previous, current) =>
             previous.errorMessage != current.errorMessage &&
@@ -170,7 +190,12 @@ class _CryptoBubbleMapScreenState extends State<CryptoBubbleMapScreen>
                     ),
                   ),
                 ),
-                Expanded(child: _BubbleMapCanvas(state: state)),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    child: _BubbleMapCanvas(state: state),
+                  ),
+                ),
               ],
             ),
           );
@@ -227,11 +252,11 @@ class _BubbleMapCanvas extends StatelessWidget {
             .toDouble();
         final fieldPadding = (averageRadius * .3).clamp(6.0, 16.0).toDouble();
         return ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: BorderRadius.circular(22),
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF0B1420),
-              border: Border.all(color: Colors.white.withValues(alpha: .08)),
+              color: context.palette.surface,
+              border: Border.all(color: context.palette.border),
             ),
             child: SizedBox(
               width: width,

@@ -69,7 +69,7 @@ class _MyInvestmentsScreenState extends State<MyInvestmentsScreen> {
                 hintStyle: const TextStyle(color: _investmentMuted),
                 prefixIcon: const Icon(Icons.search_rounded),
                 filled: true,
-                fillColor: const Color(0xFF202227),
+                fillColor: _investmentCard,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),

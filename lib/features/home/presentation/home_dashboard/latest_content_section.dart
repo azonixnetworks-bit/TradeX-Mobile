@@ -13,24 +13,29 @@ class _CategoryGrid extends StatelessWidget {
         ideas: '30+ Ideas',
         accent: Color(0xFF45D6A8),
         imageAsset: 'assets/branding/market_forex.png',
+        iconAsset: 'assets/home_ui/simple_svg/market_forex.svg',
+      ),
+      (
+        label: 'Commodities',
+        ideas: '15+ Ideas',
+        accent: Color(0xFFFFA928),
+        imageAsset:
+            'assets/home_ui/complex_png/polished_gold_bullion_stack.png',
+        iconAsset: 'assets/home_ui/simple_svg/market_commodities.svg',
+      ),
+      (
+        label: 'Indices',
+        ideas: '50+ Ideas',
+        accent: Color(0xFF39B9FF),
+        imageAsset: 'assets/branding/market_stocks.png',
+        iconAsset: 'assets/home_ui/simple_svg/market_indices.svg',
       ),
       (
         label: 'Crypto',
         ideas: '20+ Ideas',
-        accent: Color(0xFFFFA928),
-        imageAsset: 'assets/branding/market_crypto.png',
-      ),
-      (
-        label: 'Stocks',
-        ideas: '50+ Ideas',
-        accent: Color(0xFF39B9FF),
-        imageAsset: 'assets/branding/market_stocks.png',
-      ),
-      (
-        label: 'Deriv',
-        ideas: '15+ Ideas',
         accent: Color(0xFFFF5A54),
-        imageAsset: 'assets/branding/market_deriv.png',
+        imageAsset: 'assets/branding/market_crypto.png',
+        iconAsset: 'assets/home_ui/simple_svg/market_crypto.svg',
       ),
     ];
     return SizedBox(
@@ -49,6 +54,7 @@ class _CategoryGrid extends StatelessWidget {
               ideas: category.ideas,
               accent: category.accent,
               imageAsset: category.imageAsset,
+              iconAsset: category.iconAsset,
               onTap: () => onTap('${category.label} trade ideas'),
             ),
           );
@@ -64,6 +70,7 @@ class _CategoryTile extends StatelessWidget {
     required this.ideas,
     required this.accent,
     required this.imageAsset,
+    required this.iconAsset,
     required this.onTap,
   });
 
@@ -71,6 +78,7 @@ class _CategoryTile extends StatelessWidget {
   final String ideas;
   final Color accent;
   final String imageAsset;
+  final String iconAsset;
   final VoidCallback onTap;
 
   @override
@@ -93,6 +101,16 @@ class _CategoryTile extends StatelessWidget {
         ),
         child: Stack(
           children: [
+            Positioned(
+              top: 0,
+              right: 0,
+              child: SvgPicture.asset(
+                iconAsset,
+                width: 38,
+                height: 38,
+                colorFilter: ColorFilter.mode(accent, BlendMode.srcIn),
+              ),
+            ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

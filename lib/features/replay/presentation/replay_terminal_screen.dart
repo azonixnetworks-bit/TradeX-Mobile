@@ -8,6 +8,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../core/domain/app_platform.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/replay_bundle_manifest.dart';
 import '../domain/replay_terminal_event.dart';
 import 'bloc/replay_terminal_cubit.dart';
@@ -257,8 +258,21 @@ class _ReplayTerminalScreenState extends State<ReplayTerminalScreen>
                   Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 430),
-                      child: Padding(
+                      child: Container(
+                        margin: const EdgeInsets.all(24),
                         padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF111614),
+                          borderRadius: TradeXRadii.card,
+                          border: Border.all(
+                            color: const Color(0xFFD4AF37)
+                                .withValues(alpha: .35),
+                          ),
+                          boxShadow: TradeXElevation.surface(
+                            brightness: Brightness.dark,
+                            palette: context.palette,
+                          ),
+                        ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -348,7 +362,10 @@ class _ReplayTerminalScreenState extends State<ReplayTerminalScreen>
               isLandscape || state.phase != ReplayTerminalPhase.ready
               ? null
               : Container(
-                  color: const Color(0xFF0D1110),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0D1110),
+                    border: Border(top: BorderSide(color: Color(0xFF2B332F))),
+                  ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 7,

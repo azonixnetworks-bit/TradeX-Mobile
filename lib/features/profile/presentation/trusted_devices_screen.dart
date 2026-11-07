@@ -5,6 +5,8 @@ import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/domain/api_gateway.dart';
 import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
+import '../../../core/widgets/security_screen_shell.dart';
 
 class TrustedDevicesScreen extends StatefulWidget {
   const TrustedDevicesScreen({super.key, required this.apiClient});
@@ -106,67 +108,59 @@ class _TrustedDevicesScreenState extends State<TrustedDevicesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: TradeXColors.background,
-      appBar: AppBar(
-        backgroundColor: TradeXColors.background,
-        foregroundColor: TradeXColors.primaryText,
-        title: const Text('Trusted devices'),
-      ),
-      body: SafeArea(
-        child: BlocFutureBuilder<_TrustedDeviceState>(
-          future: _devices,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(
-                child: CircularProgressIndicator(
-                  color: TradeXColors.goldBright,
-                ),
-              );
-            }
-            if (snapshot.hasError) {
-              return _DeviceLoadError(onRetry: _refresh);
-            }
-
-            final state = snapshot.requireData;
-            final devices = state.devices;
-            final mobile = devices
-                .where((device) => device.slot == 'MOBILE')
-                .toList(growable: false);
-            final desktop = devices
-                .where((device) => device.slot == 'DESKTOP')
-                .toList(growable: false);
-            return RefreshIndicator(
-              color: TradeXColors.goldBright,
-              onRefresh: _refresh,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
-                children: [
-                  const _SecurityNotice(),
-                  const SizedBox(height: 16),
-                  _DeviceGroup(
-                    title: 'Mobile Devices',
-                    subtitle:
-                        'Android and iOS · up to ${state.maximumMobileDevices} active devices',
-                    devices: mobile,
-                    revokingUuid: _revokingUuid,
-                    onRevoke: _revoke,
-                  ),
-                  const SizedBox(height: 16),
-                  _DeviceGroup(
-                    title: 'Desktop Devices',
-                    subtitle:
-                        'Windows, macOS and Web · up to ${state.maximumDesktopDevices} active device',
-                    devices: desktop,
-                    revokingUuid: _revokingUuid,
-                    onRevoke: _revoke,
-                  ),
-                ],
-              ),
+    return SecurityScreenShell(
+      title: 'Trusted Devices',
+      subtitle: 'Review the devices that currently have access to your TradeX account.',
+      child: BlocFutureBuilder<_TrustedDeviceState>(
+        future: _devices,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(
+              child: CircularProgressIndicator(color: TradeXColors.goldBright),
             );
-          },
-        ),
+          }
+          if (snapshot.hasError) {
+            return _DeviceLoadError(onRetry: _refresh);
+          }
+
+          final state = snapshot.requireData;
+          final devices = state.devices;
+          final mobile = devices
+              .where((device) => device.slot == 'MOBILE')
+              .toList(growable: false);
+          final desktop = devices
+              .where((device) => device.slot == 'DESKTOP')
+              .toList(growable: false);
+          return RefreshIndicator(
+            color: TradeXColors.goldBright,
+            onRefresh: _refresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 28),
+              children: [
+                const _SecurityNotice(),
+                const SizedBox(height: 18),
+                _DeviceGroup(
+                  title: 'Mobile Devices',
+                  subtitle:
+                      'Android and iOS · up to ${state.maximumMobileDevices} active devices',
+                  devices: mobile,
+                  revokingUuid: _revokingUuid,
+                  onRevoke: _revoke,
+                ),
+                const SizedBox(height: 16),
+                _DeviceGroup(
+                  title: 'Desktop Devices',
+                  subtitle:
+                      'Windows, macOS and Web · up to ${state.maximumDesktopDevices} active device',
+                  devices: desktop,
+                  revokingUuid: _revokingUuid,
+                  onRevoke: _revoke,
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -287,13 +281,13 @@ class _DeviceGroup extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: TradeXColors.surfaceRaised,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: TradeXColors.border),
+            color: context.palette.surfaceRaised,
+            borderRadius: TradeXRadii.control,
+            border: Border.all(color: context.palette.border),
           ),
-          child: const Text(
+          child: Text(
             'No registered devices in this category.',
-            style: TextStyle(color: TradeXColors.secondaryText),
+            style: TextStyle(color: context.palette.secondaryText),
           ),
         )
       else
@@ -318,19 +312,19 @@ class _SecurityNotice extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(15),
     decoration: BoxDecoration(
-      color: TradeXColors.gold.withValues(alpha: .08),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: TradeXColors.goldDeep),
+      color: context.palette.goldSoft,
+      borderRadius: TradeXRadii.control,
+      border: Border.all(color: context.palette.gold.withValues(alpha: .45)),
     ),
-    child: const Row(
+    child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.shield_outlined, color: TradeXColors.goldBright),
-        SizedBox(width: 11),
+        Icon(Icons.shield_outlined, color: context.palette.goldText),
+        const SizedBox(width: 11),
         Expanded(
           child: Text(
             'Your account supports two active mobile devices and one active desktop device. Revoking a device immediately removes its access and refresh tokens.',
-            style: TextStyle(color: TradeXColors.secondaryText, height: 1.4),
+            style: TextStyle(color: context.palette.secondaryText, height: 1.4),
           ),
         ),
       ],
@@ -353,10 +347,14 @@ class _DeviceCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: TradeXColors.surfaceRaised,
-      borderRadius: BorderRadius.circular(18),
+      color: context.palette.surfaceRaised,
+      borderRadius: TradeXRadii.card,
       border: Border.all(
-        color: device.isCurrent ? TradeXColors.gold : TradeXColors.border,
+        color: device.isCurrent ? context.palette.gold : context.palette.border,
+      ),
+      boxShadow: TradeXElevation.surface(
+        brightness: Theme.of(context).brightness,
+        palette: context.palette,
       ),
     ),
     child: Column(
@@ -364,13 +362,20 @@ class _DeviceCard extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(
-              device.slot == 'DESKTOP'
-                  ? Icons.computer_rounded
-                  : Icons.phone_android_rounded,
-              color: device.active
-                  ? TradeXColors.goldBright
-                  : TradeXColors.tertiaryText,
+            Container(
+              width: 58,
+              height: 58,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: context.palette.goldSoft,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Image.asset(
+                _deviceAsset(device),
+                fit: BoxFit.contain,
+                color: device.active ? null : context.palette.tertiaryText,
+                colorBlendMode: BlendMode.saturation,
+              ),
             ),
             const SizedBox(width: 11),
             Expanded(
@@ -381,16 +386,16 @@ class _DeviceCard extends StatelessWidget {
                     device.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: TradeXColors.primaryText,
+                    style: TextStyle(
+                      color: context.palette.primaryText,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     '${device.platform} · ${device.osVersion}',
-                    style: const TextStyle(
-                      color: TradeXColors.secondaryText,
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
                       fontSize: 11,
                     ),
                   ),
@@ -435,8 +440,8 @@ class _DeviceCard extends StatelessWidget {
                   : const Icon(Icons.phonelink_erase_rounded),
               label: Text(busy ? 'Revoking…' : 'Revoke device'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: TradeXColors.error,
-                side: const BorderSide(color: TradeXColors.error),
+                foregroundColor: context.palette.goldText,
+                side: BorderSide(color: context.palette.gold),
               ),
             ),
           ),
@@ -444,6 +449,21 @@ class _DeviceCard extends StatelessWidget {
       ],
     ),
   );
+
+  String _deviceAsset(_TrustedDevice device) {
+    final platform = device.platform.toLowerCase();
+    final model = device.deviceModel.toLowerCase();
+    if (model.contains('tablet') || model.contains('ipad')) {
+      return 'assets/security_ui/premium_light_tablet_tile_icon.png';
+    }
+    if (device.slot == 'DESKTOP') {
+      if (platform.contains('mac') || model.contains('laptop')) {
+        return 'assets/security_ui/premium_laptop_icon_tile.png';
+      }
+      return 'assets/security_ui/premium_desktop_monitor_icon.png';
+    }
+    return 'assets/security_ui/trusted_device_smartphone_icon.png';
+  }
 }
 
 class _DeviceFact extends StatelessWidget {
@@ -494,7 +514,7 @@ class _DeviceBadge extends StatelessWidget {
         ? 'ACTIVE'
         : 'REVOKED';
     final color = device.isCurrent
-        ? TradeXColors.goldBright
+        ? TradeXColors.success
         : device.active
         ? TradeXColors.success
         : TradeXColors.tertiaryText;

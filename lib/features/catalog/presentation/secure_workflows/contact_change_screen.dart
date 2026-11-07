@@ -40,15 +40,26 @@ class _ContactChangeScreenState extends State<ContactChangeScreen> {
   @override
   Widget build(BuildContext context) => _WorkflowScaffold(
     title: 'Change Contact',
+    subtitle: 'Verified profile update',
     child: Form(
       key: _key,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const _WorkflowIntro(
+            icon: Icons.contact_phone_outlined,
+            title: 'Update Contact Number',
+            message: 'Change your WhatsApp number or Telegram username with protected verification.',
+          ),
+          const SizedBox(height: 18),
           const _SecurityNotice(
             'Authenticator verification is required before TradeX sends a confirmation code.',
           ),
           const SizedBox(height: 14),
+          const _WorkflowSectionTitle(
+            icon: Icons.forum_outlined,
+            title: 'Select contact platform',
+          ),
           SegmentedButton<String>(
             segments: const [
               ButtonSegment(value: 'whatsapp', label: Text('WhatsApp')),
@@ -59,6 +70,8 @@ class _ContactChangeScreenState extends State<ContactChangeScreen> {
                 ? (value) => setState(() => _channel = value.first)
                 : null,
           ),
+          const SizedBox(height: 14),
+          _ContactProgress(challengeCreated: _challengeId != null),
           const SizedBox(height: 14),
           if (_challengeId == null) ...[
             _input(
@@ -161,5 +174,103 @@ class _ContactChangeScreenState extends State<ContactChangeScreen> {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
     }
+  }
+}
+
+class _ContactProgress extends StatelessWidget {
+  const _ContactProgress({required this.challengeCreated});
+
+  final bool challengeCreated;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        children: [
+          _ContactStep(
+            number: '1',
+            label: 'Contact',
+            active: !challengeCreated,
+            complete: challengeCreated,
+          ),
+          Expanded(child: Divider(color: palette.border)),
+          _ContactStep(
+            number: '2',
+            label: 'Verify',
+            active: challengeCreated,
+            complete: false,
+          ),
+          Expanded(child: Divider(color: palette.border)),
+          const _ContactStep(
+            number: '3',
+            label: 'Updated',
+            active: false,
+            complete: false,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ContactStep extends StatelessWidget {
+  const _ContactStep({
+    required this.number,
+    required this.label,
+    required this.active,
+    required this.complete,
+  });
+
+  final String number;
+  final String label;
+  final bool active;
+  final bool complete;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final highlighted = active || complete;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: highlighted ? palette.gold : palette.surfaceMuted,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: highlighted ? palette.gold : palette.border,
+            ),
+          ),
+          child: complete
+              ? const Icon(Icons.check_rounded, color: Colors.white, size: 17)
+              : Text(
+                  number,
+                  style: TextStyle(
+                    color: highlighted ? Colors.white : palette.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          label,
+          style: TextStyle(
+            color: highlighted ? palette.goldText : palette.secondaryText,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
   }
 }

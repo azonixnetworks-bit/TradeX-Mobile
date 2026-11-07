@@ -33,6 +33,11 @@ class _TradeJournalScreenshotsScreenState
     body: ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        Text(
+          'Capture and review the setup before entry and the final result after closing the trade.',
+          style: TextStyle(color: context.palette.secondaryText, height: 1.35),
+        ),
+        const SizedBox(height: 14),
         _TradeHeader(entry: _entry),
         const SizedBox(height: 14),
         _screenshotCard(
@@ -89,9 +94,9 @@ class _TradeJournalScreenshotsScreenState
           width: double.infinity,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: const Color(0xFF111923),
+            color: context.palette.surfaceMuted,
             borderRadius: BorderRadius.circular(13),
-            border: Border.all(color: Colors.white.withValues(alpha: .08)),
+            border: Border.all(color: context.palette.border),
           ),
           child: available
               ? FutureBuilder<Uint8List>(
@@ -113,10 +118,10 @@ class _TradeJournalScreenshotsScreenState
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.add_photo_alternate_outlined,
                         size: 38,
-                        color: TradeXColors.secondaryText,
+                        color: context.palette.goldText,
                       ),
                       const SizedBox(height: 8),
                       Text(

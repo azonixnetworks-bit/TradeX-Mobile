@@ -8,33 +8,46 @@ class _GoldButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = TradeXPalette.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: TradeXRadii.control,
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: TradeXSpacing.md,
+            vertical: TradeXSpacing.sm,
+          ),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFFE080), TradeXColors.goldBright],
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [palette.goldText, palette.gold],
             ),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: TradeXRadii.control,
+            boxShadow: [
+              BoxShadow(
+                color: palette.gold.withValues(alpha: .18),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: Color(0xFF171308),
+                style: TextStyle(
+                  color: palette.primaryButtonText,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_rounded,
-                color: Color(0xFF171308),
+                color: palette.primaryButtonText,
                 size: 19,
               ),
             ],
@@ -61,10 +74,10 @@ class _CourseThumbnail extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         image: const DecorationImage(
           image: AssetImage(
-            'assets/branding/tradex_bull_bear_trading_emblem.png',
+            'assets/home_ui/complex_png/continue_learning_books_and_cap.png',
           ),
-          fit: BoxFit.cover,
-          alignment: Alignment(0, -.15),
+          fit: BoxFit.contain,
+          alignment: Alignment.center,
         ),
       ),
       child: DecoratedBox(
@@ -102,50 +115,6 @@ class _CourseThumbnail extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _MiniCandles extends StatelessWidget {
-  const _MiniCandles();
-
-  @override
-  Widget build(BuildContext context) {
-    const values = [
-      20.0,
-      27.0,
-      23.0,
-      34.0,
-      30.0,
-      43.0,
-      38.0,
-      51.0,
-      47.0,
-      59.0,
-      55.0,
-      66.0,
-    ];
-    return SizedBox(
-      height: 48,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(values.length, (index) {
-          final positive = index != 2 && index != 6 && index != 9;
-          return Expanded(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                width: 5,
-                height: values[index],
-                decoration: BoxDecoration(
-                  color: positive ? TradeXColors.success : TradeXColors.error,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-          );
-        }),
       ),
     );
   }
@@ -254,10 +223,11 @@ const _tabItems = [
 ];
 
 BoxDecoration _panelDecoration(BuildContext context) => BoxDecoration(
-  color: Theme.of(context).colorScheme.surface,
-  borderRadius: BorderRadius.circular(20),
-  border: Border.all(color: Theme.of(context).dividerColor),
-  boxShadow: [
-    BoxShadow(color: Colors.black.withValues(alpha: .19), blurRadius: 10),
-  ],
+  color: TradeXPalette.of(context).surface,
+  borderRadius: TradeXRadii.card,
+  border: Border.all(color: TradeXPalette.of(context).border),
+  boxShadow: TradeXElevation.surface(
+    brightness: Theme.of(context).brightness,
+    palette: TradeXPalette.of(context),
+  ),
 );

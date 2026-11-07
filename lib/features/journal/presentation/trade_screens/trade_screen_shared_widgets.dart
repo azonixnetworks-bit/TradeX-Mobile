@@ -78,9 +78,9 @@ class _PickerTile extends StatelessWidget {
     child: Ink(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF111923),
+        color: context.palette.surfaceMuted,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: .09)),
+        border: Border.all(color: context.palette.border),
       ),
       child: Row(
         children: [

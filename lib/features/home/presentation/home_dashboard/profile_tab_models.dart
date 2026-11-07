@@ -250,16 +250,21 @@ class _CustomerProfileHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = TradeXPalette.of(context);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF31250A), Color(0xFF111614)],
+          colors: [palette.goldSoft, palette.surface],
         ),
-        border: Border.all(color: TradeXColors.gold.withValues(alpha: .65)),
+        border: Border.all(color: palette.gold.withValues(alpha: .55)),
+        boxShadow: TradeXElevation.surface(
+          brightness: Theme.of(context).brightness,
+          palette: palette,
+        ),
       ),
       child: Row(
         children: [
@@ -279,7 +284,7 @@ class _CustomerProfileHero extends StatelessWidget {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: TradeXColors.gold.withValues(alpha: .16),
+                      color: palette.goldSoft,
                       border: Border.all(
                         color: TradeXColors.goldBright,
                         width: 1.3,
@@ -321,10 +326,7 @@ class _CustomerProfileHero extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: TradeXColors.goldBright,
-                        border: Border.all(
-                          color: TradeXColors.background,
-                          width: 2,
-                        ),
+                        border: Border.all(color: palette.surface, width: 2),
                       ),
                       child: const Icon(
                         Icons.camera_alt_rounded,
@@ -346,8 +348,8 @@ class _CustomerProfileHero extends StatelessWidget {
                   profile.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: TradeXColors.primaryText,
+                  style: TextStyle(
+                    color: palette.primaryText,
                     fontSize: 19,
                     fontWeight: FontWeight.w900,
                   ),
@@ -357,10 +359,7 @@ class _CustomerProfileHero extends StatelessWidget {
                   profile.email,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: TradeXColors.secondaryText,
-                    fontSize: 11,
-                  ),
+                  style: TextStyle(color: palette.secondaryText, fontSize: 11),
                 ),
                 const SizedBox(height: 9),
                 Wrap(

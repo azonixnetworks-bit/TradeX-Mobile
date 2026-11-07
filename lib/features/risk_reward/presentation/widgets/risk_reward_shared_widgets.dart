@@ -7,8 +7,145 @@ class _FeaturePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: TradeXColors.background,
-    body: SafeArea(child: child),
+    backgroundColor: context.palette.background,
+    body: SafeArea(
+      child: Stack(
+        children: [
+          Positioned(
+            top: -130,
+            right: -120,
+            child: IgnorePointer(
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      context.palette.gold.withValues(
+                        alpha: context.isDarkMode ? .09 : .05,
+                      ),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
+    ),
+  );
+}
+
+class _CalculatorCanvas extends StatelessWidget {
+  const _CalculatorCanvas({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      Positioned(
+        top: 54,
+        right: -18,
+        child: IgnorePointer(
+          child: Opacity(
+            opacity: context.isDarkMode ? .08 : .12,
+            child: Image.asset(
+              '$_assetRoot/02_forex_candlesticks.png',
+              width: 138,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      ),
+      Positioned(
+        left: -80,
+        right: -80,
+        bottom: -68,
+        child: IgnorePointer(
+          child: Container(
+            height: 150,
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.elliptical(260, 68),
+              ),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  context.palette.gold.withValues(
+                    alpha: context.isDarkMode ? .06 : .075,
+                  ),
+                  context.palette.surface.withValues(alpha: 0),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: child,
+        ),
+      ),
+    ],
+  );
+}
+
+class _CalculatorHero extends StatelessWidget {
+  const _CalculatorHero({
+    required this.title,
+    required this.subtitle,
+    this.eyebrow,
+  });
+
+  final String title;
+  final String subtitle;
+  final String? eyebrow;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(right: 48),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (eyebrow != null) ...[
+          Text(
+            eyebrow!,
+            style: const TextStyle(
+              color: TradeXColors.gold,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.7,
+            ),
+          ),
+          const SizedBox(height: 7),
+        ],
+        Text(
+          title,
+          style: TextStyle(
+            color: context.palette.primaryText,
+            fontSize: 30,
+            fontWeight: FontWeight.w900,
+            height: 1.08,
+            letterSpacing: -.7,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          subtitle,
+          style: TextStyle(
+            color: context.palette.secondaryText,
+            fontSize: 14,
+            height: 1.35,
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -91,33 +228,33 @@ class _GoldCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF15160F), TradeXColors.surface, Color(0xFF0A0D0C)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: TradeXColors.goldSoft.withValues(alpha: .72)),
-        boxShadow: [
-          BoxShadow(
-            color: TradeXColors.gold.withValues(alpha: .08),
-            blurRadius: 18,
-            spreadRadius: 1,
-          ),
-        ],
+    final palette = context.palette;
+    final decoration = BoxDecoration(
+      color: palette.surface,
+      gradient: context.isDarkMode
+          ? LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [palette.surfaceRaised, palette.surface],
+            )
+          : null,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: palette.border),
+      boxShadow: TradeXElevation.surface(
+        brightness: Theme.of(context).brightness,
+        palette: palette,
       ),
-      child: child,
     );
-    if (onTap == null) return content;
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: content,
+      borderRadius: BorderRadius.circular(20),
+      child: Ink(
+        decoration: decoration,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Padding(padding: const EdgeInsets.all(16), child: child),
+        ),
       ),
     );
   }
@@ -182,12 +319,12 @@ class _SegmentedControl extends StatelessWidget {
                           colors: [TradeXColors.goldBright, Color(0xFFE0A51C)],
                         )
                       : null,
-                  color: active ? null : TradeXColors.surfaceRaised,
+                  color: active ? null : context.palette.surfaceMuted,
                   borderRadius: BorderRadius.circular(13),
                   border: Border.all(
                     color: active
                         ? TradeXColors.goldBright
-                        : TradeXColors.borderStrong,
+                        : context.palette.border,
                   ),
                 ),
                 child: InkWell(
@@ -203,7 +340,9 @@ class _SegmentedControl extends StatelessWidget {
                       textAlign: TextAlign.center,
                       maxLines: 2,
                       style: TextStyle(
-                        color: active ? Colors.black : TradeXColors.primaryText,
+                        color: active
+                            ? Colors.black
+                            : context.palette.primaryText,
                         fontWeight: FontWeight.w800,
                         fontSize: values.length > 2 ? 12 : 14,
                       ),

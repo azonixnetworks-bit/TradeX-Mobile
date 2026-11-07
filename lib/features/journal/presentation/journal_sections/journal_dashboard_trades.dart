@@ -267,36 +267,39 @@ class _DashboardCard extends StatelessWidget {
   final double minHeight;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: minHeight),
-        child: Ink(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [_dashboardSurfaceRaised, _dashboardSurface],
-            ),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: accent.withValues(alpha: .62)),
-            boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: .08),
-                blurRadius: 18,
-                spreadRadius: -7,
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: minHeight),
+          child: Ink(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: palette.surface,
+              gradient: context.isDarkMode
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [palette.surfaceRaised, palette.surface],
+                    )
+                  : null,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: accent.withValues(alpha: .34)),
+              boxShadow: TradeXElevation.surface(
+                brightness: Theme.of(context).brightness,
+                palette: palette,
               ),
-            ],
+            ),
+            child: child,
           ),
-          child: child,
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _MetricHeader extends StatelessWidget {
@@ -322,8 +325,8 @@ class _MetricHeader extends StatelessWidget {
           title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: _dashboardText,
+          style: TextStyle(
+            color: context.palette.primaryText,
             fontSize: 13,
             fontWeight: FontWeight.w900,
           ),
@@ -354,7 +357,7 @@ class _SmallMetric extends StatelessWidget {
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: _dashboardMuted, fontSize: 8.5),
+        style: TextStyle(color: context.palette.secondaryText, fontSize: 8.5),
       ),
       const SizedBox(height: 3),
       Text(
@@ -362,7 +365,7 @@ class _SmallMetric extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          color: valueColor ?? _dashboardText,
+          color: valueColor ?? context.palette.primaryText,
           fontSize: 13,
           fontWeight: FontWeight.w900,
         ),
@@ -383,8 +386,8 @@ class _Donut extends StatelessWidget {
     child: Center(
       child: Text(
         value == null ? '—' : '${value!.clamp(0, 100).round()}%',
-        style: const TextStyle(
-          color: _dashboardText,
+        style: TextStyle(
+          color: context.palette.primaryText,
           fontSize: 13,
           fontWeight: FontWeight.w900,
         ),
@@ -414,8 +417,8 @@ class _QuickActionCard extends StatelessWidget {
             children: [
               Text(
                 action.label,
-                style: const TextStyle(
-                  color: _dashboardText,
+                style: TextStyle(
+                  color: context.palette.primaryText,
                   fontSize: 12,
                   fontWeight: FontWeight.w900,
                 ),
@@ -425,14 +428,17 @@ class _QuickActionCard extends StatelessWidget {
                 action.subtitle,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: _dashboardMuted, fontSize: 9),
+                style: TextStyle(
+                  color: context.palette.secondaryText,
+                  fontSize: 9,
+                ),
               ),
             ],
           ),
         ),
-        const Icon(
+        Icon(
           Icons.chevron_right_rounded,
-          color: _dashboardText,
+          color: context.palette.primaryText,
           size: 19,
         ),
       ],

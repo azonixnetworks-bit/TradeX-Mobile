@@ -6,7 +6,7 @@ import '../domain/dashboard_tab_preferences.dart';
 
 class AppPreferencesState {
   const AppPreferencesState({
-    this.themeMode = ThemeMode.system,
+    this.themeMode = ThemeMode.light,
     this.courseLanguage = 'en',
     this.learnLanguageSelected = false,
     this.dashboardTab = 0,
@@ -29,6 +29,8 @@ class AppPreferences extends Cubit<AppPreferencesState>
   static final AppPreferences instance = AppPreferences._();
 
   static const _themeKey = 'tradex.theme_mode';
+  static const _professionalThemeMigrationKey =
+      'tradex.theme.professional_light_v1';
   static const _languageKey = 'tradex.course_language';
   static const _learnLanguageSeenKey = 'tradex.learn_language_selected';
   static const _dashboardTabKey = 'tradex.dashboard.selected_tab';
@@ -47,11 +49,15 @@ class AppPreferences extends Cubit<AppPreferencesState>
 
   Future<void> load() async {
     final preferences = await SharedPreferences.getInstance();
-    final themeMode = switch (preferences.getString(_themeKey)) {
-      'light' => ThemeMode.light,
-      'dark' => ThemeMode.dark,
-      _ => ThemeMode.system,
-    };
+    final professionalThemeMigrated =
+        preferences.getBool(_professionalThemeMigrationKey) ?? false;
+    final themeMode = professionalThemeMigrated
+        ? switch (preferences.getString(_themeKey)) {
+            'dark' => ThemeMode.dark,
+            'system' => ThemeMode.system,
+            _ => ThemeMode.light,
+          }
+        : ThemeMode.light;
     final courseLanguage = preferences.getString(_languageKey) ?? 'en';
     final learnLanguageSelected =
         preferences.getBool(_learnLanguageSeenKey) ?? false;
@@ -83,6 +89,10 @@ class AppPreferences extends Cubit<AppPreferencesState>
     );
     if (savedBackgroundLockSeconds == 120) {
       await preferences.setInt(_quickUnlockBackgroundLockKey, 1800);
+    }
+    if (!professionalThemeMigrated) {
+      await preferences.setString(_themeKey, ThemeMode.light.name);
+      await preferences.setBool(_professionalThemeMigrationKey, true);
     }
   }
 

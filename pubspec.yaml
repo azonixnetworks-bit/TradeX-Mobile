@@ -45,12 +45,29 @@ flutter:
 
   assets:
     - assets/branding/
+    - assets/auth_ui/shared/
+    - assets/auth_ui/splash/
+    - assets/auth_ui/welcome/
+    - assets/security_ui/
+    - assets/auth_recovery_ui/
+    - assets/recovery_course_ui/
+    - assets/language_chart_screener_ui/
+    - assets/home_ui/complex_png/
+    - assets/home_ui/simple_svg/
+    - assets/learning_ui/illustrations_png/
+    - assets/learning_ui/decorations_png/
+    - assets/learning_ui/icons_svg/
+    - assets/progress_ai_premium_ui/illustrations/
     - assets/crypto_market/cards/
     - assets/market_sessions/
+    - assets/market_assets/flags/
+    - assets/market_assets/crypto/
+    - assets/market_assets/instruments/
     - assets/affiliate/
     - assets/affiliate/illustrations/
     - assets/affiliate/brands/
     - assets/affiliate/referral/
+    - assets/affiliate/dynamic_v2/
     - assets/support/images/
     - assets/support/icons/
     - assets/risk_reward/

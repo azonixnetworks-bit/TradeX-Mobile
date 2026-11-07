@@ -31,18 +31,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           enabled: false,
         ),
         const SizedBox(height: 14),
-        const Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _StaticChip('All'),
-            _StaticChip('Account'),
-            _StaticChip('Trading'),
-            _StaticChip('Payments'),
-            _StaticChip('Technical'),
-          ],
-        ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
         _UnavailableContent(
           icon: 'book_open.svg',
           title: 'FAQ feed is not connected',
@@ -79,24 +68,66 @@ class _TicketFeedbackScreenState extends State<TicketFeedbackScreen> {
 
   @override
   Widget build(BuildContext context) => _SupportScaffold(
-    title: 'Ticket Resolved',
-    subtitle:
-        'Feedback is accepted only for a server-confirmed resolved ticket.',
+    eyebrow: 'Ticket Resolved',
+    title: 'Ticket Feedback',
+    subtitle: 'Share feedback only when an eligible ticket is provided.',
     child: Column(
       children: [
-        Image.asset(
-          '$_imageRoot/ticket_success_3d.png',
-          height: 200,
-          fit: BoxFit.contain,
-          semanticLabel: 'Resolved ticket illustration',
+        _SupportPanel(
+          child: Row(
+            children: [
+              Container(
+                width: 76,
+                height: 76,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: context.palette.goldSoft,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Image.asset(
+                  '$_imageRoot/ticket_success_3d.png',
+                  fit: BoxFit.contain,
+                  semanticLabel: 'Support ticket illustration',
+                ),
+              ),
+              const SizedBox(width: 13),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ticket details unavailable',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      'Open feedback from an eligible resolved ticket to show its verified details.',
+                      style: TextStyle(
+                        color: TradeXColors.secondaryText,
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.lock_outline_rounded,
+                color: TradeXColors.goldBright,
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 18),
         _SupportPanel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'How would you rate our support?',
+                'How would you rate your support experience?',
                 style: TextStyle(
                   color: TradeXColors.primaryText,
                   fontSize: 19,
@@ -127,10 +158,18 @@ class _TicketFeedbackScreenState extends State<TicketFeedbackScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Additional Comments (Optional)',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+          ),
+        ),
+        const SizedBox(height: 9),
         _SupportTextField(
           controller: _feedback,
-          hint: 'Share your feedback about your support experience',
+          hint: 'Tell us what went well or how we can improve…',
           maxLength: 500,
           minLines: 4,
           maxLines: 6,
@@ -140,7 +179,7 @@ class _TicketFeedbackScreenState extends State<TicketFeedbackScreen> {
         const SizedBox(height: 12),
         _GoldButton(
           label: 'Submit Feedback',
-          icon: 'star.svg',
+          icon: 'send.svg',
           onPressed: () => _showUnavailable(context),
         ),
         const SizedBox(height: 10),

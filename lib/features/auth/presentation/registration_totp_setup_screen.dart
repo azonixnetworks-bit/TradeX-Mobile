@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/entities/registration_session.dart';
 import 'widgets/auth_form_components.dart';
 
@@ -29,10 +30,10 @@ class RegistrationTotpSetupScreen extends StatelessWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          backgroundColor: TradeXColors.surfaceRaised,
+          backgroundColor: context.palette.surfaceRaised,
           content: Text(
             '$label copied.',
-            style: const TextStyle(color: TradeXColors.primaryText),
+            style: TextStyle(color: context.palette.primaryText),
           ),
         ),
       );
@@ -52,52 +53,64 @@ class RegistrationTotpSetupScreen extends StatelessWidget {
             icon: Icons.security_rounded,
           ),
           const SizedBox(height: 18),
-          const Text(
+          Text(
             'Scan QR Code',
-            style: TextStyle(color: TradeXColors.secondaryText, fontSize: 12),
+            style: TextStyle(
+              color: context.palette.secondaryText,
+              fontSize: 12,
+            ),
           ),
           const SizedBox(height: 7),
           _TotpQrCode(value: setup.otpauthUri),
           const SizedBox(height: 18),
-          const Text(
+          Text(
             'Issuer',
-            style: TextStyle(color: TradeXColors.secondaryText, fontSize: 12),
+            style: TextStyle(
+              color: context.palette.secondaryText,
+              fontSize: 12,
+            ),
           ),
           const SizedBox(height: 5),
           Text(
             setup.issuer,
-            style: const TextStyle(
-              color: TradeXColors.primaryText,
+            style: TextStyle(
+              color: context.palette.primaryText,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Account',
-            style: TextStyle(color: TradeXColors.secondaryText, fontSize: 12),
+            style: TextStyle(
+              color: context.palette.secondaryText,
+              fontSize: 12,
+            ),
           ),
           const SizedBox(height: 5),
           Text(
             setup.accountName,
-            style: const TextStyle(
-              color: TradeXColors.primaryText,
+            style: TextStyle(
+              color: context.palette.primaryText,
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 18),
-          const Text(
+          Text(
             'Manual Setup Key',
-            style: TextStyle(color: TradeXColors.secondaryText, fontSize: 12),
+            style: TextStyle(
+              color: context.palette.secondaryText,
+              fontSize: 12,
+            ),
           ),
           const SizedBox(height: 7),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFF090D0B),
-              borderRadius: BorderRadius.circular(12),
+              color: context.palette.surfaceMuted,
+              borderRadius: TradeXRadii.control,
               border: Border.all(
                 color: TradeXColors.gold.withValues(alpha: 0.28),
               ),
@@ -105,8 +118,8 @@ class RegistrationTotpSetupScreen extends StatelessWidget {
             child: SelectableText(
               setup.secret,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: TradeXColors.goldBright,
+              style: TextStyle(
+                color: context.palette.goldText,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.6,

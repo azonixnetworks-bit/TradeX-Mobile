@@ -57,45 +57,19 @@ class _CoinLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fallback = Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: TradeXColors.goldBright.withValues(alpha: .15),
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: TradeXColors.goldBright.withValues(alpha: .55),
-        ),
-      ),
-      child: Text(
-        asset.fallbackLabel,
-        style: const TextStyle(
-          color: TradeXColors.goldBright,
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-    final url = asset.logoUrl;
-    final logo = url == null || url.isEmpty
-        ? fallback
-        : ClipOval(
-            child: Image.network(
-              url,
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => fallback,
-            ),
-          );
     return Semantics(
       button: true,
       label: 'Open ${asset.symbol} TradingView chart',
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
-        child: logo,
+        child: MarketInstrumentAvatar(
+          market: 'CRYPTO',
+          symbol: asset.symbol,
+          baseCurrency: asset.baseCurrency,
+          remoteUrl: asset.logoUrl,
+          size: size,
+        ),
       ),
     );
   }

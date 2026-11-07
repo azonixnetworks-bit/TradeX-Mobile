@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import 'widgets/auth_form_components.dart';
 
 class RegistrationLanguageScreen extends StatefulWidget {
@@ -43,36 +43,16 @@ class _RegistrationLanguageScreenState extends State<RegistrationLanguageScreen>
   @override
   Widget build(BuildContext context) {
     return TradeXAuthPage(
-      title: 'Choose Learning Language',
+      title: 'Choose Your Language',
       subtitle: 'Your learning videos will be available in this language. This choice cannot be changed later.',
       onBack: widget.onBack,
+      decorTopAsset:
+          'assets/auth_recovery_ui/subtle_gold_uptrend_candlesticks.png',
+      decorFooterAsset: 'assets/auth_recovery_ui/soft_ivory_wave_layers.png',
       child: Column(
         children: [
-          AnimatedBuilder(
-            animation: _bounceController,
-            builder: (context, child) => Transform.translate(
-              offset: Offset(0, 4 * _bounceController.value),
-              child: child,
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.drag_handle_rounded, color: TradeXColors.goldBright),
-                SizedBox(width: 6),
-                Text(
-                  'Drag to explore languages',
-                  style: TextStyle(
-                    color: TradeXColors.secondaryText,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
           SizedBox(
-            height: 260,
+            height: 250,
             child: ListView.builder(
               physics: const BouncingScrollPhysics(),
               itemCount: _languages.length,
@@ -94,28 +74,28 @@ class _RegistrationLanguageScreenState extends State<RegistrationLanguageScreen>
                       ),
                       decoration: BoxDecoration(
                         color: selected
-                            ? TradeXColors.gold.withValues(alpha: 0.14)
-                            : const Color(0xFF090D0B),
+                            ? context.palette.goldSoft
+                            : context.palette.surfaceRaised,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: selected
-                              ? TradeXColors.goldBright
-                              : TradeXColors.border,
+                              ? context.palette.gold
+                              : context.palette.border,
                         ),
                       ),
                       child: Row(
                         children: [
                           Icon(
-                            Icons.play_circle_outline_rounded,
+                            Icons.language_rounded,
                             color: selected
-                                ? TradeXColors.goldBright
-                                : TradeXColors.secondaryText,
+                                ? context.palette.goldText
+                                : context.palette.secondaryText,
                           ),
                           const SizedBox(width: 12),
                           Text(
                             language.name,
                             style: TextStyle(
-                              color: TradeXColors.primaryText,
+                              color: context.palette.primaryText,
                               fontWeight: selected
                                   ? FontWeight.w800
                                   : FontWeight.w600,
@@ -123,9 +103,9 @@ class _RegistrationLanguageScreenState extends State<RegistrationLanguageScreen>
                           ),
                           const Spacer(),
                           if (selected)
-                            const Icon(
+                            Icon(
                               Icons.check_circle_rounded,
-                              color: TradeXColors.goldBright,
+                              color: context.palette.goldText,
                             ),
                         ],
                       ),
@@ -135,14 +115,45 @@ class _RegistrationLanguageScreenState extends State<RegistrationLanguageScreen>
               },
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
+          AnimatedBuilder(
+            animation: _bounceController,
+            builder: (context, child) => Transform.translate(
+              offset: Offset(0, 4 * _bounceController.value),
+              child: child,
+            ),
+            child: SizedBox(
+              height: 126,
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  Image.asset(
+                    'assets/auth_recovery_ui/floating_ivory_display_pedestal.png',
+                    height: 76,
+                    fit: BoxFit.contain,
+                  ),
+                  Positioned(
+                    top: 0,
+                    child: Image.asset(
+                      'assets/auth_recovery_ui/golden_globe_with_orbital_ring.png',
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.contain,
+                      semanticLabel: 'Language globe',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           if (_errorMessage != null) ...[
             const SizedBox(height: 12),
             TradeXErrorBanner(message: _errorMessage!),
             const SizedBox(height: 12),
           ],
           TradeXGoldButton(
-            label: 'Confirm Language & Verify Email',
+            label: 'Continue',
             icon: Icons.arrow_forward_rounded,
             loading: _submitting,
             onPressed: _continue,

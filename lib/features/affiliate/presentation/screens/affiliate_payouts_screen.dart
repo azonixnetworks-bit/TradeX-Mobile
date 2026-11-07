@@ -32,8 +32,8 @@ class _PayoutsBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) => BlocBuilder<PayoutCubit, PayoutState>(
     builder: (context, state) => AffiliateScaffold(
-      title: 'Payouts & Withdrawals',
-      subtitle: 'View available earnings and withdrawal requests.',
+      title: 'Affiliate Payout',
+      subtitle: 'Withdraw eligible earnings to your configured payout method.',
       onRefresh: context.read<PayoutCubit>().load,
       child: switch (state.status) {
         AffiliateLoadStatus.initial ||
@@ -231,6 +231,12 @@ class PayoutsContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Text(
+          'Payout Overview',
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
         SectionCard(
           borderColor: TradeXColors.gold,
           child: Row(
@@ -245,9 +251,12 @@ class PayoutsContent extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Available Balance',
-                      style: TextStyle(color: _muted),
+                      style: TextStyle(
+                        color: context.palette.secondaryText,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     Text(
                       AffiliateRepository.moneyText(summary['available']),
@@ -344,7 +353,7 @@ class PayoutsContent extends StatelessWidget {
             ),
           ),
         const SizedBox(height: 22),
-        const _SectionHeading(title: 'Withdrawal History'),
+        const _SectionHeading(title: 'Recent Payouts'),
         const SizedBox(height: 8),
         if (history.isEmpty)
           const _EmptyCard(message: 'No withdrawal requests yet.')

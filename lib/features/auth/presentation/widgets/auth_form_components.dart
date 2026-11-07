@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/theme/tradex_colors.dart';
+import '../../../../core/theme/tradex_design_system.dart';
 
 class TradeXAuthPage extends StatelessWidget {
   const TradeXAuthPage({
@@ -12,6 +13,9 @@ class TradeXAuthPage extends StatelessWidget {
     this.onBack,
     this.footer,
     this.titleIconAsset,
+    this.securityDecor = false,
+    this.decorTopAsset,
+    this.decorFooterAsset,
   });
 
   final String title;
@@ -20,15 +24,24 @@ class TradeXAuthPage extends StatelessWidget {
   final VoidCallback? onBack;
   final Widget? footer;
   final String? titleIconAsset;
+  final bool securityDecor;
+  final String? decorTopAsset;
+  final String? decorFooterAsset;
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: TradeXColors.background,
+      backgroundColor: palette.background,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const _AuthBackground(),
+          _AuthBackground(
+            securityDecor: securityDecor,
+            decorTopAsset: decorTopAsset,
+            decorFooterAsset: decorFooterAsset,
+          ),
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -47,9 +60,9 @@ class TradeXAuthPage extends StatelessWidget {
                             if (onBack != null)
                               IconButton(
                                 onPressed: onBack,
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.arrow_back_rounded,
-                                  color: TradeXColors.goldBright,
+                                  color: palette.primaryText,
                                 ),
                               )
                             else
@@ -70,16 +83,18 @@ class TradeXAuthPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         Row(
-                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              title,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: TradeXColors.primaryText,
-                                fontSize: 26,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.4,
+                            Flexible(
+                              child: Text(
+                                title,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -.4,
+                                ),
                               ),
                             ),
                             if (titleIconAsset != null) ...[
@@ -97,10 +112,8 @@ class TradeXAuthPage extends StatelessWidget {
                         Text(
                           subtitle,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: TradeXColors.secondaryText,
-                            fontSize: 13,
-                            height: 1.45,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: palette.secondaryText,
                           ),
                         ),
                         const SizedBox(height: 22),
@@ -110,11 +123,11 @@ class TradeXAuthPage extends StatelessWidget {
                           footer!,
                         ],
                         const SizedBox(height: 28),
-                        const Text(
+                        Text(
                           'DISCIPLINE CREATES FREEDOM',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: TradeXColors.goldBright,
+                            color: palette.goldText,
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 3.1,
@@ -140,25 +153,31 @@ class TradeXAuthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF111614), Color(0xFF080B0A)],
-        ),
+        color: palette.surface,
+        gradient: context.isDarkMode
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [palette.surfaceRaised, palette.surface],
+              )
+            : null,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: TradeXColors.gold.withValues(alpha: 0.38),
+          color: context.isDarkMode ? palette.borderStrong : palette.border,
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: TradeXColors.gold.withValues(alpha: 0.08),
-            blurRadius: 28,
-            spreadRadius: 1,
+            color: Colors.black.withValues(
+              alpha: context.isDarkMode ? .2 : .07,
+            ),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -209,6 +228,7 @@ class TradeXAuthField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return TextFormField(
       controller: controller,
       focusNode: focusNode,
@@ -223,13 +243,13 @@ class TradeXAuthField extends StatelessWidget {
       onChanged: onChanged,
       onTap: onTap,
       textCapitalization: textCapitalization,
-      cursorColor: TradeXColors.goldBright,
-      style: const TextStyle(color: TradeXColors.primaryText, fontSize: 14),
+      cursorColor: palette.goldText,
+      style: TextStyle(color: palette.primaryText, fontSize: 14),
       decoration: InputDecoration(
         counterText: '',
         labelText: label,
-        labelStyle: const TextStyle(color: TradeXColors.secondaryText),
-        prefixIcon: Icon(icon, color: TradeXColors.gold, size: 21),
+        labelStyle: TextStyle(color: palette.secondaryText),
+        prefixIcon: Icon(icon, color: palette.goldText, size: 21),
         prefixText: prefixText,
         prefixStyle: const TextStyle(
           color: TradeXColors.goldBright,
@@ -238,22 +258,22 @@ class TradeXAuthField extends StatelessWidget {
         ),
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: const Color(0xFF090D0B),
+        fillColor: palette.surfaceMuted,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 17,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(color: TradeXColors.border),
+          borderSide: BorderSide(color: palette.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(color: TradeXColors.border),
+          borderSide: BorderSide(color: palette.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(color: TradeXColors.gold, width: 1.3),
+          borderSide: BorderSide(color: palette.goldText, width: 1.3),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
@@ -421,22 +441,31 @@ class TradeXInfoBanner extends StatelessWidget {
 }
 
 class _AuthBackground extends StatelessWidget {
-  const _AuthBackground();
+  const _AuthBackground({
+    this.securityDecor = false,
+    this.decorTopAsset,
+    this.decorFooterAsset,
+  });
+
+  final bool securityDecor;
+  final String? decorTopAsset;
+  final String? decorFooterAsset;
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Stack(
       fit: StackFit.expand,
       children: [
-        const DecoratedBox(
+        DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF070A08),
-                TradeXColors.background,
-                Color(0xFF020302),
+                palette.background,
+                palette.surfaceMuted.withValues(alpha: .55),
+                palette.background,
               ],
             ),
           ),
@@ -451,7 +480,9 @@ class _AuthBackground extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  TradeXColors.gold.withValues(alpha: 0.12),
+                  palette.gold.withValues(
+                    alpha: context.isDarkMode ? .12 : .07,
+                  ),
                   Colors.transparent,
                 ],
               ),
@@ -468,13 +499,52 @@ class _AuthBackground extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  TradeXColors.goldDeep.withValues(alpha: 0.11),
+                  palette.gold.withValues(
+                    alpha: context.isDarkMode ? .1 : .045,
+                  ),
                   Colors.transparent,
                 ],
               ),
             ),
           ),
         ),
+        if (securityDecor ||
+            decorTopAsset != null ||
+            decorFooterAsset != null) ...[
+          if (securityDecor || decorTopAsset != null)
+            Positioned(
+              top: 8,
+              right: -20,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: context.isDarkMode ? .16 : .48,
+                  child: Image.asset(
+                    decorTopAsset ??
+                        'assets/security_ui/subtle_gray_candlestick_trend.png',
+                    width: 190,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+          if (securityDecor || decorFooterAsset != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: -18,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: context.isDarkMode ? .09 : .72,
+                  child: Image.asset(
+                    decorFooterAsset ??
+                        'assets/security_ui/layered_cream_wave_footer.png',
+                    height: 150,
+                    fit: BoxFit.fill,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ],
     );
   }

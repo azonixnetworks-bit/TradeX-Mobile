@@ -5,9 +5,11 @@ class AffiliateEarningsScreen extends StatefulWidget {
     super.key,
     required this.repository,
     required this.onUpgrade,
+    required this.onConfigurePayoutMethod,
   });
   final AffiliateRepository repository;
   final VoidCallback onUpgrade;
+  final ValueChanged<String> onConfigurePayoutMethod;
 
   @override
   State<AffiliateEarningsScreen> createState() =>
@@ -24,11 +26,13 @@ class _AffiliateEarningsScreenState extends State<AffiliateEarningsScreen> {
         widget.repository.earningsSeries(months: months == 0 ? 12 : months),
       ),
       _optional(widget.repository.commissions(perPage: 20)),
+      _optional(widget.repository.payoutSummary()),
     ]);
     return {
       'overview': overview,
       'series': values[0],
       'commissions': values[1],
+      'payout': values[2],
     };
   }
 
@@ -47,9 +51,8 @@ class _AffiliateEarningsScreenState extends State<AffiliateEarningsScreen> {
     child: Builder(
       builder: (context) => BlocBuilder<AffiliateLoadCubit, AffiliateLoadState>(
         builder: (context, state) => AffiliateScaffold(
-          title: 'Earnings & Sales',
-          subtitle: 'Track commission income and qualified sales.',
-          showBrand: false,
+          title: 'Your Earnings',
+          subtitle: 'Track your commissions, qualified sales, and payouts.',
           onRefresh: context.read<AffiliateLoadCubit>().load,
           child: Column(
             children: [
@@ -78,7 +81,18 @@ class _AffiliateEarningsScreenState extends State<AffiliateEarningsScreen> {
                 state: state,
                 onRetry: context.read<AffiliateLoadCubit>().load,
                 onUpgrade: widget.onUpgrade,
-                builder: (data) => EarningsContent(data: data),
+                builder: (data) => EarningsContent(
+                  data: data,
+                  onRequestPayout: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) => AffiliatePayoutsScreen(
+                        repository: widget.repository,
+                        onUpgrade: widget.onUpgrade,
+                        onConfigureMethod: widget.onConfigurePayoutMethod,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -89,8 +103,13 @@ class _AffiliateEarningsScreenState extends State<AffiliateEarningsScreen> {
 }
 
 class EarningsContent extends StatelessWidget {
-  const EarningsContent({super.key, required this.data});
+  const EarningsContent({
+    super.key,
+    required this.data,
+    required this.onRequestPayout,
+  });
   final JsonMap data;
+  final VoidCallback onRequestPayout;
 
   @override
   Widget build(BuildContext context) {
@@ -101,6 +120,7 @@ class EarningsContent extends StatelessWidget {
     final points = AffiliateRepository.listOf(series['items']);
     final commissionsData = AffiliateRepository.mapOf(data['commissions']);
     final entries = AffiliateRepository.listOf(commissionsData['items']);
+    final payout = AffiliateRepository.mapOf(data['payout']);
     final sales = AffiliateRepository.integer(
       overview['qualified_sales_count'],
     );
@@ -109,66 +129,58 @@ class EarningsContent extends StatelessWidget {
       '0.00',
     );
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SectionCard(
-          borderColor: TradeXColors.gold,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        Container(
+          padding: const EdgeInsets.fromLTRB(18, 16, 12, 15),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFE0B540), Color(0xFFB77805)],
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: context.palette.gold.withValues(alpha: .2),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
             children: [
-              const Row(
-                children: [
-                  _AffiliateArt(
-                    path: _AffiliateAssets.money,
-                    fallback: Icons.stacked_line_chart_rounded,
-                    size: 56,
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Total Commission Earned',
-                      style: _sectionTitle,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                AffiliateRepository.moneyText(
-                  financials['lifetime_commission_earned'],
-                ),
-                style: const TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 18),
-              SizedBox(height: 210, child: EarningsChart(points: points)),
-              if (points.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Row(
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(width: 10, height: 10, color: _gold),
-                    const SizedBox(width: 6),
+                    Text(
+                      AffiliateRepository.moneyText(
+                        financials['lifetime_commission_earned'],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 29,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
                     const Text(
-                      'Net commission',
-                      style: TextStyle(color: _muted, fontSize: 11),
-                    ),
-                    const Spacer(),
-                    Text(
-                      AffiliateRepository.text(points.first['label']),
-                      style: const TextStyle(color: _muted, fontSize: 10),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6),
-                      child: Text('–', style: TextStyle(color: _muted)),
-                    ),
-                    Text(
-                      AffiliateRepository.text(points.last['label']),
-                      style: const TextStyle(color: _muted, fontSize: 10),
+                      'Total Commission Earned',
+                      style: TextStyle(color: Colors.white),
                     ),
                   ],
                 ),
-              ],
+              ),
+              Image.asset(
+                _AffiliateAssets.earningsCoins,
+                width: 72,
+                height: 72,
+                fit: BoxFit.contain,
+                excludeFromSemantics: true,
+              ),
             ],
           ),
         ),
@@ -181,7 +193,6 @@ class EarningsContent extends StatelessWidget {
                 label: 'Qualified Sales',
                 value: '$sales',
                 icon: Icons.shopping_cart_outlined,
-                assetPath: _AffiliateAssets.gift,
               ),
             ),
             const SizedBox(width: 12),
@@ -194,6 +205,52 @@ class EarningsContent extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 18),
+        SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Earnings Activity', style: _sectionTitle),
+              const SizedBox(height: 14),
+              SizedBox(height: 190, child: EarningsChart(points: points)),
+              if (points.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(width: 10, height: 10, color: _gold),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Net commission',
+                      style: TextStyle(
+                        color: context.palette.secondaryText,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      AffiliateRepository.text(points.first['label']),
+                      style: TextStyle(
+                        color: context.palette.secondaryText,
+                        fontSize: 10,
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 6),
+                      child: Text('–'),
+                    ),
+                    Text(
+                      AffiliateRepository.text(points.last['label']),
+                      style: TextStyle(
+                        color: context.palette.secondaryText,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
         ),
         const SizedBox(height: 20),
         const _SectionHeading(title: 'Recent Commissions'),
@@ -208,11 +265,54 @@ class EarningsContent extends StatelessWidget {
                 for (var index = 0; index < entries.length; index++) ...[
                   CommissionTile(data: entries[index]),
                   if (index != entries.length - 1)
-                    const Divider(height: 1, color: TradeXColors.border),
+                    Divider(height: 1, color: context.palette.border),
                 ],
               ],
             ),
           ),
+        if (payout.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          SectionCard(
+            onTap: onRequestPayout,
+            borderColor: context.palette.gold.withValues(alpha: .55),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: context.palette.gold,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Payout Summary',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      Text(
+                        'Available to payout',
+                        style: TextStyle(color: _muted, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  AffiliateRepository.moneyText(payout['available']),
+                  style: TextStyle(
+                    color: context.palette.goldText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right_rounded),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          GoldActionButton(label: 'Request Payout', onPressed: onRequestPayout),
+        ],
       ],
     );
   }
@@ -260,13 +360,25 @@ class EarningsChart extends StatelessWidget {
         ),
       );
     }
-    return CustomPaint(painter: _EarningsChartPainter(points));
+    return CustomPaint(
+      painter: _EarningsChartPainter(
+        points,
+        lineColor: context.palette.gold,
+        gridColor: context.palette.border,
+      ),
+    );
   }
 }
 
 class _EarningsChartPainter extends CustomPainter {
-  _EarningsChartPainter(this.points);
+  _EarningsChartPainter(
+    this.points, {
+    required this.lineColor,
+    required this.gridColor,
+  });
   final List<JsonMap> points;
+  final Color lineColor;
+  final Color gridColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -274,36 +386,60 @@ class _EarningsChartPainter extends CustomPainter {
         .map((item) => AffiliateRepository.money(item['net_commission']))
         .toList(growable: false);
     final maxValue = math.max(1.0, values.fold<double>(0, math.max));
-    final gap = 6.0;
-    final width = math.max(
-      4.0,
-      (size.width - gap * (values.length - 1)) / values.length,
-    );
-    final baseline = size.height - 24;
-    final grid = Paint()..color = TradeXColors.border;
+    final baseline = size.height - 12;
+    final grid = Paint()..color = gridColor;
     for (var index = 0; index < 4; index++) {
       final y = index * baseline / 3;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
     }
-    final bar = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.bottomCenter,
-        end: Alignment.topCenter,
-        colors: [TradeXColors.goldDeep, _gold],
-      ).createShader(Offset.zero & size);
+    final coordinates = <Offset>[];
     for (var index = 0; index < values.length; index++) {
-      final height = values[index] / maxValue * (baseline - 10);
-      final rect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(index * (width + gap), baseline - height, width, height),
-        const Radius.circular(4),
-      );
-      canvas.drawRRect(rect, bar);
+      final x = values.length == 1
+          ? size.width / 2
+          : index * size.width / (values.length - 1);
+      final y = baseline - values[index] / maxValue * (baseline - 12);
+      coordinates.add(Offset(x, y));
+    }
+    final linePath = Path()..moveTo(coordinates.first.dx, coordinates.first.dy);
+    for (final point in coordinates.skip(1)) {
+      linePath.lineTo(point.dx, point.dy);
+    }
+    final fillPath = Path.from(linePath)
+      ..lineTo(coordinates.last.dx, baseline)
+      ..lineTo(coordinates.first.dx, baseline)
+      ..close();
+    canvas.drawPath(
+      fillPath,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            lineColor.withValues(alpha: .32),
+            lineColor.withValues(alpha: .02),
+          ],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawPath(
+      linePath,
+      Paint()
+        ..color = lineColor
+        ..strokeWidth = 2.5
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+    for (final point in coordinates) {
+      canvas.drawCircle(point, 4, Paint()..color = lineColor);
+      canvas.drawCircle(point, 2, Paint()..color = Colors.white);
     }
   }
 
   @override
   bool shouldRepaint(covariant _EarningsChartPainter oldDelegate) =>
-      oldDelegate.points != points;
+      oldDelegate.points != points ||
+      oldDelegate.lineColor != lineColor ||
+      oldDelegate.gridColor != gridColor;
 }
 
 class CommissionTile extends StatelessWidget {

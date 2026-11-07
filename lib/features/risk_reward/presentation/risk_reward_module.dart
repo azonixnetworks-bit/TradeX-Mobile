@@ -7,6 +7,7 @@ import '../../../core/activity/activity_tracking_scope.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/entities/risk_reward_entities.dart';
 import '../domain/repositories/risk_reward_repository.dart';
 import 'bloc/risk_reward_cubit.dart';

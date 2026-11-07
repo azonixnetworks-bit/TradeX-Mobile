@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/entities/crypto_market_entities.dart';
 import '../domain/repositories/crypto_market_repository.dart';
 import 'crypto_market_cubit.dart';
@@ -86,7 +87,24 @@ class _CryptoWatchlistScreenState extends State<CryptoWatchlistScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('My Watchlist'),
+      title: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'My Watchlist',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          Text(
+            'Live crypto tracking',
+            style: TextStyle(
+              color: TradeXColors.secondaryText,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
       actions: [
         IconButton(
           tooltip: 'Refresh watchlist',
@@ -155,41 +173,93 @@ class _WatchlistSummary extends StatelessWidget {
   final int count;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: TradeXColors.goldBright.withValues(alpha: .13),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(
-          Icons.star_rounded,
-          color: TradeXColors.goldBright,
-          size: 22,
-        ),
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: context.palette.surface,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: context.palette.border),
+      boxShadow: TradeXElevation.surface(
+        brightness: Theme.of(context).brightness,
+        palette: context.palette,
       ),
-      const SizedBox(width: 11),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '$count saved ${count == 1 ? 'coin' : 'coins'}',
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
-            Text(
-              'Live Spot and Futures prices and market movement',
-              style: const TextStyle(
-                color: TradeXColors.secondaryText,
-                fontSize: 11,
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: TradeXColors.goldBright.withValues(alpha: .13),
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: const Icon(
+            Icons.star_rounded,
+            color: TradeXColors.goldBright,
+            size: 23,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$count saved ${count == 1 ? 'coin' : 'coins'}',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 3),
+              const Text(
+                'Spot & Futures · live market movement',
+                style: TextStyle(
+                  color: TradeXColors.secondaryText,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    ],
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFF20B486).withValues(alpha: .1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _LiveDot(),
+              SizedBox(width: 5),
+              Text(
+                'LIVE',
+                style: TextStyle(
+                  color: Color(0xFF20B486),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _LiveDot extends StatelessWidget {
+  const _LiveDot();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 6,
+    height: 6,
+    decoration: const BoxDecoration(
+      color: Color(0xFF20B486),
+      shape: BoxShape.circle,
+    ),
   );
 }
 
@@ -219,13 +289,23 @@ class _WatchlistCoinCard extends StatelessWidget {
       child: Ink(
         padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF111D2C), Color(0xFF0D1622)],
-          ),
+          color: context.palette.surface,
+          gradient: context.isDarkMode
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    context.palette.surfaceRaised,
+                    context.palette.surface,
+                  ],
+                )
+              : null,
           borderRadius: BorderRadius.circular(17),
-          border: Border.all(color: Colors.white.withValues(alpha: .07)),
+          border: Border.all(color: context.palette.border),
+          boxShadow: TradeXElevation.surface(
+            brightness: Theme.of(context).brightness,
+            palette: context.palette,
+          ),
         ),
         child: Row(
           children: [
@@ -304,15 +384,15 @@ class _WatchlistCoinLogo extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: const Color(0xFF1A2737),
+        color: context.palette.surfaceMuted,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: .12)),
+        border: Border.all(color: context.palette.border),
       ),
       child: logo == null || logo.isEmpty
           ? Text(
               asset.fallbackLabel,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: context.palette.primaryText,
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
               ),
@@ -324,8 +404,8 @@ class _WatchlistCoinLogo extends StatelessWidget {
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => Text(
                 asset.fallbackLabel,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: context.palette.primaryText,
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                 ),

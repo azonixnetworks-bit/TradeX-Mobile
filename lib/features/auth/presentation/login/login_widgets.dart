@@ -13,16 +13,16 @@ class _LoginHeader extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: IconButton(
             onPressed: onBack,
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_rounded,
-              color: TradeXColors.goldBright,
+              color: context.palette.primaryText,
             ),
           ),
         ),
 
         SizedBox(
-          width: 128,
-          height: 128,
+          width: 180,
+          height: 82,
           child: Image.asset(
             'assets/branding/trade_x_final_logo.png',
             fit: BoxFit.contain,
@@ -32,24 +32,14 @@ class _LoginHeader extends StatelessWidget {
 
         const SizedBox(height: 6),
 
-        const Text(
-          'The OS for Every Trader.',
+        Text(
+          'TRADING EDUCATION  •  TRADING SERVICES',
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: TradeXColors.primaryText,
-            fontSize: 18,
+            color: context.palette.secondaryText,
+            fontSize: 9,
             fontWeight: FontWeight.w700,
-          ),
-        ),
-
-        const SizedBox(height: 5),
-
-        const Text(
-          'Learn. Trade. Grow.',
-          style: TextStyle(
-            color: TradeXColors.goldBright,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+            letterSpacing: 1.35,
           ),
         ),
       ],
@@ -123,33 +113,27 @@ class _LoginCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF111614), Color(0xFF080B0A)],
+          colors: [context.palette.surface, context.palette.surfaceRaised],
         ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: TradeXColors.gold.withValues(alpha: 0.45),
-          width: 1,
+        borderRadius: TradeXRadii.card,
+        border: Border.all(color: context.palette.border, width: 1),
+        boxShadow: TradeXElevation.surface(
+          brightness: Theme.of(context).brightness,
+          palette: context.palette,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: TradeXColors.gold.withValues(alpha: 0.10),
-            blurRadius: 28,
-            spreadRadius: 1,
-          ),
-        ],
       ),
       child: Form(
         key: formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Welcome Back',
               style: TextStyle(
-                color: TradeXColors.primaryText,
+                color: context.palette.primaryText,
                 fontSize: 25,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.4,
@@ -158,10 +142,10 @@ class _LoginCard extends StatelessWidget {
 
             const SizedBox(height: 6),
 
-            const Text(
+            Text(
               'Sign in securely to continue your trading journey.',
               style: TextStyle(
-                color: TradeXColors.secondaryText,
+                color: context.palette.secondaryText,
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -494,31 +478,31 @@ class _LoginField extends StatelessWidget {
       maxLength: maxLength,
       onFieldSubmitted: onFieldSubmitted,
       validator: validator,
-      style: const TextStyle(color: TradeXColors.primaryText, fontSize: 14),
-      cursorColor: TradeXColors.goldBright,
+      style: TextStyle(color: context.palette.primaryText, fontSize: 14),
+      cursorColor: context.palette.gold,
       decoration: InputDecoration(
         counterText: '',
         hintText: label,
-        hintStyle: const TextStyle(color: TradeXColors.secondaryText),
-        prefixIcon: Icon(icon, color: TradeXColors.gold, size: 21),
+        hintStyle: TextStyle(color: context.palette.secondaryText),
+        prefixIcon: Icon(icon, color: context.palette.secondaryText, size: 21),
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: const Color(0xFF090D0B),
+        fillColor: context.palette.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 17,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(color: TradeXColors.border),
+          borderSide: BorderSide(color: context.palette.borderStrong),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(color: TradeXColors.border),
+          borderSide: BorderSide(color: context.palette.borderStrong),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
-          borderSide: const BorderSide(color: TradeXColors.gold, width: 1.3),
+          borderSide: BorderSide(color: context.palette.gold, width: 1.3),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(13),
@@ -556,12 +540,10 @@ class _QuickUnlockMethodButton extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 10),
         decoration: BoxDecoration(
-          color: selected
-              ? TradeXColors.gold.withValues(alpha: 0.14)
-              : TradeXColors.background,
+          color: selected ? context.palette.goldSoft : context.palette.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? TradeXColors.goldBright : TradeXColors.border,
+            color: selected ? context.palette.gold : context.palette.border,
           ),
         ),
         child: Row(
@@ -571,8 +553,8 @@ class _QuickUnlockMethodButton extends StatelessWidget {
               icon,
               size: 18,
               color: selected
-                  ? TradeXColors.goldBright
-                  : TradeXColors.secondaryText,
+                  ? context.palette.goldText
+                  : context.palette.secondaryText,
             ),
             const SizedBox(width: 6),
             Flexible(
@@ -581,8 +563,8 @@ class _QuickUnlockMethodButton extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: selected
-                      ? TradeXColors.goldBright
-                      : TradeXColors.primaryText,
+                      ? context.palette.goldText
+                      : context.palette.primaryText,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
@@ -774,52 +756,41 @@ class _LoginBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        const DecoratedBox(
+        DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF070A08),
-                TradeXColors.background,
-                Color(0xFF020302),
+                context.palette.surface,
+                context.palette.background,
+                context.palette.background,
               ],
             ),
           ),
         ),
-
         Positioned(
-          top: -150,
-          right: -140,
-          child: Container(
-            width: 380,
-            height: 380,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  TradeXColors.gold.withValues(alpha: 0.13),
-                  Colors.transparent,
-                ],
-              ),
+          top: 42,
+          right: -44,
+          width: 230,
+          child: Opacity(
+            opacity: .13,
+            child: Image.asset(
+              'assets/auth_ui/shared/minimalist_ascending_candlestick_overlay.png',
             ),
           ),
         ),
-
         Positioned(
-          bottom: -180,
-          left: -140,
-          child: Container(
-            width: 420,
-            height: 420,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  TradeXColors.goldDeep.withValues(alpha: 0.12),
-                  Colors.transparent,
-                ],
-              ),
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 175,
+          child: Opacity(
+            opacity: .75,
+            child: Image.asset(
+              'assets/auth_ui/shared/soft_cream_layered_wave_background.png',
+              fit: BoxFit.cover,
+              alignment: Alignment.bottomCenter,
             ),
           ),
         ),

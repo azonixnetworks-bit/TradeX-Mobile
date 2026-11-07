@@ -24,17 +24,14 @@ class _UniversalLessonViewerScreenState
     widget.repository.updateProgress(widget.lessonUuid, status: 'IN_PROGRESS');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ActivityTrackingScope.maybeOf(context)?.track(
-        'learning',
-        'lesson_viewed',
-        subjectId: widget.lessonUuid,
-      );
+      ActivityTrackingScope.maybeOf(context)
+          ?.track('learning', 'lesson_viewed', subjectId: widget.lessonUuid);
     });
   }
 
   @override
   Widget build(BuildContext context) => _LearnScaffold(
-    title: 'Lesson',
+    title: 'Lesson Viewer',
     actions: [
       IconButton(
         tooltip: 'Save lesson',
@@ -53,33 +50,108 @@ class _UniversalLessonViewerScreenState
       builder: (data) {
         final lesson = LearnRepository.map(data['lesson']);
         final videos = LearnRepository.list(data['videos']);
+        final progress = LearnRepository.map(data['progress']);
+        final course = LearnRepository.map(data['course'] ?? lesson['course']);
+        final module = LearnRepository.map(data['module'] ?? lesson['module']);
+        final firstVideo = videos.isEmpty
+            ? <String, dynamic>{}
+            : LearnRepository.map(videos.first);
+        final thumbnail = _thumbnailValue(lesson);
         return ListView(
           children: [
-            if (_thumbnailValue(lesson).isNotEmpty) ...[
+            Text(
+              'Course Lesson',
+              style: Theme.of(context).textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Learn step by step with expert-led video lessons.',
+              style: TextStyle(color: context.palette.secondaryText),
+            ),
+            const SizedBox(height: 16),
+            if (thumbnail.isNotEmpty) ...[
               CourseThumbnail(
-                thumbnailPath: _thumbnailValue(lesson),
+                thumbnailPath: thumbnail,
                 height: 190,
                 showPlay: videos.isNotEmpty,
+                durationSeconds: LearnRepository.number(
+                  firstVideo['duration_seconds'],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ] else ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  height: 190,
+                  color: context.palette.goldSoft,
+                  child: Image.asset(
+                    'assets/recovery_course_ui/course_video_placeholder_art.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
             ],
+            if (module.isNotEmpty)
+              Text(
+                LearnRepository.text(module['title']),
+                style: TextStyle(
+                  color: context.palette.goldText,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            if (module.isNotEmpty) const SizedBox(height: 5),
             Text(
               LearnRepository.text(lesson['title'], 'TradeX Lesson'),
               style: Theme.of(context).textTheme.headlineSmall
                   ?.copyWith(fontWeight: FontWeight.w900),
             ),
+            if (course.isNotEmpty || firstVideo.isNotEmpty) ...[
+              const SizedBox(height: 7),
+              Wrap(
+                spacing: 14,
+                runSpacing: 6,
+                children: [
+                  if (LearnRepository.number(firstVideo['duration_seconds']) >
+                      0)
+                    _LessonMeta(
+                      icon: Icons.schedule_rounded,
+                      label: _lessonDuration(
+                        LearnRepository.number(firstVideo['duration_seconds']),
+                      ),
+                    ),
+                  if (LearnRepository.text(lesson['difficulty']).isNotEmpty)
+                    _LessonMeta(
+                      icon: Icons.signal_cellular_alt_rounded,
+                      label: LearnRepository.text(lesson['difficulty']),
+                    ),
+                  if (LearnRepository.text(course['title']).isNotEmpty)
+                    _LessonMeta(
+                      icon: Icons.school_outlined,
+                      label: LearnRepository.text(course['title']),
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 8),
             Text(
               LearnRepository.text(lesson['heading']),
               style: const TextStyle(color: TradeXColors.secondaryText),
             ),
             const SizedBox(height: 18),
+            if (progress.isNotEmpty) ...[
+              _LessonViewerProgress(progress: progress),
+              const SizedBox(height: 16),
+            ],
             LessonContentRenderer(
               lesson: lesson,
               videos: videos,
               repository: widget.repository,
               lessonUuid: widget.lessonUuid,
-              progress: LearnRepository.map(data['progress']),
+              progress: progress,
             ),
             const SizedBox(height: 20),
             Row(
@@ -129,6 +201,79 @@ class _UniversalLessonViewerScreenState
       },
     ),
   );
+}
+
+class _LessonViewerProgress extends StatelessWidget {
+  const _LessonViewerProgress({required this.progress});
+
+  final JsonMap progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final percent = LearnRepository.number(progress['percent']).clamp(0, 100);
+    final status = LearnRepository.text(progress['status'], 'IN PROGRESS');
+    return _PremiumCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  status.replaceAll('_', ' '),
+                  style: TextStyle(
+                    color: context.palette.goldText,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                '$percent%',
+                style: TextStyle(
+                  color: context.palette.primaryText,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          LinearProgressIndicator(
+            value: percent / 100,
+            minHeight: 7,
+            color: context.palette.gold,
+            backgroundColor: context.palette.border,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LessonMeta extends StatelessWidget {
+  const _LessonMeta({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 16, color: context.palette.secondaryText),
+      const SizedBox(width: 5),
+      Text(
+        label,
+        style: TextStyle(color: context.palette.secondaryText, fontSize: 12),
+      ),
+    ],
+  );
+}
+
+String _lessonDuration(int seconds) {
+  final minutes = seconds ~/ 60;
+  final remainder = seconds % 60;
+  return '$minutes:${remainder.toString().padLeft(2, '0')}';
 }
 
 class LessonContentRenderer extends StatelessWidget {
@@ -202,8 +347,30 @@ class TextLessonRenderer extends StatelessWidget {
   const TextLessonRenderer({super.key, required this.text});
   final String text;
   @override
-  Widget build(BuildContext context) =>
-      _InfoCard(title: 'Lesson Notes', body: text);
+  Widget build(BuildContext context) => _PremiumCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.article_outlined, color: context.palette.goldText),
+            const SizedBox(width: 9),
+            const Text(
+              'Lesson Notes',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+        if (text.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text(
+            text,
+            style: TextStyle(color: context.palette.secondaryText, height: 1.5),
+          ),
+        ],
+      ],
+    ),
+  );
 }
 
 class ImageLessonRenderer extends StatelessWidget {
@@ -245,66 +412,78 @@ class _VideoLessonRendererState extends State<VideoLessonRenderer> {
   bool loading = false;
   @override
   Widget build(BuildContext context) => _PremiumCard(
-    child: Row(
-      children: [
-        const Icon(Icons.play_circle_fill_rounded, color: _gold, size: 42),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                LearnRepository.text(widget.video['title'], 'Secure video'),
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-              Text(
-                '${LearnRepository.number(widget.video['duration_seconds']) ~/ 60} min • streaming only',
-                style: const TextStyle(
-                  color: TradeXColors.secondaryText,
-                  fontSize: 12,
-                ),
-              ),
-            ],
+    child: InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: loading ? null : _openVideo,
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: context.palette.goldSoft,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(
+              Icons.play_circle_fill_rounded,
+              color: context.palette.goldText,
+              size: 34,
+            ),
           ),
-        ),
-        TextButton(
-          onPressed: loading
-              ? null
-              : () async {
-                  setState(() => loading = true);
-                  try {
-                    final token = await widget.repository.playbackToken(
-                      LearnRepository.text(widget.video['uuid']),
-                    );
-                    final playbackUrl = LearnRepository.text(
-                      token['playback_url'],
-                    );
-                    if (playbackUrl.isNotEmpty && context.mounted) {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => CourseVideoPlayerScreen(
-                            repository: widget.repository,
-                            lessonUuid: widget.lessonUuid,
-                            videoUuid: LearnRepository.text(
-                              widget.video['uuid'],
-                            ),
-                            title: LearnRepository.text(
-                              widget.video['title'],
-                              'TradeX course video',
-                            ),
-                            playbackUrl: playbackUrl,
-                            resumeSeconds: widget.resumeSeconds,
-                          ),
-                        ),
-                      );
-                    }
-                  } finally {
-                    if (mounted) setState(() => loading = false);
-                  }
-                },
-          child: Text(loading ? 'Loading…' : 'Play'),
-        ),
-      ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  LearnRepository.text(widget.video['title'], 'Secure video'),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  '${LearnRepository.number(widget.video['duration_seconds']) ~/ 60} min • streaming only',
+                  style: const TextStyle(
+                    color: TradeXColors.secondaryText,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            loading ? Icons.hourglass_top_rounded : Icons.chevron_right_rounded,
+            color: context.palette.goldText,
+          ),
+        ],
+      ),
     ),
   );
+
+  Future<void> _openVideo() async {
+    setState(() => loading = true);
+    try {
+      final token = await widget.repository.playbackToken(
+        LearnRepository.text(widget.video['uuid']),
+      );
+      final playbackUrl = LearnRepository.text(token['playback_url']);
+      if (playbackUrl.isNotEmpty && mounted) {
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => CourseVideoPlayerScreen(
+              repository: widget.repository,
+              lessonUuid: widget.lessonUuid,
+              videoUuid: LearnRepository.text(widget.video['uuid']),
+              title: LearnRepository.text(
+                widget.video['title'],
+                'TradeX course video',
+              ),
+              playbackUrl: playbackUrl,
+              resumeSeconds: widget.resumeSeconds,
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
 }

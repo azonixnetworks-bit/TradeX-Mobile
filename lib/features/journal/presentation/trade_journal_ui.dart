@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/entities/trade_journal_entities.dart';
 
 const journalPanel = Color(0xFF151D27);
@@ -31,42 +32,45 @@ class JournalScaffold extends StatelessWidget {
   final bool accentLastTitleWord;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFF0B1017),
-    appBar: AppBar(
-      backgroundColor: const Color(0xFF111923),
-      surfaceTintColor: Colors.transparent,
-      titleSpacing: 0,
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          accentLastTitleWord
-              ? Text.rich(
-                  TextSpan(children: _accentedTitle(title)),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                )
-              : Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w900),
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Scaffold(
+      backgroundColor: palette.background,
+      appBar: AppBar(
+        backgroundColor: palette.background,
+        surfaceTintColor: Colors.transparent,
+        titleSpacing: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            accentLastTitleWord
+                ? Text.rich(
+                    TextSpan(children: _accentedTitle(title)),
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  )
+                : Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+            if (subtitle != null)
+              Text(
+                subtitle!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: palette.secondaryText,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
                 ),
-          if (subtitle != null)
-            Text(
-              subtitle!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: TradeXColors.secondaryText,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
               ),
-            ),
-        ],
+          ],
+        ),
+        actions: actions,
       ),
-      actions: actions,
-    ),
-    body: SafeArea(top: false, child: body),
-    floatingActionButton: floatingActionButton,
-  );
+      body: SafeArea(top: false, child: body),
+      floatingActionButton: floatingActionButton,
+    );
+  }
 
   List<InlineSpan> _accentedTitle(String value) {
     final separator = value.lastIndexOf(' ');
@@ -98,28 +102,36 @@ class JournalPanel extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(17),
-      child: Ink(
-        padding: padding,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [journalPanelRaised, journalPanel],
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(17),
+        child: Ink(
+          padding: padding,
+          decoration: BoxDecoration(
+            color: palette.surface,
+            gradient: context.isDarkMode
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [palette.surfaceRaised, palette.surface],
+                  )
+                : null,
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(color: borderColor ?? palette.border),
+            boxShadow: TradeXElevation.surface(
+              brightness: Theme.of(context).brightness,
+              palette: palette,
+            ),
           ),
-          borderRadius: BorderRadius.circular(17),
-          border: Border.all(
-            color: borderColor ?? Colors.white.withValues(alpha: .08),
-          ),
+          child: child,
         ),
-        child: child,
       ),
-    ),
-  );
+    );
+  }
 }
 
 class JournalSectionTitle extends StatelessWidget {
@@ -399,7 +411,7 @@ class JournalValueRow extends StatelessWidget {
             value,
             textAlign: TextAlign.end,
             style: TextStyle(
-              color: valueColor ?? Colors.white,
+              color: valueColor ?? context.palette.primaryText,
               fontSize: 12,
               fontWeight: FontWeight.w800,
             ),

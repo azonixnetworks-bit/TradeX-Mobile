@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/config/tradex_api_config.dart';
 import '../../../core/theme/tradex_colors.dart';

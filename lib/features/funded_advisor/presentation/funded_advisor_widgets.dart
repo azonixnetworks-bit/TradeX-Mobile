@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 
 const fundedGold = TradeXColors.goldBright;
 const fundedMuted = TradeXColors.secondaryText;
@@ -67,13 +68,13 @@ class FundedPage extends StatelessWidget {
       ],
     );
     return Scaffold(
-      backgroundColor: TradeXColors.background,
+      backgroundColor: context.palette.background,
       body: SafeArea(
         child: onRefresh == null
             ? content
             : RefreshIndicator(
                 color: fundedGold,
-                backgroundColor: TradeXColors.surfaceRaised,
+                backgroundColor: context.palette.surfaceRaised,
                 onRefresh: onRefresh!,
                 child: content,
               ),
@@ -99,8 +100,8 @@ class FundedIconButton extends StatelessWidget {
     tooltip: tooltip,
     onPressed: onTap,
     style: IconButton.styleFrom(
-      backgroundColor: TradeXColors.surfaceRaised,
-      side: const BorderSide(color: TradeXColors.borderStrong),
+      backgroundColor: context.palette.surfaceRaised,
+      side: BorderSide(color: context.palette.border),
     ),
     icon: Icon(icon, color: fundedGold),
   );
@@ -124,30 +125,30 @@ class FundedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     const radius = BorderRadius.all(Radius.circular(20));
     final content = Padding(padding: padding, child: child);
+    final palette = context.palette;
 
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gold
-              ? const [TradeXColors.goldSoft, TradeXColors.surface]
-              : const [TradeXColors.surfaceRaised, TradeXColors.surface],
-        ),
+        color: palette.surface,
+        gradient: context.isDarkMode
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: gold
+                    ? [palette.goldSoft, palette.surface]
+                    : [palette.surfaceRaised, palette.surface],
+              )
+            : null,
         borderRadius: radius,
         border: Border.all(
           color: gold
               ? TradeXColors.gold.withValues(alpha: .72)
-              : TradeXColors.borderStrong,
+              : palette.border,
         ),
-        boxShadow: gold
-            ? [
-                BoxShadow(
-                  color: fundedGold.withValues(alpha: .08),
-                  blurRadius: 22,
-                ),
-              ]
-            : null,
+        boxShadow: TradeXElevation.surface(
+          brightness: Theme.of(context).brightness,
+          palette: palette,
+        ),
       ),
       child: Material(
         color: Colors.transparent,

@@ -106,15 +106,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       title: 'Forgot Password',
       subtitle: 'Confirm the email and WhatsApp number linked to your TradeX account.',
       onBack: widget.onBack,
+      decorTopAsset:
+          'assets/auth_recovery_ui/subtle_gold_uptrend_candlesticks.png',
+      decorFooterAsset: 'assets/auth_recovery_ui/soft_ivory_wave_layers.png',
       child: Form(
         key: _formKey,
         child: Column(
           children: [
-            const TradeXInfoBanner(
-              message: 'For privacy, TradeX returns the same response whether or not the account details are eligible.',
-              icon: Icons.privacy_tip_outlined,
+            _RecoverySectionLabel(
+              asset: 'assets/auth_recovery_ui/minimalist_charcoal_envelope_icon.png',
+              label: 'Recover with your email',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             TradeXAuthField(
               controller: _emailController,
               label: 'Email Address',
@@ -123,7 +126,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               textInputAction: TextInputAction.next,
               validator: _validateEmail,
             ),
-            const SizedBox(height: 13),
+            const SizedBox(height: 16),
+            const _OrDivider(),
+            const SizedBox(height: 16),
+            _RecoverySectionLabel(
+              asset: 'assets/auth_recovery_ui/minimal_chat_phone_icon.png',
+              label: 'Confirm your registered mobile',
+            ),
+            const SizedBox(height: 10),
             TradeXAuthField(
               controller: _whatsappController,
               label: 'WhatsApp Number',
@@ -141,13 +151,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 }
               },
             ),
+            const SizedBox(height: 14),
+            const TradeXInfoBanner(
+              message: 'For privacy, TradeX returns the same response whether or not the account details are eligible.',
+              icon: Icons.info_outline_rounded,
+            ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 14),
               TradeXErrorBanner(message: _errorMessage!),
             ],
             const SizedBox(height: 18),
             TradeXGoldButton(
-              label: 'Start Recovery',
+              label: 'Send Code',
               onPressed: _submit,
               loading: _submitting,
               icon: Icons.lock_reset_rounded,
@@ -157,4 +172,46 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ),
     );
   }
+}
+
+class _RecoverySectionLabel extends StatelessWidget {
+  const _RecoverySectionLabel({required this.asset, required this.label});
+
+  final String asset;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Image.asset(asset, width: 30, height: 30, fit: BoxFit.contain),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.titleSmall
+              ?.copyWith(fontWeight: FontWeight.w800),
+        ),
+      ),
+    ],
+  );
+}
+
+class _OrDivider extends StatelessWidget {
+  const _OrDivider();
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      const Expanded(child: Divider()),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Text(
+          'OR',
+          style: Theme.of(context).textTheme.labelSmall
+              ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 1.4),
+        ),
+      ),
+      const Expanded(child: Divider()),
+    ],
+  );
 }

@@ -72,11 +72,11 @@ class _TradeJournalCloseScreenState extends State<TradeJournalCloseScreen> {
     title: 'Close Trade',
     subtitle: 'Complete execution and record your review',
     body: DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF0B1017), Color(0xFF0B1017)],
+          colors: [context.palette.background, context.palette.surfaceMuted],
         ),
       ),
       child: FutureBuilder<({TradeJournalMeta meta, TradeJournalEntry entry})>(

@@ -10,20 +10,74 @@ class _LearnScaffold extends StatelessWidget {
   final Widget child;
   final List<Widget>? actions;
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-    appBar: AppBar(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      title: Text(title),
-      actions: actions,
-    ),
-    body: SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: child,
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Scaffold(
+      backgroundColor: palette.background,
+      appBar: AppBar(
+        backgroundColor: palette.background,
+        surfaceTintColor: Colors.transparent,
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/branding/trade_x_final_logo.png',
+              width: 38,
+              height: 38,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ),
+        actions: actions,
       ),
-    ),
-  );
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Positioned(
+              top: -10,
+              right: -22,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: context.isDarkMode ? .1 : .36,
+                  child: Image.asset(
+                    'assets/learning_ui/decorations_png/delicate_golden_candlestick_trend.png',
+                    width: 175,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: -16,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: context.isDarkMode ? .06 : .5,
+                  child: Image.asset(
+                    'assets/learning_ui/decorations_png/soft_ivory_wave_footer.png',
+                    height: 120,
+                    fit: BoxFit.fill,
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: child,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _FutureBody extends StatelessWidget {
@@ -77,15 +131,22 @@ class _PremiumCard extends StatelessWidget {
   const _PremiumCard({required this.child});
   final Widget child;
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(17),
-      border: Border.all(color: Theme.of(context).dividerColor),
-    ),
-    child: child,
-  );
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: TradeXRadii.card,
+        border: Border.all(color: palette.border),
+        boxShadow: TradeXElevation.surface(
+          brightness: Theme.of(context).brightness,
+          palette: palette,
+        ),
+      ),
+      child: child,
+    );
+  }
 }
 
 class _InfoCard extends StatelessWidget {
@@ -130,34 +191,76 @@ class _LearningCard extends StatelessWidget {
       LearnRepository.text(item['lesson_title'], 'Start learning'),
     );
     final percent = LearnRepository.number(item['progress_percent']);
+    final thumbnail = LearnRepository.text(
+      lesson['thumbnail_url'],
+      LearnRepository.text(
+        lesson['thumbnail_path'],
+        LearnRepository.text(
+          course['thumbnail_url'],
+          LearnRepository.text(course['thumbnail_path']),
+        ),
+      ),
+    );
     return _PremiumCard(
       child: InkWell(
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              '${LearnRepository.text(course['title'], LearnRepository.text(item['course_title']))} • ${LearnRepository.text(module['title'], LearnRepository.text(item['module_title']))}',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: TradeXColors.secondaryText,
-                fontSize: 12,
+            if (thumbnail.isNotEmpty) ...[
+              CourseThumbnail(
+                thumbnailPath: thumbnail,
+                width: 96,
+                height: 84,
+                showPlay: true,
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      height: 1.15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    '${LearnRepository.text(course['title'], LearnRepository.text(item['course_title']))} • ${LearnRepository.text(module['title'], LearnRepository.text(item['module_title']))}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: TradeXColors.secondaryText,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  LinearProgressIndicator(
+                    value: percent.clamp(0, 100) / 100,
+                    minHeight: 6,
+                    color: _gold,
+                    backgroundColor: TradeXColors.border,
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    '$percent%',
+                    style: const TextStyle(
+                      color: _gold,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 10),
-            LinearProgressIndicator(
-              value: percent.clamp(0, 100) / 100,
-              color: _gold,
-              backgroundColor: TradeXColors.border,
-            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right_rounded, color: _gold),
           ],
         ),
       ),
@@ -181,45 +284,49 @@ class _CourseCard extends StatelessWidget {
     return _PremiumCard(
       child: InkWell(
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             CourseThumbnail(
               key: ValueKey('course-thumbnail-$courseUuid'),
               thumbnailPath: thumbnail,
-              height: 150,
+              width: 112,
+              height: 96,
             ),
-            const SizedBox(height: 13),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _StatusBadge(
+                    LearnRepository.text(course['access_level'], 'FREE'),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
                     LearnRepository.text(course['title'], 'Course'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 17,
+                      fontSize: 15,
+                      height: 1.15,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                ),
-                Icon(locked ? Icons.lock : Icons.arrow_forward, color: _gold),
-              ],
+                  const SizedBox(height: 7),
+                  Text(
+                    '${LearnRepository.number(course['lesson_count'] ?? progress['total_lessons'])} lessons  •  ${LearnRepository.number(progress['percent'])}%',
+                    style: const TextStyle(
+                      color: TradeXColors.secondaryText,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              LearnRepository.text(course['short_description']),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: TradeXColors.secondaryText),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                _StatusBadge(
-                  LearnRepository.text(course['access_level'], 'FREE'),
-                ),
-                const Spacer(),
-                Text('${LearnRepository.number(progress['percent'])}%'),
-              ],
+            const SizedBox(width: 8),
+            Icon(
+              locked ? Icons.lock_outline_rounded : Icons.chevron_right_rounded,
+              color: _gold,
             ),
           ],
         ),
@@ -241,18 +348,40 @@ class _CourseHero extends StatelessWidget {
       course['description'],
       LearnRepository.text(course['short_description']),
     );
+    final progress = LearnRepository.map(course['progress']);
+    final instructor = LearnRepository.map(course['instructor']);
+    final instructorName = LearnRepository.text(
+      instructor['name'],
+      LearnRepository.text(course['instructor_name']),
+    );
     return _PremiumCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CourseThumbnail(
-            key: ValueKey(
-              'course-hero-thumbnail-${LearnRepository.text(course['uuid'])}',
+          if (thumbnail.isNotEmpty)
+            CourseThumbnail(
+              key: ValueKey(
+                'course-hero-thumbnail-${LearnRepository.text(course['uuid'])}',
+              ),
+              thumbnailPath: thumbnail,
+              height: 185,
+            )
+          else
+            Container(
+              height: 185,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: context.palette.goldSoft,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Image.asset(
+                'assets/learning_ui/illustrations_png/course_details_full_hero.png',
+                fit: BoxFit.contain,
+              ),
             ),
-            thumbnailPath: thumbnail,
-            height: 185,
-          ),
           const SizedBox(height: 14),
+          _StatusBadge(LearnRepository.text(course['access_level'], 'COURSE')),
+          const SizedBox(height: 8),
           Text(
             LearnRepository.text(course['title'], 'TradeX Course'),
             style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
@@ -265,6 +394,42 @@ class _CourseHero extends StatelessWidget {
                 color: TradeXColors.secondaryText,
                 height: 1.45,
               ),
+            ),
+          ],
+          if (instructorName.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: context.palette.goldSoft,
+                  child: Text(
+                    instructorName.characters.first.toUpperCase(),
+                    style: TextStyle(
+                      color: context.palette.goldText,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    instructorName,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (progress.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            LinearProgressIndicator(
+              value:
+                  LearnRepository.number(progress['percent']).clamp(0, 100) /
+                  100,
+              minHeight: 7,
+              color: context.palette.gold,
+              backgroundColor: context.palette.border,
             ),
           ],
         ],

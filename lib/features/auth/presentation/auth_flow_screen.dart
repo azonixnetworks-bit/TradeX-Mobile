@@ -556,10 +556,12 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
         );
 
       case _AuthStep.registerTotpVerify:
+        final totpDigits = _registrationTotpSetup?.digits ?? 6;
         return OtpVerificationScreen(
           title: 'Verify Authenticator',
-          subtitle: 'Enter the current 6-digit code from the authenticator app you just configured.',
-          codeLength: 6,
+          subtitle:
+              'Enter the current $totpDigits-digit code from the authenticator app you just configured.',
+          codeLength: totpDigits,
           channelLabel:
               'This final security check activates your TradeX account.',
           onVerify: _confirmRegistrationTotp,

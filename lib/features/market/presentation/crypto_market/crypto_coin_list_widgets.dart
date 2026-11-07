@@ -13,9 +13,9 @@ class _CryptoSegmentSwitcher extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(3),
     decoration: BoxDecoration(
-      color: const Color(0xFF102035),
+      color: context.palette.surfaceMuted,
       borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: Colors.white.withValues(alpha: .06)),
+      border: Border.all(color: context.palette.border),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
@@ -111,16 +111,13 @@ class _CryptoSearchSuggestions extends StatelessWidget {
     key: const ValueKey('crypto-search-suggestions'),
     clipBehavior: Clip.antiAlias,
     decoration: BoxDecoration(
-      color: const Color(0xFF0D1928),
+      color: context.palette.surfaceRaised,
       borderRadius: BorderRadius.circular(13),
-      border: Border.all(color: TradeXColors.border),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x33000000),
-          blurRadius: 10,
-          offset: Offset(0, 5),
-        ),
-      ],
+      border: Border.all(color: context.palette.border),
+      boxShadow: TradeXElevation.floating(
+        brightness: Theme.of(context).brightness,
+        palette: context.palette,
+      ),
     ),
     child: assets.isEmpty
         ? Padding(
@@ -211,8 +208,8 @@ class _CryptoSearchSuggestionRow extends StatelessWidget {
                             asset.symbol,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: context.palette.primaryText,
                               fontSize: 12,
                               fontWeight: FontWeight.w900,
                             ),
@@ -229,8 +226,8 @@ class _CryptoSearchSuggestionRow extends StatelessWidget {
                           : '${asset.baseCurrency} / USDT',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF91A1B7),
+                      style: TextStyle(
+                        color: context.palette.secondaryText,
                         fontSize: 9,
                       ),
                     ),
@@ -243,8 +240,8 @@ class _CryptoSearchSuggestionRow extends StatelessWidget {
                 children: [
                   Text(
                     asset.price > 0 ? _price(asset.price) : '—',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: context.palette.primaryText,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                     ),
@@ -398,20 +395,23 @@ class _CoinRow extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [TradeXColors.surfaceRaised, TradeXColors.surface],
-            ),
+            color: context.palette.surface,
+            gradient: context.isDarkMode
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      context.palette.surfaceRaised,
+                      context.palette.surface,
+                    ],
+                  )
+                : null,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF273A52)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x22000000),
-                blurRadius: 7,
-                offset: Offset(0, 3),
-              ),
-            ],
+            border: Border.all(color: context.palette.border),
+            boxShadow: TradeXElevation.surface(
+              brightness: Theme.of(context).brightness,
+              palette: context.palette,
+            ),
           ),
           child: Row(
             children: [
@@ -433,8 +433,8 @@ class _CoinRow extends StatelessWidget {
                             asset.symbol,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: context.palette.primaryText,
                               fontSize: 13,
                               fontWeight: FontWeight.w900,
                             ),
@@ -451,8 +451,8 @@ class _CoinRow extends StatelessWidget {
                           : '${asset.baseCurrency} / USDT',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF91A1B7),
+                      style: TextStyle(
+                        color: context.palette.secondaryText,
                         fontSize: 9.5,
                       ),
                     ),
@@ -482,8 +482,8 @@ class _CoinRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.fade,
                       softWrap: false,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.palette.primaryText,
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
                       ),

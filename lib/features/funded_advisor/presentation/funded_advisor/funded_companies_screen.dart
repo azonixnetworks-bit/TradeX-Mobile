@@ -45,7 +45,7 @@ class _FundedCompaniesScreenState extends State<_FundedCompaniesScreen>
       }
       return FundedPage(
         title: 'Funded Companies',
-        subtitle: 'Compare verified partners and official news rules.',
+        subtitle: 'Discover and compare funded trading providers and published programs.',
         onRefresh: () => cubit.refreshIfDue(manual: true),
         actions: [
           FundedIconButton(
@@ -73,10 +73,16 @@ class _FundedCompaniesScreenState extends State<_FundedCompaniesScreen>
             TextField(
               onChanged: cubit.setQuery,
               decoration: InputDecoration(
-                hintText: 'Search funded companies',
-                prefixIcon: const Icon(Icons.search_rounded),
+                hintText: 'Search providers by name or offer',
+                prefixIcon: const Icon(Icons.search_rounded, color: fundedGold),
                 filled: true,
-                fillColor: TradeXColors.surfaceRaised,
+                fillColor: Theme.of(context).colorScheme.surface,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

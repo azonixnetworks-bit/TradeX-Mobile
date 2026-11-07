@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../../../core/serialization/structured_text_codec.dart';
 
 class TradingViewChartScreen extends StatefulWidget {
@@ -48,36 +49,89 @@ class _TradingViewChartScreenState extends State<TradingViewChartScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
-    body: Stack(
-      fit: StackFit.expand,
-      children: [
-        Center(
-          child: AspectRatio(
-            aspectRatio: 16 / 9,
-            child: TradingViewChartView(
-              qualifiedSymbol:
-                  widget.qualifiedSymbol ??
-                  tradingViewTicker(widget.symbol, widget.segment),
-              interval: widget.interval,
+  Widget build(BuildContext context) {
+    final qualifiedSymbol =
+        widget.qualifiedSymbol ??
+        tradingViewTicker(widget.symbol, widget.segment);
+    return Scaffold(
+      backgroundColor: context.palette.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 4, 8, 6),
+              child: Row(
+                children: [
+                  Image.asset(
+                    'assets/branding/trade_x_final_logo.png',
+                    width: 36,
+                    height: 36,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Full Chart',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                        Text(
+                          qualifiedSymbol,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: context.palette.secondaryText,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.palette.goldSoft,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      widget.interval,
+                      style: TextStyle(
+                        color: context.palette.goldText,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton.filledTonal(
+                    tooltip: 'Close chart',
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
-        Positioned(
-          top: 8,
-          right: 8,
-          child: SafeArea(
-            child: IconButton.filledTonal(
-              tooltip: 'Close chart',
-              onPressed: () => Navigator.of(context).maybePop(),
-              icon: const Icon(Icons.close_rounded),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(18),
+                ),
+                child: TradingViewChartView(
+                  qualifiedSymbol: qualifiedSymbol,
+                  interval: widget.interval,
+                ),
+              ),
             ),
-          ),
+          ],
         ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class TradingViewChartView extends StatefulWidget {

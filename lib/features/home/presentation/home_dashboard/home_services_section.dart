@@ -27,7 +27,25 @@ class _HomeContent extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              _Header(onLogout: onLogout, onNotificationTap: onActionTap),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    top: -24,
+                    right: 16,
+                    child: IgnorePointer(
+                      child: Opacity(
+                        opacity: context.isDarkMode ? .12 : .38,
+                        child: Image.asset(
+                          'assets/home_ui/complex_png/delicate_golden_candlestick_trend.png',
+                          width: 150,
+                        ),
+                      ),
+                    ),
+                  ),
+                  _Header(onLogout: onLogout, onNotificationTap: onActionTap),
+                ],
+              ),
               const SizedBox(height: 14),
               _SectionTitle(
                 icon: Icons.apps_rounded,
@@ -97,6 +115,16 @@ class _HomeContent extends StatelessWidget {
                 apiClient: apiClient,
                 onActionTap: onActionTap,
               ),
+              const SizedBox(height: 10),
+              Opacity(
+                opacity: context.isDarkMode ? .07 : .62,
+                child: Image.asset(
+                  'assets/home_ui/complex_png/soft_ivory_wave_footer.png',
+                  height: 105,
+                  width: double.infinity,
+                  fit: BoxFit.fill,
+                ),
+              ),
             ]),
           ),
         ),
@@ -128,15 +156,28 @@ class _Header extends StatelessWidget {
           icon: Badge(
             smallSize: 9,
             backgroundColor: TradeXColors.goldBright,
-            child: Icon(
-              TradeXIcons.notifications,
-              color: Theme.of(context).colorScheme.onSurface,
+            child: SvgPicture.asset(
+              'assets/home_ui/simple_svg/notification_bell.svg',
+              width: 23,
+              height: 23,
+              colorFilter: ColorFilter.mode(
+                Theme.of(context).colorScheme.onSurface,
+                BlendMode.srcIn,
+              ),
             ),
           ),
         ),
         PopupMenuButton<String>(
-          color: TradeXColors.surfaceRaised,
-          icon: const Icon(Icons.more_horiz_rounded, color: TradeXColors.gold),
+          color: context.palette.surfaceRaised,
+          icon: SvgPicture.asset(
+            'assets/home_ui/simple_svg/profile_user.svg',
+            width: 23,
+            height: 23,
+            colorFilter: ColorFilter.mode(
+              context.palette.goldText,
+              BlendMode.srcIn,
+            ),
+          ),
           onSelected: (value) async {
             if (value == 'logout') await onLogout();
             if (value == 'services') onNotificationTap('Services');
@@ -220,73 +261,77 @@ class _CompactServiceCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(15),
-      child: Ink(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              accent.withValues(alpha: .14),
-              Theme.of(context).colorScheme.surface,
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: TradeXRadii.control,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [accent.withValues(alpha: .14), palette.surfaceRaised],
+            ),
+            borderRadius: TradeXRadii.control,
+            border: Border.all(color: accent.withValues(alpha: .34)),
+            boxShadow: TradeXElevation.surface(
+              brightness: Theme.of(context).brightness,
+              palette: palette,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: .15),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(service.icon, color: accent, size: 19),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      service.id == 'trade-journal'
+                          ? 'Trade Journal'
+                          : service.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: palette.primaryText,
+                        fontSize: 11,
+                        height: 1.12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      service.group,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: palette.secondaryText,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: accent, size: 17),
             ],
           ),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: accent.withValues(alpha: .34)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: .15),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: Icon(service.icon, color: accent, size: 19),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    service.id == 'trade-journal'
-                        ? 'Trade Journal'
-                        : service.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: TradeXColors.primaryText,
-                      fontSize: 11,
-                      height: 1.12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    service.group,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: TradeXColors.secondaryText,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: accent, size: 17),
-          ],
         ),
       ),
-    ),
-  );
+    );
+  }
 }

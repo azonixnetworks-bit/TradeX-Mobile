@@ -71,12 +71,12 @@ class _CalculatorDashboard extends StatelessWidget {
       key: const ValueKey('risk-reward-dashboard'),
       padding: const EdgeInsets.fromLTRB(18, 22, 18, 32),
       children: [
-        const _Eyebrow('TRADING TOOLS'),
+        const _Eyebrow('RISK MANAGEMENT'),
         const SizedBox(height: 8),
-        const _GradientTitle(first: 'Risk Reward', second: 'Calculator'),
+        const _GradientTitle(first: 'Risk Reward', second: 'Dashboard'),
         const SizedBox(height: 12),
         const Text(
-          'Plan position size, margin and reward across supported markets before you trade.',
+          'Plan position size, margin and reward using verified market specifications.',
           style: TextStyle(
             color: TradeXColors.secondaryText,
             height: 1.45,
@@ -94,6 +94,8 @@ class _CalculatorDashboard extends StatelessWidget {
         const SizedBox(height: 22),
         const _HeroCard(),
         const SizedBox(height: 18),
+        const _SectionTitle('Quick Tools'),
+        const SizedBox(height: 10),
         LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth >= 620

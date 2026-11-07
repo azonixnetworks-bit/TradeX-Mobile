@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/entities/trade_journal_entities.dart';
 import 'trade_journal_ui.dart';
 
@@ -9,8 +10,6 @@ part 'journal_sections/journal_dashboard_metrics.dart';
 part 'journal_sections/journal_dashboard_trades.dart';
 
 const _dashboardBackground = Color(0xFF0B1017);
-const _dashboardSurface = Color(0xFF151D27);
-const _dashboardSurfaceRaised = Color(0xFF1B2633);
 const _dashboardBorder = Color(0xFF293342);
 const _dashboardGold = Color(0xFFD4AF37);
 const _dashboardGreen = Color(0xFF49D6A2);

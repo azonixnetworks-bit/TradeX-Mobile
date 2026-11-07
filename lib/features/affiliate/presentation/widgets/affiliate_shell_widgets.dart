@@ -96,13 +96,18 @@ class AffiliateScaffold extends StatelessWidget {
       ],
     );
     return Material(
-      color: TradeXColors.background,
+      color: context.palette.background,
       child: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: RadialGradient(
             center: Alignment(0.75, -0.95),
             radius: 1.15,
-            colors: [Color(0x27261D08), Colors.transparent],
+            colors: [
+              context.palette.gold.withValues(
+                alpha: context.isDarkMode ? .07 : .035,
+              ),
+              Colors.transparent,
+            ],
           ),
         ),
         child: SafeArea(

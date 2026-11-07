@@ -7,6 +7,7 @@ import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/domain/api_gateway.dart';
 import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/entities/sri_lanka_bank_directory.dart';
 import '../domain/entities/pending_financial_form_draft.dart';
 import '../domain/repositories/withdrawal_draft_store.dart';
@@ -420,7 +421,15 @@ class _WithdrawalMethodScreenState extends State<WithdrawalMethodScreen>
       if (didPop) unawaited(_clearDraft());
     },
     child: Scaffold(
-      appBar: AppBar(title: Text(_title)),
+      backgroundColor: context.palette.background,
+      appBar: AppBar(
+        backgroundColor: context.palette.background,
+        surfaceTintColor: Colors.transparent,
+        title: Text(
+          _title,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
       body: BlocFutureBuilder<_WithdrawalState>(
         future: _state,
         builder: (context, snapshot) {
@@ -454,6 +463,12 @@ class _WithdrawalMethodScreenState extends State<WithdrawalMethodScreen>
                 ),
               if (state.configured && !_editing) ...[
                 Card(
+                  color: context.palette.surfaceRaised,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: TradeXRadii.control,
+                    side: BorderSide(color: context.palette.border),
+                  ),
                   child: ListTile(
                     leading: const Icon(
                       Icons.verified_user_rounded,
@@ -725,9 +740,13 @@ class _MethodHeader extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: TradeXColors.gold.withValues(alpha: .08),
+      color: context.palette.surface,
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: TradeXColors.goldDeep),
+      border: Border.all(color: context.palette.gold.withValues(alpha: .42)),
+      boxShadow: TradeXElevation.surface(
+        brightness: Theme.of(context).brightness,
+        palette: context.palette,
+      ),
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,

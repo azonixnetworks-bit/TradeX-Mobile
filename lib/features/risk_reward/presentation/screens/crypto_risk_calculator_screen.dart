@@ -92,163 +92,167 @@ class _CryptoRiskCalculatorScreenState
       _symbol = null;
     }
     return _FeaturePage(
-      child: ListView(
-        key: const ValueKey('crypto-risk-calculator'),
-        padding: const EdgeInsets.fromLTRB(18, 22, 18, 32),
-        children: [
-          const _GradientTitle(first: 'Crypto', second: 'Calculator'),
-          const SizedBox(height: 8),
-          const _PageSubtitle(
-            'Futures and CFD position sizing with real contract rules.',
-          ),
-          const SizedBox(height: 20),
-          _SegmentedControl(
-            values: const ['binance_futures', 'crypto'],
-            labels: const ['Binance Futures', 'Crypto CFD'],
-            selected: _market,
-            onSelected: (value) => setState(() {
-              _market = value;
-              _symbol = null;
-              _entry.clear();
-              _quoteRequest++;
-              _quoteLoading = false;
-              _quoteError = null;
-              _liveQuote = null;
-              context.read<RiskRewardCubit>().clearResult();
-            }),
-          ),
-          const SizedBox(height: 16),
-          _InstrumentSearchField(
-            key: ValueKey('crypto-symbol-search-$_market'),
-            selected: _instrumentBySymbol(instruments, _symbol),
-            instruments: instruments,
-            onQueryChanged: () {
-              if (_symbol == null) return;
-              setState(() {
+      child: _CalculatorCanvas(
+        child: ListView(
+          key: const ValueKey('crypto-risk-calculator'),
+          padding: const EdgeInsets.fromLTRB(18, 22, 18, 32),
+          children: [
+            const _CalculatorHero(
+              title: 'Crypto Calculator',
+              eyebrow: 'Crypto',
+              subtitle: 'Calculate crypto trade size, risk and liquidation data using current contract rules.',
+            ),
+            const SizedBox(height: 20),
+            _SegmentedControl(
+              values: const ['binance_futures', 'crypto'],
+              labels: const ['Binance Futures', 'Crypto CFD'],
+              selected: _market,
+              onSelected: (value) => setState(() {
+                _market = value;
                 _symbol = null;
+                _entry.clear();
                 _quoteRequest++;
                 _quoteLoading = false;
                 _quoteError = null;
                 _liveQuote = null;
-              });
-            },
-            onSelected: (instrument) {
-              setState(() {
-                _symbol = instrument.symbol;
-                _quoteError = null;
-              });
-              unawaited(_loadLivePrice(instrument.symbol));
-            },
-          ),
-          const SizedBox(height: 14),
-          _TradeSideControl(
-            selected: _side,
-            onSelected: (value) {
-              setState(() => _side = value);
-              if (_symbol != null) unawaited(_loadLivePrice(_symbol!));
-            },
-          ),
-          const SizedBox(height: 14),
-          _CalculatorField(
-            label: 'Entry Price',
-            controller: _entry,
-            icon: Icons.login,
-            onChanged: (_) => setState(() {}),
-          ),
-          _LivePriceStatus(
-            loading: _quoteLoading,
-            quote: _liveQuote,
-            error: _quoteError,
-            onRefresh: _symbol == null ? null : () => _loadLivePrice(_symbol!),
-          ),
-          const SizedBox(height: 12),
-          _CalculatorField(
-            label: 'Stop Loss Price',
-            controller: _stop,
-            icon: Icons.shield_outlined,
-            onChanged: (_) => setState(() {}),
-          ),
-          if (_market == 'binance_futures') ...[
-            _AutoLeverageCard(
-              leverage: _calculatedLeverage,
-              stopDistancePercent: _stopDistancePercent,
+                context.read<RiskRewardCubit>().clearResult();
+              }),
+            ),
+            const SizedBox(height: 16),
+            _InstrumentSearchField(
+              key: ValueKey('crypto-symbol-search-$_market'),
+              selected: _instrumentBySymbol(instruments, _symbol),
+              instruments: instruments,
+              onQueryChanged: () {
+                if (_symbol == null) return;
+                setState(() {
+                  _symbol = null;
+                  _quoteRequest++;
+                  _quoteLoading = false;
+                  _quoteError = null;
+                  _liveQuote = null;
+                });
+              },
+              onSelected: (instrument) {
+                setState(() {
+                  _symbol = instrument.symbol;
+                  _quoteError = null;
+                });
+                unawaited(_loadLivePrice(instrument.symbol));
+              },
+            ),
+            const SizedBox(height: 14),
+            _TradeSideControl(
+              selected: _side,
+              onSelected: (value) {
+                setState(() => _side = value);
+                if (_symbol != null) unawaited(_loadLivePrice(_symbol!));
+              },
+            ),
+            const SizedBox(height: 14),
+            _CalculatorField(
+              label: 'Entry Price',
+              controller: _entry,
+              icon: Icons.login,
+              onChanged: (_) => setState(() {}),
+            ),
+            _LivePriceStatus(
+              loading: _quoteLoading,
+              quote: _liveQuote,
+              error: _quoteError,
+              onRefresh: _symbol == null
+                  ? null
+                  : () => _loadLivePrice(_symbol!),
             ),
             const SizedBox(height: 12),
-          ],
-          _CalculatorField(
-            label: 'Risk Amount (USD)',
-            controller: _risk,
-            icon: Icons.savings_outlined,
-          ),
-          _CalculatorField(
-            label: 'Take Profit Price (Optional)',
-            controller: _target,
-            icon: Icons.track_changes,
-          ),
-          if (_market == 'binance_futures') ...[
-            const SizedBox(height: 10),
-            ExpansionTile(
-              tilePadding: EdgeInsets.zero,
-              title: const Text('Costs & Liquidation Inputs (Optional)'),
-              subtitle: const Text(
-                'Use current Binance tier and account values.',
-                style: TextStyle(color: TradeXColors.secondaryText),
+            _CalculatorField(
+              label: 'Stop Loss Price',
+              controller: _stop,
+              icon: Icons.shield_outlined,
+              onChanged: (_) => setState(() {}),
+            ),
+            if (_market == 'binance_futures') ...[
+              _AutoLeverageCard(
+                leverage: _calculatedLeverage,
+                stopDistancePercent: _stopDistancePercent,
               ),
-              children: [
-                _CalculatorField(
-                  label: 'Entry Fee Rate (%)',
-                  controller: _entryFee,
-                  icon: Icons.receipt_long_outlined,
-                ),
-                _CalculatorField(
-                  label: 'Exit Fee Rate (%)',
-                  controller: _exitFee,
-                  icon: Icons.receipt_long_outlined,
-                ),
-                _CalculatorField(
-                  label: 'Slippage (%)',
-                  controller: _slippage,
-                  icon: Icons.percent_rounded,
-                ),
-                _CalculatorField(
-                  label: 'Funding Rate (%)',
-                  controller: _fundingRate,
-                  icon: Icons.currency_exchange_rounded,
-                ),
-                _CalculatorField(
-                  label: 'Funding Intervals',
-                  controller: _fundingIntervals,
-                  icon: Icons.schedule_rounded,
-                ),
-                _CalculatorField(
-                  label: 'Maintenance Margin Rate (%)',
-                  controller: _maintenanceRate,
-                  icon: Icons.security_rounded,
-                  onChanged: (_) => setState(() {}),
-                ),
-                _CalculatorField(
-                  label: 'Maintenance Amount (USDT)',
-                  controller: _maintenanceAmount,
-                  icon: Icons.account_balance_wallet_outlined,
-                ),
-                _CalculatorField(
-                  label: 'Isolated Wallet Balance (USDT)',
-                  controller: _walletBalance,
-                  icon: Icons.wallet_outlined,
-                ),
-              ],
+              const SizedBox(height: 12),
+            ],
+            _CalculatorField(
+              label: 'Risk Amount (USD)',
+              controller: _risk,
+              icon: Icons.savings_outlined,
             ),
-          ] else
-            const _StatusNotice(
-              text: 'Margin is shown only when the selected broker contract includes a verified margin specification.',
+            _CalculatorField(
+              label: 'Take Profit Price (Optional)',
+              controller: _target,
+              icon: Icons.track_changes,
             ),
-          const SizedBox(height: 12),
-          _CalculateButton(
-            onPressed: _symbol == null ? null : () => _calculate(context),
-          ),
-          const SizedBox(height: 16),
-          _CurrentResult(input: _lastInput, onNewCalculation: _reset),
-        ],
+            if (_market == 'binance_futures') ...[
+              const SizedBox(height: 10),
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: const Text('Costs & Liquidation Inputs (Optional)'),
+                subtitle: const Text(
+                  'Use current Binance tier and account values.',
+                  style: TextStyle(color: TradeXColors.secondaryText),
+                ),
+                children: [
+                  _CalculatorField(
+                    label: 'Entry Fee Rate (%)',
+                    controller: _entryFee,
+                    icon: Icons.receipt_long_outlined,
+                  ),
+                  _CalculatorField(
+                    label: 'Exit Fee Rate (%)',
+                    controller: _exitFee,
+                    icon: Icons.receipt_long_outlined,
+                  ),
+                  _CalculatorField(
+                    label: 'Slippage (%)',
+                    controller: _slippage,
+                    icon: Icons.percent_rounded,
+                  ),
+                  _CalculatorField(
+                    label: 'Funding Rate (%)',
+                    controller: _fundingRate,
+                    icon: Icons.currency_exchange_rounded,
+                  ),
+                  _CalculatorField(
+                    label: 'Funding Intervals',
+                    controller: _fundingIntervals,
+                    icon: Icons.schedule_rounded,
+                  ),
+                  _CalculatorField(
+                    label: 'Maintenance Margin Rate (%)',
+                    controller: _maintenanceRate,
+                    icon: Icons.security_rounded,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  _CalculatorField(
+                    label: 'Maintenance Amount (USDT)',
+                    controller: _maintenanceAmount,
+                    icon: Icons.account_balance_wallet_outlined,
+                  ),
+                  _CalculatorField(
+                    label: 'Isolated Wallet Balance (USDT)',
+                    controller: _walletBalance,
+                    icon: Icons.wallet_outlined,
+                  ),
+                ],
+              ),
+            ] else
+              const _StatusNotice(
+                text: 'Margin is shown only when the selected broker contract includes a verified margin specification.',
+              ),
+            const SizedBox(height: 12),
+            _CalculateButton(
+              onPressed: _symbol == null ? null : () => _calculate(context),
+            ),
+            const SizedBox(height: 16),
+            _CurrentResult(input: _lastInput, onNewCalculation: _reset),
+          ],
+        ),
       ),
     );
   }

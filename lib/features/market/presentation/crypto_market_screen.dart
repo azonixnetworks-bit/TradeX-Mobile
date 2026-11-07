@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../core/market_assets/market_asset_widget.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../../home/domain/trade_ideas_repository.dart';
 import '../domain/entities/crypto_market_entities.dart';
 import '../domain/repositories/crypto_market_repository.dart';

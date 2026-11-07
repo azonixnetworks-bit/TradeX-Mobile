@@ -36,8 +36,10 @@ class FundedNoTradeRulesScreen extends StatelessWidget {
           .toList(growable: false);
       return FundedPage(
         title: 'No Trade Zone Rules',
-        subtitle: 'Official news restrictions for your selected program.',
+        subtitle: 'Protect your account with published trading restrictions.',
         children: [
+          _CompactPartnerHeader(partner: partner),
+          const SizedBox(height: 12),
           NoTradeZoneWarningBanner(
             source: context.read<NoTradeWarningSource>(),
             applicableSymbolsOrCurrencies: rules.expand(
@@ -47,7 +49,6 @@ class FundedNoTradeRulesScreen extends StatelessWidget {
               ],
             ),
           ),
-          _CompactPartnerHeader(partner: partner),
           const SizedBox(height: 12),
           if (state.selectedChallengeType != null ||
               state.selectedAccountSize != null)
@@ -120,41 +121,63 @@ class _RuleCard extends StatelessWidget {
     final color = _policyColor(rule.policy);
     return FundedCard(
       onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(Icons.gpp_good_outlined, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
                   rule.programName ?? 'News Trading Rule',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-              ),
-              FundedPill(label: rule.policy, selected: true, color: color),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  rule.summary ??
+                      'Open to view the published restriction details.',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: fundedMuted,
+                    height: 1.3,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 7,
+                  runSpacing: 7,
+                  children: [
+                    FundedPill(label: _titleCase(rule.phase)),
+                    FundedPill(
+                      label:
+                          '${rule.minutesBefore}m before · ${rule.minutesAfter}m after',
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 7),
-          Text(
-            rule.summary ?? 'Open to view the published restriction details.',
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: fundedMuted, height: 1.4),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 7,
-            runSpacing: 7,
+          const SizedBox(width: 8),
+          Column(
             children: [
-              FundedPill(label: _titleCase(rule.phase)),
-              FundedPill(label: rule.enforcementType.replaceAll('_', ' ')),
-              FundedPill(
-                label:
-                    '${rule.minutesBefore}m before · ${rule.minutesAfter}m after',
-              ),
+              FundedPill(label: rule.policy, selected: true, color: color),
+              const SizedBox(height: 8),
+              const Icon(Icons.chevron_right_rounded, color: fundedGold),
             ],
           ),
         ],
@@ -180,6 +203,33 @@ class FundedRuleDetailsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: fundedGold.withValues(alpha: .12),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: const Icon(
+                      Icons.rule_folder_outlined,
+                      color: fundedGold,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      rule.programName ?? 'News Trading Rule',
+                      style: const TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -192,14 +242,6 @@ class FundedRuleDetailsScreen extends StatelessWidget {
                   FundedPill(label: _titleCase(rule.phase)),
                   FundedPill(label: rule.enforcementType.replaceAll('_', ' ')),
                 ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                rule.programName ?? 'News Trading Rule',
-                style: const TextStyle(
-                  fontSize: 23,
-                  fontWeight: FontWeight.w900,
-                ),
               ),
               if (rule.summary != null) ...[
                 const SizedBox(height: 8),

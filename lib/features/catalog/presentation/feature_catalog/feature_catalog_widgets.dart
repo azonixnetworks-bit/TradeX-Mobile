@@ -17,22 +17,26 @@ class _FeatureScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: palette.background,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: palette.background,
         surfaceTintColor: Colors.transparent,
         titleSpacing: 4,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontSize: 18)),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
             Text(
               subtitle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: TradeXColors.secondaryText,
+              style: TextStyle(
+                color: palette.secondaryText,
                 fontSize: 11,
                 fontWeight: FontWeight.w400,
               ),
@@ -54,30 +58,93 @@ class _FeatureGroup extends StatelessWidget {
   final ValueChanged<FeatureSpec> onOpen;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: Theme.of(context).colorScheme.surface,
-    clipBehavior: Clip.antiAlias,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(18),
-      side: BorderSide(color: Theme.of(context).dividerColor),
-    ),
-    child: Column(
-      children: [
-        for (var index = 0; index < specs.length; index++) ...[
-          ListTile(
-            minVerticalPadding: 12,
-            leading: Icon(specs[index].icon, color: TradeXColors.goldBright),
-            title: Text(specs[index].title),
-            subtitle: Text(specs[index].subtitle),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => onOpen(specs[index]),
-          ),
-          if (index != specs.length - 1)
-            const Divider(height: 1, color: TradeXColors.border),
-        ],
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 700 ? 3 : 2;
+        final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: specs
+              .map((spec) {
+                return SizedBox(
+                  width: width,
+                  child: Material(
+                    color: palette.surfaceRaised,
+                    borderRadius: TradeXRadii.card,
+                    child: InkWell(
+                      borderRadius: TradeXRadii.card,
+                      onTap: () => onOpen(spec),
+                      child: Container(
+                        constraints: const BoxConstraints(minHeight: 132),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          borderRadius: TradeXRadii.card,
+                          border: Border.all(color: palette.border),
+                          boxShadow: TradeXElevation.surface(
+                            brightness: Theme.of(context).brightness,
+                            palette: palette,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: palette.goldSoft,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    spec.icon,
+                                    color: palette.goldText,
+                                    size: 21,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: palette.secondaryText,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              spec.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              spec.subtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: palette.secondaryText,
+                                fontSize: 12,
+                                height: 1.25,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              })
+              .toList(growable: false),
+        );
+      },
+    );
+  }
 }
 
 class _RecordCard extends StatelessWidget {
@@ -88,6 +155,7 @@ class _RecordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final scalars = _visibleScalars(record).take(4).toList();
     return InkWell(
       onTap: onTap,
@@ -123,10 +191,7 @@ class _RecordCard extends StatelessWidget {
                   '${_label(entry.key)}: ${_display(entry.value)}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: TradeXColors.secondaryText,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: palette.secondaryText, fontSize: 12),
                 ),
               ),
           ],
@@ -143,6 +208,7 @@ class _ObjectPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final entries = _visibleScalars(payload).toList();
     if (entries.isEmpty) {
       return const _EmptyState(
@@ -162,7 +228,7 @@ class _ObjectPanel extends StatelessWidget {
                   flex: 4,
                   child: Text(
                     _label(entries[i].key),
-                    style: const TextStyle(color: TradeXColors.secondaryText),
+                    style: TextStyle(color: palette.secondaryText),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -177,12 +243,299 @@ class _ObjectPanel extends StatelessWidget {
               ],
             ),
             if (i != entries.length - 1)
-              const Divider(height: 22, color: TradeXColors.border),
+              Divider(height: 22, color: palette.border),
           ],
         ],
       ),
     );
   }
+}
+
+class _TradingRoutineView extends StatelessWidget {
+  const _TradingRoutineView({required this.payload});
+
+  final Map<String, dynamic> payload;
+
+  @override
+  Widget build(BuildContext context) {
+    final sections = _routineSections(payload);
+    final items = sections.expand((section) => section.$2).toList();
+    final completed = items.where(_routineCompleted).length;
+    final suppliedCompleted = _firstRoutineNumber(payload, const [
+      'completed_count',
+      'completed_steps',
+      'completed',
+    ]);
+    final suppliedTotal = _firstRoutineNumber(payload, const [
+      'total_count',
+      'total_steps',
+      'total',
+    ]);
+    final total = items.isNotEmpty ? items.length : suppliedTotal;
+    final done = items.isNotEmpty ? completed : suppliedCompleted;
+    final suppliedPercent = _firstRoutineNumber(payload, const [
+      'completion_percent',
+      'progress_percent',
+      'percent',
+    ]);
+    final percent = suppliedPercent > 0
+        ? suppliedPercent.clamp(0, 100)
+        : total > 0
+        ? ((done / total) * 100).round().clamp(0, 100)
+        : 0;
+    final streak = _firstRoutineNumber(payload, const [
+      'streak_days',
+      'current_streak',
+      'streak',
+    ]);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Follow your saved daily process with discipline and consistency.',
+          style: TextStyle(color: context.palette.secondaryText, height: 1.35),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: _panelDecoration(context),
+          child: Row(
+            children: [
+              SizedBox.square(
+                dimension: 82,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      value: percent / 100,
+                      strokeWidth: 8,
+                      strokeCap: StrokeCap.round,
+                      color: context.palette.success,
+                      backgroundColor: context.palette.surfaceMuted,
+                    ),
+                    Text(
+                      '$percent%',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Daily Routine Progress',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      total > 0
+                          ? '$done of $total completed'
+                          : 'Progress is not available yet',
+                      style: TextStyle(color: context.palette.secondaryText),
+                    ),
+                    if (streak > 0) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_month_outlined,
+                            size: 17,
+                            color: context.palette.goldText,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            '$streak day streak',
+                            style: TextStyle(
+                              color: context.palette.goldText,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (sections.isEmpty)
+          _ObjectPanel(payload: payload)
+        else
+          for (final section in sections) ...[
+            _RoutineSectionCard(title: section.$1, items: section.$2),
+            const SizedBox(height: 10),
+          ],
+      ],
+    );
+  }
+}
+
+class _RoutineSectionCard extends StatelessWidget {
+  const _RoutineSectionCard({required this.title, required this.items});
+  final String title;
+  final List<Map<String, dynamic>> items;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: _panelDecoration(context),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: context.palette.goldSoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.track_changes_rounded,
+                color: context.palette.goldText,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 9),
+        for (final item in items)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  _routineCompleted(item)
+                      ? Icons.check_box_rounded
+                      : Icons.check_box_outline_blank_rounded,
+                  color: _routineCompleted(item)
+                      ? context.palette.success
+                      : context.palette.secondaryText,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _routineTitle(item),
+                    style: TextStyle(
+                      color: _routineCompleted(item)
+                          ? context.palette.primaryText
+                          : context.palette.secondaryText,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+List<(String, List<Map<String, dynamic>>)> _routineSections(
+  Map<String, dynamic> payload,
+) {
+  final rawSections = payload['sections'];
+  if (rawSections is List) {
+    final parsed = <(String, List<Map<String, dynamic>>)>[];
+    for (final raw in rawSections.whereType<Map>()) {
+      final section = Map<String, dynamic>.from(raw);
+      final items = _routineList(section);
+      if (items.isNotEmpty) {
+        parsed.add((_routineTitle(section, fallback: 'Routine'), items));
+      }
+    }
+    if (parsed.isNotEmpty) return parsed;
+  }
+  final direct = _routineList(payload);
+  if (direct.isNotEmpty) return [('Today\'s Routine', direct)];
+  return const [];
+}
+
+List<Map<String, dynamic>> _routineList(Map<String, dynamic> map) {
+  for (final key in const [
+    'items',
+    'tasks',
+    'steps',
+    'checklist',
+    'routines',
+  ]) {
+    final value = map[key];
+    if (value is List) {
+      final items = value
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList(growable: false);
+      if (items.isNotEmpty) return items;
+    }
+  }
+  return const [];
+}
+
+String _routineTitle(
+  Map<String, dynamic> item, {
+  String fallback = 'Routine step',
+}) {
+  for (final key in const ['title', 'name', 'label', 'task', 'description']) {
+    final value = item[key]?.toString().trim() ?? '';
+    if (value.isNotEmpty) return value;
+  }
+  return fallback;
+}
+
+bool _routineCompleted(Map<String, dynamic> item) {
+  for (final key in const ['completed', 'is_completed', 'done', 'checked']) {
+    final value = item[key];
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      return const {
+        '1',
+        'true',
+        'completed',
+        'done',
+      }.contains(value.toLowerCase());
+    }
+  }
+  return false;
+}
+
+int _firstRoutineNumber(Map<String, dynamic> payload, List<String> keys) {
+  for (final key in keys) {
+    final value = payload[key];
+    if (value is num) return value.round();
+    final parsed = int.tryParse(value?.toString() ?? '');
+    if (parsed != null) return parsed;
+  }
+  for (final nested in payload.values.whereType<Map>()) {
+    final found = _firstRoutineNumber(Map<String, dynamic>.from(nested), keys);
+    if (found != 0) return found;
+  }
+  return 0;
 }
 
 class _LoadingState extends StatelessWidget {
@@ -347,12 +700,16 @@ class _GroupHeading extends StatelessWidget {
   const _GroupHeading(this.text);
   final String text;
   @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: const TextStyle(
-      color: TradeXColors.goldBright,
-      fontSize: 15,
-      fontWeight: FontWeight.w900,
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(left: 2),
+    child: Text(
+      text.toUpperCase(),
+      style: TextStyle(
+        color: context.palette.goldText,
+        fontSize: 15,
+        fontWeight: FontWeight.w900,
+        letterSpacing: .7,
+      ),
     ),
   );
 }
@@ -373,9 +730,13 @@ class _FieldSpec {
 }
 
 BoxDecoration _panelDecoration(BuildContext context) => BoxDecoration(
-  color: Theme.of(context).colorScheme.surface,
-  borderRadius: BorderRadius.circular(18),
-  border: Border.all(color: Theme.of(context).dividerColor),
+  color: context.palette.surfaceRaised,
+  borderRadius: TradeXRadii.card,
+  border: Border.all(color: context.palette.border),
+  boxShadow: TradeXElevation.surface(
+    brightness: Theme.of(context).brightness,
+    palette: context.palette,
+  ),
 );
 
 List<Map<String, dynamic>> _findBestRecords(Object? value) {

@@ -21,12 +21,23 @@ class _CopyTradingHistorySettingsScreenState
   @override
   Widget build(BuildContext context) => CopyTradingScrollPage(
     children: [
+      CopyPageHeading(
+        title: 'Copy',
+        goldTitle: _history ? 'History' : 'Settings',
+        subtitle: _history
+            ? 'Track the copy-trading information available for this account.'
+            : 'Manage only the controls supported by your connected account.',
+        icon: _history ? Icons.history_rounded : Icons.tune_rounded,
+      ),
+      const SizedBox(height: 18),
       Container(
         padding: const EdgeInsets.all(5),
         decoration: BoxDecoration(
-          color: const Color(0xFF0A0D0B),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: copyGold.withValues(alpha: .7)),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
         child: Row(
           children: [
@@ -50,7 +61,8 @@ class _CopyTradingHistorySettingsScreenState
         ),
       ),
       const SizedBox(height: 14),
-      CopyHeroCard(
+      CopySectionCard(
+        highlight: true,
         child: _CompactAccountHeader(
           useCases: widget.useCases,
           account: widget.account,

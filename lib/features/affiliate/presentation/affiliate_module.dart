@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/domain/app_platform.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../../../core/theme/tradex_icons.dart';
 import '../domain/repositories/affiliate_repository.dart';
 import 'bloc/affiliate_cubits.dart';
@@ -26,15 +27,11 @@ part 'widgets/affiliate_shared_widgets.dart';
 
 const _gold = TradeXColors.goldBright;
 const _muted = TradeXColors.secondaryText;
-const _purple = Color(0xFFA855F7);
 
 abstract final class _AffiliateAssets {
   static const brandLogo = 'assets/branding/trade_x_final_logo.png';
-  static const gift = 'assets/affiliate/illustrations/gift_gold.png';
   static const money = 'assets/affiliate/illustrations/money_gold.png';
-  static const crown = 'assets/affiliate/illustrations/crown_gold.png';
   static const wallet = 'assets/affiliate/illustrations/wallet_gold.png';
-  static const trophy = 'assets/affiliate/illustrations/trophy_silver.png';
   static const paypal = 'assets/affiliate/brands/paypal.svg';
   static const tether = 'assets/affiliate/brands/tether.svg';
   static const binance = 'assets/affiliate/brands/binance.svg';
@@ -66,4 +63,12 @@ abstract final class _AffiliateAssets {
       'assets/affiliate/illustrations/dashboard_share_button.png';
   static const dashboardQr =
       'assets/affiliate/illustrations/dashboard_qr_button.png';
+  static const referralLinkBadge =
+      'assets/affiliate/dynamic_v2/glossy_gold_chain_link_badge.png';
+  static const earningsCoins =
+      'assets/affiliate/dynamic_v2/glossy_gold_coin_stack_icon.png';
+  static const milestoneStar =
+      'assets/affiliate/dynamic_v2/premium_golden_star_badge_emblem.png';
+  static const milestoneGift =
+      'assets/affiliate/dynamic_v2/premium_gold_gift_box_icon.png';
 }

@@ -77,14 +77,16 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
     future: _future,
     builder: (context, snapshot) {
       if (snapshot.connectionState != ConnectionState.done) {
-        return const ColoredBox(
-          color: learnBackground,
-          child: Center(child: CircularProgressIndicator(color: learnGold)),
+        return ColoredBox(
+          color: context.palette.background,
+          child: const Center(
+            child: CircularProgressIndicator(color: learnGold),
+          ),
         );
       }
       if (snapshot.hasError || snapshot.data == null) {
         return ColoredBox(
-          color: learnBackground,
+          color: context.palette.background,
           child: _ErrorState(
             onRetry: _refresh,
             message: snapshot.error.toString(),
@@ -110,158 +112,199 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
         onRefresh: _refresh,
         color: learnGold,
         child: DecoratedBox(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [learnBackground, TradeXColors.backgroundSoft],
+              colors: [
+                context.palette.background,
+                context.palette.surfaceMuted,
+              ],
             ),
           ),
-          child: ListView(
-            key: const ValueKey('learn-dashboard-scroll'),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 34),
+          child: Stack(
             children: [
-              LearnDashboardHeader(onNotifications: widget.onNotifications),
-              if (!isPremium) ...[
-                const SizedBox(height: 16),
-                UnlockPremiumCard(
-                  onTap: () =>
-                      _open(PremiumAccessScreen(repository: widget.repository)),
-                ),
-              ],
-              const SizedBox(height: 22),
-              LearningSectionHeader(
-                icon: Icons.play_arrow_rounded,
-                title: 'Continue Learning',
-                action: 'My Learning',
-                onAction: () =>
-                    _open(MyLearningScreen(repository: widget.repository)),
-              ),
-              const SizedBox(height: 10),
-              if (continueItem.isNotEmpty)
-                ContinueLearningCard(
-                  item: continueItem,
-                  loading: _resumingLessonUuid == _lessonUuid(continueItem),
-                  onContinue: () => _resumeLearning(continueItem),
-                ),
-              if (continueItem.isEmpty && starter.isNotEmpty)
-                ContinueLearningCard(
-                  item: starter,
-                  starting: true,
-                  onContinue: () => _openLessonFromItem(starter),
-                ),
-              if (continueItem.isEmpty && starter.isEmpty)
-                LearningEmptyState(
-                  title: 'Start Your Learning Journey',
-                  message: isPremium
-                      ? 'Published lessons will appear here when available.'
-                      : 'No accessible free lessons are published yet.',
-                  action: 'Browse Courses',
-                  onAction: () =>
-                      _open(SubjectsScreen(repository: widget.repository)),
-                ),
-              const SizedBox(height: 18),
-              LearningShortcutGrid(items: _shortcuts()),
-              const SizedBox(height: 23),
-              LearningSectionHeader(
-                icon: Icons.menu_book_rounded,
-                title: 'Free Lessons',
-                action: 'View all',
-                onAction: () => _open(
-                  SubjectsScreen(
-                    repository: widget.repository,
-                    initialAccess: 'FREE',
+              Positioned(
+                top: 0,
+                right: -20,
+                child: IgnorePointer(
+                  child: Opacity(
+                    opacity: context.isDarkMode ? .1 : .36,
+                    child: Image.asset(
+                      'assets/learning_ui/decorations_png/delicate_golden_candlestick_trend.png',
+                      width: 175,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
-              if (freeLessons.isEmpty)
-                const LearningEmptyState(
-                  title: 'No free lessons yet',
-                  message: 'Published free lessons will appear here.',
-                )
-              else
-                SizedBox(
-                  height: 238,
-                  child: ListView.separated(
-                    key: const ValueKey('free-lessons-list'),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: freeLessons.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      final item = LearnRepository.map(freeLessons[index]);
-                      final uuid = _lessonUuid(item);
-                      final bookmarked =
-                          dashboard.bookmarked.contains(uuid) ||
-                          LearnRepository.flag(item['bookmarked']);
-                      return FreeLessonCard(
-                        item: item,
-                        bookmarked: bookmarked,
-                        onTap: () => _openLessonFromItem(item),
-                        onBookmark: () =>
-                            _toggleBookmark(dashboard, uuid, bookmarked),
-                      );
-                    },
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: -16,
+                child: IgnorePointer(
+                  child: Opacity(
+                    opacity: context.isDarkMode ? .06 : .52,
+                    child: Image.asset(
+                      'assets/learning_ui/decorations_png/soft_ivory_wave_footer.png',
+                      height: 125,
+                      fit: BoxFit.fill,
+                    ),
                   ),
                 ),
-              const SizedBox(height: 23),
-              LearningSectionHeader(
-                icon: Icons.school_rounded,
-                title: 'Featured Courses',
-                action: 'All courses',
-                onAction: () =>
-                    _open(SubjectsScreen(repository: widget.repository)),
               ),
-              const SizedBox(height: 10),
-              if (featured.isEmpty)
-                const LearningEmptyState(
-                  title: 'No featured courses',
-                  message: 'Featured published courses will appear here.',
-                )
-              else
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final cardWidth = constraints.maxWidth >= 720
-                        ? math.min(520.0, constraints.maxWidth * .62)
-                        : math.min(330.0, constraints.maxWidth * .9);
-                    return SizedBox(
-                      height: 310,
+              ListView(
+                key: const ValueKey('learn-dashboard-scroll'),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 54),
+                children: [
+                  LearnDashboardHeader(onNotifications: widget.onNotifications),
+                  if (!isPremium) ...[
+                    const SizedBox(height: 16),
+                    UnlockPremiumCard(
+                      onTap: () => _open(
+                        PremiumAccessScreen(repository: widget.repository),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 22),
+                  LearningSectionHeader(
+                    icon: Icons.play_arrow_rounded,
+                    title: 'Continue Learning',
+                    action: 'My Learning',
+                    onAction: () =>
+                        _open(MyLearningScreen(repository: widget.repository)),
+                  ),
+                  const SizedBox(height: 10),
+                  if (continueItem.isNotEmpty)
+                    ContinueLearningCard(
+                      item: continueItem,
+                      loading: _resumingLessonUuid == _lessonUuid(continueItem),
+                      onContinue: () => _resumeLearning(continueItem),
+                    ),
+                  if (continueItem.isEmpty && starter.isNotEmpty)
+                    ContinueLearningCard(
+                      item: starter,
+                      starting: true,
+                      onContinue: () => _openLessonFromItem(starter),
+                    ),
+                  if (continueItem.isEmpty && starter.isEmpty)
+                    LearningEmptyState(
+                      title: 'Start Your Learning Journey',
+                      message: isPremium
+                          ? 'Published lessons will appear here when available.'
+                          : 'No accessible free lessons are published yet.',
+                      action: 'Browse Courses',
+                      onAction: () =>
+                          _open(SubjectsScreen(repository: widget.repository)),
+                    ),
+                  const SizedBox(height: 18),
+                  LearningShortcutGrid(items: _shortcuts()),
+                  const SizedBox(height: 23),
+                  LearningSectionHeader(
+                    icon: Icons.menu_book_rounded,
+                    title: 'Free Lessons',
+                    action: 'View all',
+                    onAction: () => _open(
+                      SubjectsScreen(
+                        repository: widget.repository,
+                        initialAccess: 'FREE',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  if (freeLessons.isEmpty)
+                    const LearningEmptyState(
+                      title: 'No free lessons yet',
+                      message: 'Published free lessons will appear here.',
+                    )
+                  else
+                    SizedBox(
+                      height: 238,
                       child: ListView.separated(
-                        key: const ValueKey('featured-courses-list'),
+                        key: const ValueKey('free-lessons-list'),
                         scrollDirection: Axis.horizontal,
-                        itemCount: featured.length,
+                        itemCount: freeLessons.length,
                         separatorBuilder: (_, _) => const SizedBox(width: 10),
                         itemBuilder: (context, index) {
-                          final course = LearnRepository.map(featured[index]);
-                          return FeaturedCourseCard(
-                            course: course,
-                            width: cardWidth,
-                            onTap: () => _open(
-                              SubjectDetailsScreen(
-                                repository: widget.repository,
-                                courseUuid: LearnRepository.text(
-                                  course['uuid'],
-                                ),
-                              ),
-                            ),
+                          final item = LearnRepository.map(freeLessons[index]);
+                          final uuid = _lessonUuid(item);
+                          final bookmarked =
+                              dashboard.bookmarked.contains(uuid) ||
+                              LearnRepository.flag(item['bookmarked']);
+                          return FreeLessonCard(
+                            item: item,
+                            bookmarked: bookmarked,
+                            onTap: () => _openLessonFromItem(item),
+                            onBookmark: () =>
+                                _toggleBookmark(dashboard, uuid, bookmarked),
                           );
                         },
                       ),
-                    );
-                  },
-                ),
-              const SizedBox(height: 18),
-              LearningProgressCard(
-                completed: LearnRepository.number(
-                  learning['completed_lessons'],
-                ),
-                total: LearnRepository.number(
-                  learning['accessible_published_lessons'],
-                ),
-                percent: LearnRepository.number(learning['completion_percent']),
-                onTap: () => _open(
-                  LearningProgressScreen(repository: widget.repository),
-                ),
+                    ),
+                  const SizedBox(height: 23),
+                  LearningSectionHeader(
+                    icon: Icons.school_rounded,
+                    title: 'Featured Courses',
+                    action: 'All courses',
+                    onAction: () =>
+                        _open(SubjectsScreen(repository: widget.repository)),
+                  ),
+                  const SizedBox(height: 10),
+                  if (featured.isEmpty)
+                    const LearningEmptyState(
+                      title: 'No featured courses',
+                      message: 'Featured published courses will appear here.',
+                    )
+                  else
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final cardWidth = constraints.maxWidth >= 720
+                            ? math.min(520.0, constraints.maxWidth * .62)
+                            : math.min(330.0, constraints.maxWidth * .9);
+                        return SizedBox(
+                          height: 310,
+                          child: ListView.separated(
+                            key: const ValueKey('featured-courses-list'),
+                            scrollDirection: Axis.horizontal,
+                            itemCount: featured.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: 10),
+                            itemBuilder: (context, index) {
+                              final course = LearnRepository.map(
+                                featured[index],
+                              );
+                              return FeaturedCourseCard(
+                                course: course,
+                                width: cardWidth,
+                                onTap: () => _open(
+                                  SubjectDetailsScreen(
+                                    repository: widget.repository,
+                                    courseUuid: LearnRepository.text(
+                                      course['uuid'],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  const SizedBox(height: 18),
+                  LearningProgressCard(
+                    completed: LearnRepository.number(
+                      learning['completed_lessons'],
+                    ),
+                    total: LearnRepository.number(
+                      learning['accessible_published_lessons'],
+                    ),
+                    percent: LearnRepository.number(
+                      learning['completion_percent'],
+                    ),
+                    onTap: () => _open(
+                      LearningProgressScreen(repository: widget.repository),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

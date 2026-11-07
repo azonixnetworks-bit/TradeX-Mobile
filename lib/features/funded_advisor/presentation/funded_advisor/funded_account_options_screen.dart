@@ -15,12 +15,12 @@ class FundedAccountOptionsScreen extends StatelessWidget {
               state.selectedAccountSize != null;
           return FundedPage(
             title: 'Account Options',
-            subtitle: 'Select the program you want to review.',
+            subtitle: 'Choose an available challenge program and account size.',
             children: [
               _CompactPartnerHeader(partner: partner),
               const SizedBox(height: 20),
               const FundedSectionTitle(
-                title: 'Challenge Type',
+                title: 'Challenge Options',
                 subtitle: 'Options published by the funded company',
               ),
               if (partner.challengeTypes.isEmpty)
@@ -64,7 +64,7 @@ class FundedAccountOptionsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Selected configuration',
+                        'Selected Account Configuration',
                         style: TextStyle(fontWeight: FontWeight.w900),
                       ),
                       const SizedBox(height: 12),

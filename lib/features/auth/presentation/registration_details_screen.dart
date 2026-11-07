@@ -54,9 +54,11 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
 
   @override
   Widget build(BuildContext context) => TradeXAuthPage(
-    title: 'Complete Your Details',
-    subtitle: 'Confirm your country, contact number, referral and agreements.',
+    title: 'Registration Details',
+    subtitle:
+        'Complete your registration with your mobile number and referral code.',
     onBack: widget.onBack,
+    securityDecor: true,
     child: Form(
       key: _form,
       child: Column(
@@ -66,24 +68,6 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
             label: 'Country',
             icon: Icons.public_rounded,
             readOnly: true,
-          ),
-          const SizedBox(height: 13),
-          TradeXAuthField(
-            controller: _referral,
-            label: 'Referral Code',
-            icon: Icons.group_add_outlined,
-            textCapitalization: TextCapitalization.characters,
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
-              LengthLimitingTextInputFormatter(30),
-              TextInputFormatter.withFunction(
-                (oldValue, newValue) =>
-                    newValue.copyWith(text: newValue.text.toUpperCase()),
-              ),
-            ],
-            validator: (v) => v == null || v.trim().isEmpty
-                ? 'Referral code is required.'
-                : null,
           ),
           const SizedBox(height: 13),
           TradeXAuthField(
@@ -97,15 +81,36 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
                 ? 'Enter a valid mobile number.'
                 : null,
           ),
+          const SizedBox(height: 13),
+          TradeXAuthField(
+            controller: _referral,
+            label: 'Referral Code',
+            icon: Icons.local_activity_outlined,
+            textCapitalization: TextCapitalization.characters,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
+              LengthLimitingTextInputFormatter(30),
+              TextInputFormatter.withFunction(
+                (oldValue, newValue) =>
+                    newValue.copyWith(text: newValue.text.toUpperCase()),
+              ),
+            ],
+            validator: (v) => v == null || v.trim().isEmpty
+                ? 'Referral code is required.'
+                : null,
+          ),
           const SizedBox(height: 10),
           CheckboxListTile(
             value: _risk,
             onChanged: (v) => setState(() => _risk = v ?? false),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
-            title: const Text(
+            title: Text(
               'I understand that I trade at my own risk.',
-              style: TextStyle(color: Colors.white, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 13,
+              ),
             ),
           ),
           CheckboxListTile(
@@ -113,9 +118,12 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
             onChanged: (v) => setState(() => _disclaimer = v ?? false),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
-            title: const Text(
+            title: Text(
               'I have read the Trade Disclaimer.',
-              style: TextStyle(color: Colors.white, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 13,
+              ),
             ),
           ),
           CheckboxListTile(
@@ -123,9 +131,12 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
             onChanged: (v) => setState(() => _terms = v ?? false),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
-            title: const Text(
+            title: Text(
               'I accept the Terms & Conditions.',
-              style: TextStyle(color: Colors.white, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 13,
+              ),
             ),
           ),
           if (!_risk || !_disclaimer || !_terms)

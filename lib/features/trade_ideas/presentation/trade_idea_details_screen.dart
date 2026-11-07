@@ -5,8 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/activity/activity_tracking_scope.dart';
 import '../../../core/domain/app_platform.dart';
+import '../../../core/market_assets/market_asset_widget.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../../market/market.dart';
 import '../domain/entities/trade_idea_entities.dart';
 import '../domain/repositories/trade_idea_repository.dart';
@@ -46,7 +48,7 @@ class _TradeIdeaDetailsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: TradeXColors.background,
+    backgroundColor: context.palette.background,
     body: SafeArea(
       child: BlocConsumer<TradeIdeaDetailsCubit, TradeIdeaDetailsState>(
         listenWhen: (previous, current) =>
@@ -76,7 +78,7 @@ class _TradeIdeaDetailsView extends StatelessWidget {
                 child: _Header(detail: detail, repository: repository),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 32),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 sliver: SliverList.list(
                   children: [
                     _ChartPanel(detail: detail, state: state),

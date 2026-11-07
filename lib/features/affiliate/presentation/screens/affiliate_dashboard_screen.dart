@@ -80,6 +80,7 @@ class _DashboardBody extends StatelessWidget {
                     AffiliateEarningsScreen(
                       repository: repository,
                       onUpgrade: onUpgrade,
+                      onConfigurePayoutMethod: onConfigurePayoutMethod,
                     ),
                   );
                 },
@@ -150,6 +151,7 @@ class _DashboardBody extends StatelessWidget {
               AffiliateEarningsScreen(
                 repository: repository,
                 onUpgrade: onUpgrade,
+                onConfigurePayoutMethod: onConfigurePayoutMethod,
               ),
             ),
             openLevels: () => _open(

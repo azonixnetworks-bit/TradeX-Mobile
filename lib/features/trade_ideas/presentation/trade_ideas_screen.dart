@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/market_assets/market_asset_widget.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../../../shared/widgets/no_trade_zone_warning.dart';
 import '../../home/domain/no_trade_zone_warning.dart';
 import '../domain/entities/trade_idea_entities.dart';
@@ -110,7 +112,7 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
 
   @override
   Widget build(BuildContext context) => ColoredBox(
-    color: TradeXColors.background,
+    color: context.palette.background,
     child: SafeArea(
       bottom: false,
       child: RefreshIndicator(
@@ -126,11 +128,11 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                 children: [
                   Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Trade Ideas',
                           style: TextStyle(
-                            color: TradeXColors.primaryText,
+                            color: context.palette.primaryText,
                             fontSize: 29,
                             fontWeight: FontWeight.w900,
                           ),
@@ -149,10 +151,10 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  const Text(
+                  Text(
                     'Institutional market analysis',
                     style: TextStyle(
-                      color: TradeXColors.secondaryText,
+                      color: context.palette.secondaryText,
                       fontSize: 14,
                     ),
                   ),
@@ -183,17 +185,17 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                             setState(() => _category = filter);
                             _load(reset: true);
                           },
-                          selectedColor: TradeXColors.goldBright,
-                          backgroundColor: TradeXColors.surfaceRaised,
+                          selectedColor: context.palette.gold,
+                          backgroundColor: context.palette.surfaceRaised,
                           side: BorderSide(
                             color: selected
                                 ? TradeXColors.goldBright
-                                : TradeXColors.borderStrong,
+                                : context.palette.borderStrong,
                           ),
                           labelStyle: TextStyle(
                             color: selected
                                 ? Colors.black
-                                : TradeXColors.primaryText,
+                                : context.palette.primaryText,
                             fontWeight: FontWeight.w800,
                           ),
                           showCheckmark: false,
@@ -205,11 +207,11 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                   TextField(
                     controller: _search,
                     textCapitalization: TextCapitalization.characters,
-                    style: const TextStyle(color: TradeXColors.primaryText),
+                    style: TextStyle(color: context.palette.primaryText),
                     decoration: InputDecoration(
                       hintText: 'Search symbols, e.g. XAUUSD, BTCUSDT',
-                      hintStyle: const TextStyle(
-                        color: TradeXColors.secondaryText,
+                      hintStyle: TextStyle(
+                        color: context.palette.secondaryText,
                       ),
                       prefixIcon: const Icon(Icons.search_rounded),
                       suffixIcon: _search.text.isEmpty
@@ -222,11 +224,11 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                               icon: const Icon(Icons.close_rounded),
                             ),
                       filled: true,
-                      fillColor: TradeXColors.surfaceRaised,
+                      fillColor: context.palette.surfaceRaised,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(
-                          color: TradeXColors.borderStrong,
+                        borderSide: BorderSide(
+                          color: context.palette.borderStrong,
                         ),
                       ),
                     ),
@@ -341,35 +343,31 @@ class _TradeIdeaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final buy = idea.direction == 'BUY';
-    final accent = buy ? TradeXColors.success : TradeXColors.error;
+    final palette = context.palette;
+    final accent = buy ? palette.success : palette.error;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: TradeXRadii.card,
         child: Ink(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF3A2B0A),
-                Color(0xFF211A08),
-                TradeXColors.surfaceRaised,
+                palette.goldSoft,
+                palette.surfaceRaised,
+                palette.surface,
               ],
             ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: TradeXColors.goldBright.withValues(alpha: .58),
+            borderRadius: TradeXRadii.card,
+            border: Border.all(color: palette.gold.withValues(alpha: .5)),
+            boxShadow: TradeXElevation.surface(
+              brightness: Theme.of(context).brightness,
+              palette: palette,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: TradeXColors.goldDeep.withValues(alpha: .14),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,8 +394,8 @@ class _TradeIdeaCard extends StatelessWidget {
                           idea.symbol,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: TradeXColors.primaryText,
+                          style: TextStyle(
+                            color: palette.primaryText,
                             fontSize: 21,
                             fontWeight: FontWeight.w900,
                           ),
@@ -408,9 +406,7 @@ class _TradeIdeaCard extends StatelessWidget {
                               : idea.instrumentName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: TradeXColors.secondaryText,
-                          ),
+                          style: TextStyle(color: palette.secondaryText),
                         ),
                       ],
                     ),
@@ -521,28 +517,10 @@ class _SymbolAvatar extends StatelessWidget {
   const _SymbolAvatar({required this.idea});
   final TradeIdeaSummary idea;
   @override
-  Widget build(BuildContext context) => Container(
-    width: 58,
-    height: 58,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [TradeXColors.goldBright, TradeXColors.goldDeep],
-      ),
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: TradeXColors.gold.withValues(alpha: .18),
-          blurRadius: 14,
-        ),
-      ],
-    ),
-    child: Text(
-      idea.symbol
-          .substring(0, idea.symbol.length.clamp(0, 3).toInt())
-          .toUpperCase(),
-      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900),
-    ),
+  Widget build(BuildContext context) => MarketInstrumentAvatar(
+    market: idea.category,
+    symbol: idea.symbol,
+    size: 58,
   );
 }
 
@@ -553,14 +531,14 @@ class _Pill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
     decoration: BoxDecoration(
-      color: TradeXColors.surfaceMuted,
+      color: context.palette.surfaceMuted,
       borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: TradeXColors.borderStrong),
+      border: Border.all(color: context.palette.borderStrong),
     ),
     child: Text(
       text,
-      style: const TextStyle(
-        color: TradeXColors.secondaryText,
+      style: TextStyle(
+        color: context.palette.secondaryText,
         fontSize: 11,
         fontWeight: FontWeight.w700,
       ),

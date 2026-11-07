@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, this.onFinished});
@@ -79,6 +79,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: context.palette.background,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -89,17 +90,28 @@ class _SplashScreenState extends State<SplashScreen>
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
               child: Column(
                 children: [
-                  const Spacer(flex: 6),
+                  const Spacer(),
 
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: ScaleTransition(
                       scale: _scaleAnimation,
-                      child: const _SplashTagline(),
+                      child: const _SplashIdentity(),
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
+
+                  Text(
+                    'Loading TradeX...',
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
 
                   AnimatedBuilder(
                     animation: _progressAnimation,
@@ -119,24 +131,30 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-class _SplashTagline extends StatelessWidget {
-  const _SplashTagline();
+class _SplashIdentity extends StatelessWidget {
+  const _SplashIdentity();
 
   @override
   Widget build(BuildContext context) {
-    return const Text(
-      'The OS for Every Trader',
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        color: Color(0xFFFFE08A),
-        fontSize: 24,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 0.2,
-        shadows: [
-          Shadow(color: Colors.black87, blurRadius: 12, offset: Offset(0, 3)),
-          Shadow(color: Color(0x99F0A500), blurRadius: 16),
-        ],
-      ),
+    return Column(
+      children: [
+        Image.asset(
+          'assets/branding/trade_x_final_logo.png',
+          width: 210,
+          height: 100,
+          fit: BoxFit.contain,
+        ),
+        Text(
+          'TRADING EDUCATION  •  TRADING SERVICES',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: context.palette.secondaryText,
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.7,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -153,9 +171,9 @@ class _ProgressBar extends StatelessWidget {
       child: Container(
         height: 5,
         decoration: BoxDecoration(
-          color: TradeXColors.surfaceMuted,
+          color: context.palette.surfaceMuted,
           borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: TradeXColors.border, width: 0.8),
+          border: Border.all(color: context.palette.border, width: 0.8),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(100),
@@ -165,17 +183,13 @@ class _ProgressBar extends StatelessWidget {
               widthFactor: value,
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      TradeXColors.goldDeep,
-                      TradeXColors.gold,
-                      TradeXColors.goldBright,
-                    ],
+                  gradient: LinearGradient(
+                    colors: [context.palette.goldText, context.palette.gold],
                   ),
                   borderRadius: BorderRadius.circular(100),
                   boxShadow: [
                     BoxShadow(
-                      color: TradeXColors.goldBright.withValues(alpha: 0.40),
+                      color: context.palette.gold.withValues(alpha: 0.40),
                       blurRadius: 10,
                     ),
                   ],
@@ -197,25 +211,66 @@ class _SplashBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        const ColoredBox(color: Colors.black),
-        Center(
-          child: Image.asset(
-            'assets/branding/tradex_bull_bear_trading_emblem.png',
-            fit: BoxFit.cover,
-            filterQuality: FilterQuality.high,
+        ColoredBox(color: context.palette.background),
+        Positioned.fill(
+          child: Opacity(
+            opacity: .56,
+            child: Image.asset(
+              'assets/auth_ui/splash/subtle_layered_mountain_silhouettes.png',
+              fit: BoxFit.cover,
+              alignment: Alignment.bottomCenter,
+            ),
           ),
         ),
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0x33000000),
-                Colors.transparent,
-                Color(0x99000000),
-              ],
-              stops: [0, 0.52, 1],
+        Positioned(
+          left: -20,
+          right: -20,
+          top: 250,
+          child: Opacity(
+            opacity: .36,
+            child: Image.asset(
+              'assets/auth_ui/shared/minimalist_ascending_candlestick_overlay.png',
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+        Positioned(
+          left: 18,
+          right: 18,
+          bottom: 150,
+          height: 390,
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              Image.asset(
+                'assets/auth_ui/splash/rocky_mountain_pedestal.png',
+                width: 370,
+                fit: BoxFit.contain,
+              ),
+              Positioned(
+                bottom: 85,
+                child: Image.asset(
+                  'assets/auth_ui/splash/golden_low_poly_bull_statue.png',
+                  width: 285,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.transparent,
+                  context.palette.background,
+                ],
+                stops: [0, .76, 1],
+              ),
             ),
           ),
         ),

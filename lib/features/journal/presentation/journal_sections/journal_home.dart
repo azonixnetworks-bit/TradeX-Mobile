@@ -107,11 +107,11 @@ class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
       color: TradeXColors.goldBright,
       onRefresh: () async => setState(() => _reload(forceRefresh: true)),
       child: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0B1017), Color(0xFF0B1017)],
+            colors: [context.palette.background, context.palette.surfaceMuted],
           ),
         ),
         child: ListView(
@@ -199,10 +199,10 @@ class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
     padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 7),
     child: DecoratedBox(
       decoration: BoxDecoration(
-        color: gold ? TradeXColors.goldBright : const Color(0xFF1B2633),
+        color: gold ? TradeXColors.goldBright : context.palette.surfaceRaised,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: gold ? TradeXColors.goldBright : const Color(0xFF293342),
+          color: gold ? TradeXColors.goldBright : context.palette.border,
         ),
         boxShadow: gold
             ? [
@@ -217,7 +217,11 @@ class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
         key: key,
         tooltip: tooltip,
         onPressed: onPressed,
-        icon: Icon(icon, color: gold ? Colors.black : Colors.white, size: 22),
+        icon: Icon(
+          icon,
+          color: gold ? Colors.black : context.palette.primaryText,
+          size: 22,
+        ),
       ),
     ),
   );

@@ -69,96 +69,100 @@ class _ForexDerivCalculatorScreenState
       _symbol = null;
     }
     return _FeaturePage(
-      child: ListView(
-        key: const ValueKey('forex-deriv-calculator'),
-        padding: const EdgeInsets.fromLTRB(18, 22, 18, 32),
-        children: [
-          const _GradientTitle(first: 'Forex & Deriv', second: 'Calculator'),
-          const SizedBox(height: 8),
-          const _PageSubtitle(
-            'Calculate a risk-matched lot size before you trade.',
-          ),
-          const SizedBox(height: 20),
-          _SegmentedControl(
-            values: const ['forex', 'deriv'],
-            labels: const ['Forex', 'Deriv'],
-            selected: _market,
-            onSelected: (value) => setState(() {
-              _market = value;
-              _symbol = null;
-              _entry.clear();
-              _quoteRequest++;
-              _quoteLoading = false;
-              _quoteError = null;
-              _liveQuote = null;
-              context.read<RiskRewardCubit>().clearResult();
-            }),
-          ),
-          const SizedBox(height: 16),
-          _InstrumentSearchField(
-            key: ValueKey('symbol-search-$_market'),
-            selected: _instrumentBySymbol(instruments, _symbol),
-            instruments: instruments,
-            onQueryChanged: () {
-              if (_symbol == null) return;
-              setState(() {
+      child: _CalculatorCanvas(
+        child: ListView(
+          key: const ValueKey('forex-deriv-calculator'),
+          padding: const EdgeInsets.fromLTRB(18, 22, 18, 32),
+          children: [
+            const _CalculatorHero(
+              title: 'Forex Calculator',
+              eyebrow: 'Forex & Deriv',
+              subtitle: 'Calculate position size and risk while preserving live Forex and Deriv contract rules.',
+            ),
+            const SizedBox(height: 20),
+            _SegmentedControl(
+              values: const ['forex', 'deriv'],
+              labels: const ['Forex', 'Deriv'],
+              selected: _market,
+              onSelected: (value) => setState(() {
+                _market = value;
                 _symbol = null;
+                _entry.clear();
                 _quoteRequest++;
                 _quoteLoading = false;
                 _quoteError = null;
                 _liveQuote = null;
-              });
-            },
-            onSelected: (instrument) {
-              setState(() {
-                _symbol = instrument.symbol;
-                _quoteError = null;
-              });
-              unawaited(_loadLivePrice(instrument.symbol));
-            },
-          ),
-          const SizedBox(height: 14),
-          _TradeSideControl(
-            selected: _side,
-            onSelected: (value) {
-              setState(() => _side = value);
-              if (_symbol != null) unawaited(_loadLivePrice(_symbol!));
-            },
-          ),
-          const SizedBox(height: 14),
-          _CalculatorField(
-            label: 'Entry Price (Live, editable)',
-            controller: _entry,
-            icon: Icons.login,
-          ),
-          _LivePriceStatus(
-            loading: _quoteLoading,
-            quote: _liveQuote,
-            error: _quoteError,
-            onRefresh: _symbol == null ? null : () => _loadLivePrice(_symbol!),
-          ),
-          const SizedBox(height: 12),
-          _CalculatorField(
-            label: 'Stop Loss Price',
-            controller: _stop,
-            icon: Icons.shield_outlined,
-          ),
-          _CalculatorField(
-            label: 'Risk Amount (USD)',
-            controller: _risk,
-            icon: Icons.savings_outlined,
-          ),
-          _CalculatorField(
-            label: 'Take Profit Price (Optional)',
-            controller: _target,
-            icon: Icons.track_changes,
-          ),
-          _CalculateButton(
-            onPressed: _symbol == null ? null : () => _calculate(context),
-          ),
-          const SizedBox(height: 16),
-          _CurrentResult(input: _lastInput, onNewCalculation: _reset),
-        ],
+                context.read<RiskRewardCubit>().clearResult();
+              }),
+            ),
+            const SizedBox(height: 16),
+            _InstrumentSearchField(
+              key: ValueKey('symbol-search-$_market'),
+              selected: _instrumentBySymbol(instruments, _symbol),
+              instruments: instruments,
+              onQueryChanged: () {
+                if (_symbol == null) return;
+                setState(() {
+                  _symbol = null;
+                  _quoteRequest++;
+                  _quoteLoading = false;
+                  _quoteError = null;
+                  _liveQuote = null;
+                });
+              },
+              onSelected: (instrument) {
+                setState(() {
+                  _symbol = instrument.symbol;
+                  _quoteError = null;
+                });
+                unawaited(_loadLivePrice(instrument.symbol));
+              },
+            ),
+            const SizedBox(height: 14),
+            _TradeSideControl(
+              selected: _side,
+              onSelected: (value) {
+                setState(() => _side = value);
+                if (_symbol != null) unawaited(_loadLivePrice(_symbol!));
+              },
+            ),
+            const SizedBox(height: 14),
+            _CalculatorField(
+              label: 'Entry Price (Live, editable)',
+              controller: _entry,
+              icon: Icons.login,
+            ),
+            _LivePriceStatus(
+              loading: _quoteLoading,
+              quote: _liveQuote,
+              error: _quoteError,
+              onRefresh: _symbol == null
+                  ? null
+                  : () => _loadLivePrice(_symbol!),
+            ),
+            const SizedBox(height: 12),
+            _CalculatorField(
+              label: 'Stop Loss Price',
+              controller: _stop,
+              icon: Icons.shield_outlined,
+            ),
+            _CalculatorField(
+              label: 'Risk Amount (USD)',
+              controller: _risk,
+              icon: Icons.savings_outlined,
+            ),
+            _CalculatorField(
+              label: 'Take Profit Price (Optional)',
+              controller: _target,
+              icon: Icons.track_changes,
+            ),
+            _CalculateButton(
+              onPressed: _symbol == null ? null : () => _calculate(context),
+            ),
+            const SizedBox(height: 16),
+            _CurrentResult(input: _lastInput, onNewCalculation: _reset),
+          ],
+        ),
       ),
     );
   }

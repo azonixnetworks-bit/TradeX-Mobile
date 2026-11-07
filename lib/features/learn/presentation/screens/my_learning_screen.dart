@@ -30,17 +30,28 @@ class _MyLearningScreenState extends State<MyLearningScreen>
     title: 'My Learning',
     child: Column(
       children: [
-        TabBar(
-          controller: controller,
-          isScrollable: true,
-          tabs: const [
-            Tab(text: 'Continue'),
-            Tab(text: 'Recent'),
-            Tab(text: 'Completed'),
-            Tab(text: 'Saved'),
-          ],
+        _PremiumCard(
+          child: TabBar(
+            controller: controller,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            dividerColor: Colors.transparent,
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicator: BoxDecoration(
+              color: context.palette.goldSoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            labelColor: context.palette.goldText,
+            unselectedLabelColor: context.palette.secondaryText,
+            tabs: const [
+              Tab(text: 'Continue'),
+              Tab(text: 'Recent'),
+              Tab(text: 'Completed'),
+              Tab(text: 'Saved'),
+            ],
+          ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 14),
         Expanded(
           child: TabBarView(
             controller: controller,

@@ -7,6 +7,7 @@ import '../../../core/domain/app_platform.dart';
 
 import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/repositories/learn_repository.dart';
 import 'course_video_player_screen.dart';
 import 'learn_dashboard_widgets.dart';

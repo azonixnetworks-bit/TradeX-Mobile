@@ -32,6 +32,11 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+/android/build/
+/tmp/
+/.codex-remote-attachments/
+/*.apk
+/design/trade-journal/
 
 # Symbolication related
 app.*.symbols

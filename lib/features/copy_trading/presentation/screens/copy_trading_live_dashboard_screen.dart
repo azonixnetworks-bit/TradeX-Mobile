@@ -12,11 +12,18 @@ class CopyTradingLiveDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => CopyTradingScrollPage(
     children: [
+      const CopyPageHeading(
+        title: 'Live',
+        goldTitle: 'Portfolio',
+        subtitle: 'Real-time performance and positions appear only from authenticated telemetry.',
+        icon: Icons.query_stats_rounded,
+      ),
+      const SizedBox(height: 18),
       CopySectionCard(
         highlight: true,
         child: _CompactAccountHeader(useCases: useCases, account: account),
       ),
-      const SizedBox(height: 14),
+      const SizedBox(height: 18),
       const CopySectionHeading(
         title: 'Account Performance',
         subtitle: 'Live data from your connected cTrader account.',
@@ -27,7 +34,7 @@ class CopyTradingLiveDashboardScreen extends StatelessWidget {
         title: 'Live telemetry unavailable',
         message: 'The current Laravel API does not provide balance, equity, P&L, margin or chart data. No values are being simulated.',
       ),
-      const SizedBox(height: 14),
+      const SizedBox(height: 18),
       const CopySectionHeading(title: 'Open Positions'),
       const SizedBox(height: 10),
       const CopyEmptyState(

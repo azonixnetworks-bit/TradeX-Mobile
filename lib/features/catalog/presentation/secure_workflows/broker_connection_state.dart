@@ -16,11 +16,22 @@ class _BrokerConnectionScreenState extends State<BrokerConnectionScreen> {
   @override
   Widget build(BuildContext context) => _WorkflowScaffold(
     title: 'Connect Broker Account',
+    subtitle: 'Secure account linking',
     child: Form(
       key: _key,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const _WorkflowIntro(
+            icon: Icons.link_rounded,
+            title: 'Connect Broker',
+            message: 'Link your approved trading account to TradeX for activation review.',
+          ),
+          const SizedBox(height: 18),
+          const _WorkflowSectionTitle(
+            icon: Icons.manage_accounts_outlined,
+            title: 'Account details',
+          ),
           const _SecurityNotice(
             'TradeX accepts an onboarding intent and numeric account number. Never enter a broker password here.',
           ),

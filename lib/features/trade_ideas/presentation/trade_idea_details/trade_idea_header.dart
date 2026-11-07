@@ -39,26 +39,10 @@ class _Header extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              Container(
-                width: 68,
-                height: 68,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [TradeXColors.goldBright, TradeXColors.goldDeep],
-                  ),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Text(
-                  idea.symbol.substring(
-                    0,
-                    idea.symbol.length.clamp(0, 3).toInt(),
-                  ),
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+              MarketInstrumentAvatar(
+                market: idea.category,
+                symbol: idea.symbol,
+                size: 68,
               ),
               const SizedBox(width: 14),
               Expanded(

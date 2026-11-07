@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
+import '../../../core/widgets/security_screen_shell.dart';
 import '../domain/repositories/auth_repositories.dart';
 import '../domain/services/quick_unlock_service.dart';
 
@@ -158,100 +160,103 @@ class _QuickUnlockSettingsScreenState extends State<QuickUnlockSettingsScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: TradeXColors.background,
-    appBar: AppBar(
-      title: const Text('Quick Unlock'),
-      backgroundColor: TradeXColors.background,
-    ),
-    body: _loading
+  Widget build(BuildContext context) => SecurityScreenShell(
+    title: 'Quick Unlock',
+    subtitle: 'Choose how you want to securely unlock TradeX on this device.',
+    child: _loading
         ? const Center(
             child: CircularProgressIndicator(color: TradeXColors.goldBright),
           )
-        : SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                const Text(
-                  'Security on this device',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Fingerprint and passcode can both be active. Your passcode, biometric result and private device key stay on this mobile.',
-                  style: TextStyle(
-                    color: TradeXColors.secondaryText,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _MethodCard(
-                  icon: Icons.fingerprint_rounded,
-                  title: 'Fingerprint',
-                  added: _biometricEnabled,
-                  onAdd: _saving
-                      ? null
-                      : () => setState(() {
-                          _biometricEnabled = true;
-                          _error = null;
-                        }),
-                  onRemove: _saving
-                      ? null
-                      : () => setState(() {
-                          _biometricEnabled = false;
-                          _error = null;
-                        }),
-                ),
+        : ListView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 30),
+            children: [
+              _MethodCard(
+                asset: 'assets/security_ui/golden_fingerprint_app_tile.png',
+                title: 'Fingerprint',
+                subtitle: 'Use your enrolled fingerprint for instant access.',
+                added: _biometricEnabled,
+                onAdd: _saving
+                    ? null
+                    : () => setState(() {
+                        _biometricEnabled = true;
+                        _error = null;
+                      }),
+                onRemove: _saving
+                    ? null
+                    : () => setState(() {
+                        _biometricEnabled = false;
+                        _error = null;
+                      }),
+              ),
+              const SizedBox(height: 12),
+              _MethodCard(
+                asset: 'assets/security_ui/premium_gold_keypad_tile.png',
+                title: 'PIN Code',
+                subtitle:
+                    'Use a private 4-digit PIN stored only on this device.',
+                added: _passcodeEnabled,
+                onAdd: _saving ? null : _addPasscode,
+                onChange: _saving || !_passcodeEnabled ? null : _addPasscode,
+                onRemove: _saving || !_passcodeEnabled ? null : _removePasscode,
+              ),
+              if (_passcodeEnabled && _editingPasscode) ...[
+                const SizedBox(height: 14),
+                _pinField(_pin, 'Create 4-digit passcode'),
                 const SizedBox(height: 12),
-                _MethodCard(
-                  icon: Icons.pin_rounded,
-                  title: 'Passcode',
-                  added: _passcodeEnabled,
-                  onAdd: _saving ? null : _addPasscode,
-                  onChange: _saving || !_passcodeEnabled ? null : _addPasscode,
-                  onRemove: _saving || !_passcodeEnabled
-                      ? null
-                      : _removePasscode,
-                ),
-                if (_passcodeEnabled && _editingPasscode) ...[
-                  const SizedBox(height: 14),
-                  _pinField(_pin, 'Create 4-digit passcode'),
-                  const SizedBox(height: 12),
-                  _pinField(_confirmPin, 'Confirm passcode'),
-                ],
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _totp,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    labelText: 'Authenticator Code',
-                    helperText: 'Required to save security changes',
-                    counterText: '',
-                  ),
-                ),
-                if (_error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Text(
-                      _error!,
-                      style: const TextStyle(color: TradeXColors.error),
-                    ),
-                  ),
-                const SizedBox(height: 18),
-                FilledButton(
-                  onPressed: _saving ? null : _save,
-                  child: Text(
-                    _saving
-                        ? 'Saving…'
-                        : !_biometricEnabled && !_passcodeEnabled
-                        ? 'Remove quick unlock'
-                        : 'Save security settings',
-                  ),
-                ),
+                _pinField(_confirmPin, 'Confirm passcode'),
               ],
-            ),
+              const SizedBox(height: 14),
+              _ActionRow(
+                icon: Icons.edit_outlined,
+                title: 'Change PIN',
+                enabled: _passcodeEnabled && !_saving,
+                onTap: _addPasscode,
+              ),
+              const SizedBox(height: 10),
+              _ActionRow(
+                icon: Icons.shield_outlined,
+                title: 'Unlock Method',
+                subtitle: _biometricEnabled && _passcodeEnabled
+                    ? 'Fingerprint and PIN'
+                    : _biometricEnabled
+                    ? 'Fingerprint'
+                    : _passcodeEnabled
+                    ? 'PIN Code'
+                    : 'Not configured',
+              ),
+              const SizedBox(height: 18),
+              TextField(
+                controller: _totp,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(
+                  labelText: 'Authenticator Code',
+                  helperText: 'Required to save security changes',
+                  counterText: '',
+                ),
+              ),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(color: TradeXColors.error),
+                  ),
+                ),
+              const SizedBox(height: 18),
+              FilledButton(
+                onPressed: _saving ? null : _save,
+                child: Text(
+                  _saving
+                      ? 'Saving…'
+                      : !_biometricEnabled && !_passcodeEnabled
+                      ? 'Remove quick unlock'
+                      : 'Save security settings',
+                ),
+              ),
+            ],
           ),
   );
 
@@ -267,16 +272,18 @@ class _QuickUnlockSettingsScreenState extends State<QuickUnlockSettingsScreen> {
 
 class _MethodCard extends StatelessWidget {
   const _MethodCard({
-    required this.icon,
+    required this.asset,
     required this.title,
+    required this.subtitle,
     required this.added,
     this.onAdd,
     this.onChange,
     this.onRemove,
   });
 
-  final IconData icon;
+  final String asset;
   final String title;
+  final String subtitle;
   final bool added;
   final VoidCallback? onAdd;
   final VoidCallback? onChange;
@@ -284,58 +291,121 @@ class _MethodCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
     decoration: BoxDecoration(
-      color: added
-          ? TradeXColors.gold.withValues(alpha: .10)
-          : TradeXColors.surface,
-      borderRadius: BorderRadius.circular(15),
+      color: added ? context.palette.goldSoft : context.palette.surfaceRaised,
+      borderRadius: TradeXRadii.control,
       border: Border.all(
         color: added
-            ? TradeXColors.gold.withValues(alpha: .55)
-            : TradeXColors.border,
+            ? context.palette.gold.withValues(alpha: .55)
+            : context.palette.border,
+      ),
+      boxShadow: TradeXElevation.surface(
+        brightness: Theme.of(context).brightness,
+        palette: context.palette,
       ),
     ),
     child: Row(
       children: [
-        Icon(icon, color: TradeXColors.goldBright),
+        Image.asset(asset, width: 58, height: 58, fit: BoxFit.contain),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '$title: ${added ? 'Added' : 'Not added'}',
-                style: const TextStyle(
-                  color: TradeXColors.primaryText,
+                title,
+                style: TextStyle(
+                  color: context.palette.primaryText,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
-                added
-                    ? 'Saved securely on this mobile'
-                    : 'Not available for login',
-                style: const TextStyle(
-                  color: TradeXColors.secondaryText,
+                subtitle,
+                style: TextStyle(
+                  color: context.palette.secondaryText,
                   fontSize: 11,
                 ),
               ),
             ],
           ),
         ),
-        if (!added)
-          TextButton(onPressed: onAdd, child: const Text('Add'))
-        else ...[
-          if (onChange != null)
-            TextButton(onPressed: onChange, child: const Text('Change')),
-          TextButton(
-            onPressed: onRemove,
-            style: TextButton.styleFrom(foregroundColor: TradeXColors.error),
-            child: const Text('Remove'),
-          ),
-        ],
+        Switch.adaptive(
+          value: added,
+          activeTrackColor: context.palette.gold,
+          onChanged: onAdd == null && onRemove == null
+              ? null
+              : (value) => value ? onAdd?.call() : onRemove?.call(),
+        ),
       ],
+    ),
+  );
+}
+
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.enabled = true,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final bool enabled;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: context.palette.surfaceRaised,
+    borderRadius: BorderRadius.circular(14),
+    child: InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: context.palette.border),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: enabled
+                  ? context.palette.goldText
+                  : context.palette.tertiaryText,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: context.palette.primaryText,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (subtitle != null)
+                    Text(
+                      subtitle!,
+                      style: TextStyle(
+                        color: context.palette.secondaryText,
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: context.palette.goldText),
+          ],
+        ),
+      ),
     ),
   );
 }

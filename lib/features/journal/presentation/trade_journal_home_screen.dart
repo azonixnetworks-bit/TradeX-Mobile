@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/serialization/structured_text_codec.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/entities/trade_journal_entities.dart';
 import '../domain/repositories/trade_journal_repository.dart';
 import 'trade_journal_dashboard_widgets.dart';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../../../shared/widgets/no_trade_zone_warning.dart';
 import '../domain/market_news_repository.dart';
 import 'bloc/economic_news_cubit.dart';
@@ -67,74 +68,156 @@ class _EconomicNewsScreenState extends State<EconomicNewsScreen>
       value: _cubit,
       child: BlocBuilder<EconomicNewsCubit, EconomicNewsState>(
         builder: (context, state) => Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          backgroundColor: context.palette.background,
           appBar: AppBar(
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            backgroundColor: context.palette.background,
             surfaceTintColor: Colors.transparent,
             titleSpacing: 4,
-            title: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            title: Row(
               children: [
-                Text('Economic News', style: TextStyle(fontSize: 18)),
-                Text(
-                  'Upcoming Laravel economic calendar',
-                  style: TextStyle(
-                    color: TradeXColors.secondaryText,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w400,
+                Image.asset(
+                  'assets/branding/trade_x_final_logo.png',
+                  width: 38,
+                  height: 38,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Economic Calendar',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        'Upcoming market-moving events',
+                        style: TextStyle(
+                          color: context.palette.secondaryText,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          body: SafeArea(
-            child: switch (state.status) {
-              EconomicNewsStatus.initial ||
-              EconomicNewsStatus.loading => const Center(
-                child: CircularProgressIndicator(
-                  color: TradeXColors.goldBright,
-                  strokeWidth: 2.5,
-                ),
-              ),
-              EconomicNewsStatus.failure => _NewsState(
-                icon: Icons.cloud_off_rounded,
-                message: 'Economic news is temporarily unavailable.',
-                action: 'Retry',
-                onTap: _cubit.refresh,
-              ),
-              EconomicNewsStatus.success => Column(
-                children: [
-                  _FilterBar(selected: state.filter, onSelected: _selectFilter),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: PageView.builder(
-                      key: const ValueKey('economic-news-pages'),
-                      controller: _pageController,
-                      itemCount: EconomicNewsFilter.values.length,
-                      onPageChanged: (index) =>
-                          _cubit.selectFilter(EconomicNewsFilter.values[index]),
-                      itemBuilder: (context, index) {
-                        final filter = EconomicNewsFilter.values[index];
-                        final items = _itemsForFilter(state.items, filter);
-                        return items.isEmpty
-                            ? _NewsState(
-                                icon: Icons.event_available_rounded,
-                                message: 'No upcoming events in this category.',
-                                action: 'Refresh',
-                                onTap: _cubit.refresh,
-                              )
-                            : _EconomicNewsCards(
-                                items: items,
-                                now: state.now,
-                                verticalController:
-                                    _verticalControllers[filter]!,
-                              );
-                      },
+          body: Stack(
+            children: [
+              Positioned(
+                top: 0,
+                right: -18,
+                child: IgnorePointer(
+                  child: Opacity(
+                    opacity: context.isDarkMode ? .12 : .38,
+                    child: Image.asset(
+                      'assets/home_ui/complex_png/delicate_golden_candlestick_trend.png',
+                      width: 170,
                     ),
                   ),
-                ],
+                ),
               ),
-            },
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: -18,
+                child: IgnorePointer(
+                  child: Opacity(
+                    opacity: context.isDarkMode ? .06 : .5,
+                    child: Image.asset(
+                      'assets/home_ui/complex_png/soft_ivory_wave_footer.png',
+                      height: 120,
+                      fit: BoxFit.fill,
+                    ),
+                  ),
+                ),
+              ),
+              SafeArea(
+                child: switch (state.status) {
+                  EconomicNewsStatus.initial ||
+                  EconomicNewsStatus.loading => const Center(
+                    child: CircularProgressIndicator(
+                      color: TradeXColors.goldBright,
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                  EconomicNewsStatus.failure => _NewsState(
+                    icon: Icons.cloud_off_rounded,
+                    message: 'Economic news is temporarily unavailable.',
+                    action: 'Retry',
+                    onTap: _cubit.refresh,
+                  ),
+                  EconomicNewsStatus.success => Column(
+                    children: [
+                      _FilterBar(
+                        selected: state.filter,
+                        onSelected: _selectFilter,
+                      ),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: PageView.builder(
+                          key: const ValueKey('economic-news-pages'),
+                          controller: _pageController,
+                          itemCount: EconomicNewsFilter.values.length,
+                          onPageChanged: (index) => _cubit.selectFilter(
+                            EconomicNewsFilter.values[index],
+                          ),
+                          itemBuilder: (context, index) {
+                            final filter = EconomicNewsFilter.values[index];
+                            final items = _itemsForFilter(state.items, filter);
+                            return items.isEmpty
+                                ? _NewsState(
+                                    icon: Icons.event_available_rounded,
+                                    message:
+                                        'No upcoming events in this category.',
+                                    action: 'Refresh',
+                                    onTap: _cubit.refresh,
+                                  )
+                                : _EconomicNewsCards(
+                                    items: items,
+                                    now: state.now,
+                                    verticalController:
+                                        _verticalControllers[filter]!,
+                                  );
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        height: 0,
+                        child: Transform.translate(
+                          offset: const Offset(0, -10),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(
+                              EconomicNewsFilter.values.length,
+                              (index) => AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                width: state.filter.index == index ? 18 : 6,
+                                height: 6,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: state.filter.index == index
+                                      ? context.palette.gold
+                                      : context.palette.borderStrong,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                },
+              ),
+            ],
           ),
         ),
       ),
@@ -185,10 +268,10 @@ class _FilterBar extends StatelessWidget {
               fontSize: 11,
               fontWeight: FontWeight.w800,
             ),
-            selectedColor: TradeXColors.goldBright,
-            backgroundColor: TradeXColors.surfaceRaised,
+            selectedColor: context.palette.gold,
+            backgroundColor: context.palette.surfaceRaised,
             side: BorderSide(
-              color: active ? TradeXColors.goldBright : TradeXColors.border,
+              color: active ? context.palette.gold : context.palette.border,
             ),
           );
         },
@@ -243,6 +326,7 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
   Widget build(BuildContext context) {
     final item = widget.item;
     final now = widget.now;
+    final palette = context.palette;
     final impactColor = _impactColor(item.impact);
     final pairs = item.affectedPairs.take(4).toList(growable: false);
     final hiddenPairCount = item.affectedPairs.length - pairs.length;
@@ -261,16 +345,15 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
           key: ValueKey('economic-news-card-${item.uuid}'),
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: TradeXColors.surfaceRaised,
-            borderRadius: BorderRadius.circular(18),
+            color: palette.surfaceRaised,
+            borderRadius: TradeXRadii.card,
             border: Border.all(color: impactColor.withValues(alpha: .42)),
-            boxShadow: [
-              BoxShadow(
-                color: impactColor.withValues(alpha: _pressed ? .13 : .06),
-                blurRadius: _pressed ? 10 : 18,
-                offset: Offset(0, _pressed ? 3 : 6),
-              ),
-            ],
+            boxShadow: _pressed
+                ? const <BoxShadow>[]
+                : TradeXElevation.surface(
+                    brightness: Theme.of(context).brightness,
+                    palette: palette,
+                  ),
           ),
           child: Stack(
             children: [
@@ -309,8 +392,8 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
                       item.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: TradeXColors.primaryText,
+                      style: TextStyle(
+                        color: palette.primaryText,
                         fontSize: 16,
                         height: 1.15,
                         fontWeight: FontWeight.w900,
@@ -323,9 +406,9 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
                     const SizedBox(height: 5),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.public_rounded,
-                          color: TradeXColors.secondaryText,
+                          color: palette.secondaryText,
                           size: 13,
                         ),
                         const SizedBox(width: 5),
@@ -334,8 +417,8 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
                             item.source,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: TradeXColors.secondaryText,
+                            style: TextStyle(
+                              color: palette.secondaryText,
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                             ),
@@ -344,7 +427,7 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    const Divider(height: 1, color: TradeXColors.border),
+                    Divider(height: 1, color: palette.border),
                     const SizedBox(height: 12),
                     _ReleaseValues(item: item),
                     const SizedBox(height: 14),

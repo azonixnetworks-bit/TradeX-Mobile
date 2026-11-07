@@ -62,10 +62,10 @@ class _ContinueLearningSectionState extends State<_ContinueLearningSection> {
           ),
           if (learning.freeLessons.isNotEmpty) ...[
             const SizedBox(height: 14),
-            const Text(
+            Text(
               'Free Lessons',
               style: TextStyle(
-                color: TradeXColors.primaryText,
+                color: context.palette.primaryText,
                 fontSize: 14,
                 fontWeight: FontWeight.w900,
               ),
@@ -123,17 +123,17 @@ class _PremiumLockedLearningCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.lock_rounded,
-                color: TradeXColors.goldBright,
+                color: context.palette.goldText,
                 size: 30,
               ),
               const SizedBox(height: 7),
-              const Text(
+              Text(
                 'Premium content. Upgrade to continue learning.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: TradeXColors.primaryText,
+                  color: context.palette.primaryText,
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                 ),
@@ -185,8 +185,8 @@ class _PremiumContinueLearningCard extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: TradeXColors.primaryText,
+                    style: TextStyle(
+                      color: context.palette.primaryText,
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                     ),
@@ -196,8 +196,8 @@ class _PremiumContinueLearningCard extends StatelessWidget {
                     subtitle,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: TradeXColors.secondaryText,
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
                       fontSize: 11,
                     ),
                   ),
@@ -207,15 +207,15 @@ class _PremiumContinueLearningCard extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: progress / 100,
                       minHeight: 7,
-                      color: TradeXColors.goldBright,
-                      backgroundColor: TradeXColors.surfaceMuted,
+                      color: context.palette.gold,
+                      backgroundColor: context.palette.surfaceMuted,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     hasHistory ? '$progress% complete' : 'Start learning',
-                    style: const TextStyle(
-                      color: TradeXColors.goldBright,
+                    style: TextStyle(
+                      color: context.palette.goldText,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                     ),
@@ -257,9 +257,9 @@ class _FreeLearningHorizontalList extends StatelessWidget {
             child: Ink(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: TradeXColors.surfaceRaised,
+                color: context.palette.surfaceRaised,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: TradeXColors.border),
+                border: Border.all(color: context.palette.border),
               ),
               child: Row(
                 children: [
@@ -275,15 +275,13 @@ class _FreeLearningHorizontalList extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: TradeXColors.goldBright.withValues(
-                              alpha: .16,
-                            ),
+                            color: context.palette.gold.withValues(alpha: .16),
                             borderRadius: BorderRadius.circular(99),
                           ),
-                          child: const Text(
+                          child: Text(
                             'FREE',
                             style: TextStyle(
-                              color: TradeXColors.goldBright,
+                              color: context.palette.goldText,
                               fontSize: 8,
                               fontWeight: FontWeight.w900,
                             ),
@@ -294,8 +292,8 @@ class _FreeLearningHorizontalList extends StatelessWidget {
                           lesson.lessonTitle,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: TradeXColors.primaryText,
+                          style: TextStyle(
+                            color: context.palette.primaryText,
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                           ),
@@ -305,8 +303,8 @@ class _FreeLearningHorizontalList extends StatelessWidget {
                           lesson.moduleTitle,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: TradeXColors.secondaryText,
+                          style: TextStyle(
+                            color: context.palette.secondaryText,
                             fontSize: 9,
                           ),
                         ),

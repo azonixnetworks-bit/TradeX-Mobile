@@ -5,6 +5,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/activity/activity_tracking_scope.dart';
 import '../../../core/domain/user_facing_exception.dart';
@@ -14,7 +15,8 @@ import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/platform/app_background_service.dart';
 import '../../../core/domain/profile_photo_store.dart';
 import '../../../core/theme/tradex_colors.dart';
-import '../../../core/theme/tradex_icons.dart';
+import '../../../core/theme/tradex_design_system.dart';
+import '../../../core/theme/tradex_palette.dart';
 import '../domain/trade_ideas_repository.dart';
 import '../domain/learning_repository.dart';
 import '../domain/home_feature_dependencies.dart';

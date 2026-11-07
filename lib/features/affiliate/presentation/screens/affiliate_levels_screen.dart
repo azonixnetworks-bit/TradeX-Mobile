@@ -28,8 +28,8 @@ class AffiliateLevelsScreen extends StatelessWidget {
     child: Builder(
       builder: (context) => BlocBuilder<AffiliateLoadCubit, AffiliateLoadState>(
         builder: (context, state) => AffiliateScaffold(
-          title: 'Levels & Rewards',
-          subtitle: 'Progress with every qualified paid sale.',
+          title: 'Affiliate Milestones',
+          subtitle: 'Grow your referrals and earnings to unlock higher levels.',
           onRefresh: context.read<AffiliateLoadCubit>().load,
           child: AffiliateStateBody(
             state: state,
@@ -70,85 +70,86 @@ class LevelsContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SectionCard(
-          borderColor: TradeXColors.gold,
+          borderColor: context.palette.gold.withValues(alpha: .65),
           child: Column(
             children: [
               Row(
                 children: [
-                  _StageBadge(
-                    code: AffiliateRepository.text(current['code'], 'STARTER'),
-                    size: 76,
+                  Image.asset(
+                    _AffiliateAssets.milestoneStar,
+                    width: 82,
+                    height: 82,
+                    fit: BoxFit.contain,
+                    excludeFromSemantics: true,
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Current Level',
-                          style: TextStyle(color: _muted),
+                        Text(
+                          'Your Level',
+                          style: TextStyle(
+                            color: context.palette.goldText,
+                            fontSize: 12,
+                          ),
                         ),
                         Text(
                           AffiliateRepository.text(
                             current['name'],
                             'Not started',
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: _gold,
-                            fontSize: 26,
+                            fontSize: 23,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
                         Text(
                           '${AffiliateRepository.text(current['standard_commission_percent'], '0.00')}% commission',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: context.palette.secondaryText,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  if (next.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text(
-                          'Next Level',
-                          style: TextStyle(color: _muted),
-                        ),
-                        Text(
-                          AffiliateRepository.text(next['name']),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        Text(
-                          '$nextTarget sales',
-                          style: const TextStyle(color: _muted, fontSize: 12),
-                        ),
-                      ],
-                    ),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: LinearProgressIndicator(
                   value: progress,
-                  minHeight: 10,
-                  color: _gold,
-                  backgroundColor: TradeXColors.border,
+                  minHeight: 12,
+                  color: context.palette.gold,
+                  backgroundColor: context.palette.surfaceMuted,
                 ),
               ),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Text('$sales qualified sales'),
-                  const Spacer(),
+                  Expanded(
+                    child: Text(
+                      next.isEmpty
+                          ? '$sales qualified sales · Maximum level reached'
+                          : '$sales of $nextTarget qualified sales to ${AffiliateRepository.text(next['name'])}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: context.palette.secondaryText,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   Text(
                     '${(progress * 100).round()}%',
-                    style: const TextStyle(
-                      color: _gold,
-                      fontWeight: FontWeight.w800,
+                    style: TextStyle(
+                      color: context.palette.goldText,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ],
@@ -175,7 +176,16 @@ class LevelsContent extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 20),
-        const _SectionHeading(title: 'All Affiliate Levels'),
+        const _SectionHeading(title: 'Affiliate Levels'),
+        const SizedBox(height: 10),
+        if (stages.isNotEmpty)
+          _AffiliateLevelTracker(
+            stages: stages,
+            sales: sales,
+            currentCode: currentCode,
+          ),
+        const SizedBox(height: 20),
+        const _SectionHeading(title: 'Level Rewards'),
         const SizedBox(height: 10),
         if (stages.isEmpty)
           const _EmptyCard(message: 'No affiliate levels are configured.')
@@ -199,6 +209,125 @@ class LevelsContent extends StatelessWidget {
       ],
     );
   }
+}
+
+class _AffiliateLevelTracker extends StatelessWidget {
+  const _AffiliateLevelTracker({
+    required this.stages,
+    required this.sales,
+    required this.currentCode,
+  });
+
+  final List<JsonMap> stages;
+  final int sales;
+  final String currentCode;
+
+  @override
+  Widget build(BuildContext context) => SectionCard(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+    child: SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var index = 0; index < stages.length; index++) ...[
+            _LevelTrackerNode(
+              data: stages[index],
+              index: index,
+              sales: sales,
+              currentCode: currentCode,
+            ),
+            if (index != stages.length - 1)
+              Container(
+                width: 30,
+                height: 3,
+                margin: const EdgeInsets.only(top: 24),
+                color: _stageAchieved(stages[index], sales)
+                    ? context.palette.gold
+                    : context.palette.border,
+              ),
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
+class _LevelTrackerNode extends StatelessWidget {
+  const _LevelTrackerNode({
+    required this.data,
+    required this.index,
+    required this.sales,
+    required this.currentCode,
+  });
+
+  final JsonMap data;
+  final int index;
+  final int sales;
+  final String currentCode;
+
+  @override
+  Widget build(BuildContext context) {
+    final code = AffiliateRepository.text(data['code'], '');
+    final current = code == currentCode;
+    final achieved = _stageAchieved(data, sales);
+    return SizedBox(
+      width: 66,
+      child: Column(
+        children: [
+          AnimatedContainer(
+            duration: TradeXMotion.quick,
+            width: current ? 54 : 48,
+            height: current ? 54 : 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: achieved
+                  ? context.palette.gold
+                  : context.palette.surfaceMuted,
+              border: Border.all(
+                color: current
+                    ? context.palette.goldText
+                    : context.palette.borderStrong,
+                width: current ? 2 : 1,
+              ),
+            ),
+            child: Icon(
+              current
+                  ? Icons.star_rounded
+                  : achieved
+                  ? Icons.check_rounded
+                  : Icons.lock_outline_rounded,
+              color: achieved
+                  ? context.palette.primaryButtonText
+                  : context.palette.tertiaryText,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'L${index + 1}',
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+          ),
+          Text(
+            AffiliateRepository.text(data['name'], ''),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: current
+                  ? context.palette.goldText
+                  : context.palette.secondaryText,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+bool _stageAchieved(JsonMap data, int sales) {
+  final range = AffiliateRepository.mapOf(data['qualified_sales_range']);
+  return sales >= AffiliateRepository.integer(range['min']);
 }
 
 class StageTile extends StatelessWidget {
@@ -232,7 +361,16 @@ class StageTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _StageBadge(code: code),
+          Opacity(
+            opacity: achieved ? 1 : .48,
+            child: Image.asset(
+              _AffiliateAssets.milestoneGift,
+              width: 44,
+              height: 44,
+              fit: BoxFit.contain,
+              excludeFromSemantics: true,
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -288,54 +426,6 @@ class StageTile extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _StageBadge extends StatelessWidget {
-  const _StageBadge({required this.code, this.size = 52});
-  final String code;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final normalized = code.toUpperCase();
-    final (color, icon) = switch (normalized) {
-      'STARTER' => (const Color(0xFFCD7F32), Icons.stars_rounded),
-      'GROWTH' => (const Color(0xFFC0C0C0), Icons.stars_rounded),
-      'PRO' => (_gold, Icons.workspace_premium_rounded),
-      'ELITE' => (const Color(0xFF248EFF), Icons.diamond_rounded),
-      'DIAMOND' => (const Color(0xFF18CEDC), Icons.diamond_outlined),
-      'AMBASSADOR' => (_purple, Icons.workspace_premium_outlined),
-      _ => (const Color(0xFFFF5252), Icons.diamond_rounded),
-    };
-    final assetPath = switch (normalized) {
-      'STARTER' || 'GROWTH' => _AffiliateAssets.trophy,
-      'PRO' || 'AMBASSADOR' => _AffiliateAssets.crown,
-      _ => null,
-    };
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color.withValues(alpha: .14),
-        border: Border.all(color: color),
-        boxShadow: [
-          BoxShadow(color: color.withValues(alpha: .2), blurRadius: 12),
-        ],
-      ),
-      child: assetPath == null
-          ? Icon(icon, color: color, size: size * .52)
-          : Padding(
-              padding: EdgeInsets.all(size * .12),
-              child: _AffiliateArt(
-                path: assetPath,
-                fallback: icon,
-                size: size * .72,
-                tint: normalized == 'PRO' ? null : color,
-              ),
-            ),
     );
   }
 }

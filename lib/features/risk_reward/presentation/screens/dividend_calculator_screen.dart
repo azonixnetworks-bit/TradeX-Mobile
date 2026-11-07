@@ -63,105 +63,119 @@ class _DividendCalculatorScreenState extends State<DividendCalculatorScreen> {
     _symbol ??= stocks.isEmpty ? null : stocks.first.symbol;
     final selected = _findStock(stocks, _symbol);
     return _FeaturePage(
-      child: ListView(
-        key: const ValueKey('dividend-calculator'),
-        padding: const EdgeInsets.fromLTRB(18, 22, 18, 32),
-        children: [
-          const _GradientTitle(first: 'Dividend', second: 'Calculator'),
-          const SizedBox(height: 8),
-          const _PageSubtitle(
-            'Estimate income using explicit manual assumptions.',
-          ),
-          const SizedBox(height: 18),
-          _GoldCard(
-            child: Row(
-              children: [
-                const _AssetImage('17_apple_logo_tile.png', size: 62),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StockDropdown(
-                    value: _symbol,
-                    stocks: stocks,
-                    compact: true,
-                    onChanged: (value) => setState(() => _symbol = value),
+      child: _CalculatorCanvas(
+        child: ListView(
+          key: const ValueKey('dividend-calculator'),
+          padding: const EdgeInsets.fromLTRB(18, 22, 18, 32),
+          children: [
+            const _Eyebrow('INCOME PLANNER'),
+            const SizedBox(height: 7),
+            const _GradientTitle(first: 'Dividend', second: 'Calculator'),
+            const SizedBox(height: 8),
+            const _PageSubtitle(
+              'Estimate dividend income using your existing manual assumptions.',
+            ),
+            const SizedBox(height: 18),
+            _GoldCard(
+              child: Row(
+                children: [
+                  _DividendStockBadge(symbol: selected?.symbol ?? '', size: 62),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StockDropdown(
+                      value: _symbol,
+                      stocks: stocks,
+                      compact: true,
+                      onChanged: (value) => setState(() => _symbol = value),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
-          if (!catalog.dividendProviderAvailable)
-            _StatusNotice(
-              text: catalog.dividendMessage.isEmpty
-                  ? 'Manual estimate mode. No verified dividend provider is connected.'
-                  : catalog.dividendMessage,
-            ),
-          const SizedBox(height: 12),
-          _CalculatorField(
-            label: 'Number of Shares',
-            controller: _shares,
-            icon: Icons.hub_outlined,
-          ),
-          _CalculatorField(
-            label: 'Share Price (${selected?.currency ?? 'USD'})',
-            controller: _price,
-            icon: Icons.monetization_on_outlined,
-          ),
-          _CalculatorField(
-            label: 'Dividend per Share (DPS)',
-            controller: _dps,
-            icon: Icons.paid_outlined,
-          ),
-          _FrequencySelector(
-            value: _frequency,
-            onChanged: (value) => setState(() => _frequency = value),
-          ),
-          const SizedBox(height: 12),
-          _GoldCard(
-            child: Column(
-              children: [
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  value: _repeatAssumption,
-                  activeTrackColor: TradeXColors.goldBright,
-                  title: const Text('Repeat DPS for selected frequency'),
-                  subtitle: const Text(
-                    'Turn on only when you intentionally want a projected annual assumption.',
-                    style: TextStyle(color: TradeXColors.secondaryText),
+            const SizedBox(height: 14),
+            if (!catalog.dividendProviderAvailable)
+              _StatusNotice(
+                text: catalog.dividendMessage.isEmpty
+                    ? 'Manual estimate mode. No verified dividend provider is connected.'
+                    : catalog.dividendMessage,
+              ),
+            const SizedBox(height: 12),
+            _GoldCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _SectionTitle('Dividend assumptions'),
+                  const SizedBox(height: 14),
+                  _CalculatorField(
+                    label: 'Number of Shares',
+                    controller: _shares,
+                    icon: Icons.hub_outlined,
                   ),
-                  onChanged: (value) =>
-                      setState(() => _repeatAssumption = value),
-                ),
-                _CalculatorField(
-                  label: 'Withholding Tax (%)',
-                  controller: _tax,
-                  icon: Icons.percent_rounded,
-                ),
-                _CalculatorField(
-                  label: 'Fees per Payment',
-                  controller: _fees,
-                  icon: Icons.receipt_long_outlined,
-                ),
-              ],
+                  _CalculatorField(
+                    label: 'Share Price (${selected?.currency ?? 'USD'})',
+                    controller: _price,
+                    icon: Icons.monetization_on_outlined,
+                  ),
+                  _CalculatorField(
+                    label: 'Dividend per Share (DPS)',
+                    controller: _dps,
+                    icon: Icons.paid_outlined,
+                  ),
+                  _FrequencySelector(
+                    value: _frequency,
+                    onChanged: (value) => setState(() => _frequency = value),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
-          _CalculateButton(
-            onPressed: selected == null
-                ? null
-                : () => _calculate(context, selected),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: selected == null
-                ? null
-                : () => _open(context, DividendHistoryScreen(stock: selected)),
-            icon: const Icon(Icons.calendar_month_rounded),
-            label: const Text('Dividend History & Calendar'),
-          ),
-          const SizedBox(height: 16),
-          _CurrentDividendResult(input: _lastInput, onNewCalculation: _reset),
-        ],
+            const SizedBox(height: 12),
+            _GoldCard(
+              child: Column(
+                children: [
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    value: _repeatAssumption,
+                    activeTrackColor: TradeXColors.goldBright,
+                    title: const Text('Repeat DPS for selected frequency'),
+                    subtitle: const Text(
+                      'Turn on only when you intentionally want a projected annual assumption.',
+                      style: TextStyle(color: TradeXColors.secondaryText),
+                    ),
+                    onChanged: (value) =>
+                        setState(() => _repeatAssumption = value),
+                  ),
+                  _CalculatorField(
+                    label: 'Withholding Tax (%)',
+                    controller: _tax,
+                    icon: Icons.percent_rounded,
+                  ),
+                  _CalculatorField(
+                    label: 'Fees per Payment',
+                    controller: _fees,
+                    icon: Icons.receipt_long_outlined,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            _CalculateButton(
+              onPressed: selected == null
+                  ? null
+                  : () => _calculate(context, selected),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: selected == null
+                  ? null
+                  : () =>
+                        _open(context, DividendHistoryScreen(stock: selected)),
+              icon: const Icon(Icons.calendar_month_rounded),
+              label: const Text('Dividend History & Calendar'),
+            ),
+            const SizedBox(height: 16),
+            _CurrentDividendResult(input: _lastInput, onNewCalculation: _reset),
+          ],
+        ),
       ),
     );
   }
@@ -204,5 +218,42 @@ class _DividendCalculatorScreenState extends State<DividendCalculatorScreen> {
     });
     final cubit = context.read<RiskRewardCubit>()..clearResult();
     unawaited(cubit.repository.clearDraft('dividend'));
+  }
+}
+
+class _DividendStockBadge extends StatelessWidget {
+  const _DividendStockBadge({required this.symbol, this.size = 58});
+
+  final String symbol;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final cleanSymbol = symbol.trim();
+    final label = cleanSymbol.isEmpty
+        ? '—'
+        : cleanSymbol
+              .substring(0, cleanSymbol.length > 2 ? 2 : cleanSymbol.length)
+              .toUpperCase();
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: palette.goldSoft,
+        borderRadius: BorderRadius.circular(size * .28),
+        border: Border.all(color: palette.gold.withValues(alpha: .34)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: palette.goldText,
+          fontSize: size * .27,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .4,
+        ),
+      ),
+    );
   }
 }

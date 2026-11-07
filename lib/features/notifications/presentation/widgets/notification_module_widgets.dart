@@ -7,8 +7,42 @@ class _NotificationScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: TradeXColors.background,
-    body: SafeArea(child: child),
+    backgroundColor: context.palette.background,
+    body: SafeArea(
+      child: Stack(
+        children: [
+          Positioned(
+            top: -12,
+            right: -20,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: context.isDarkMode ? .12 : .38,
+                child: Image.asset(
+                  'assets/home_ui/complex_png/delicate_golden_candlestick_trend.png',
+                  width: 180,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: -16,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: context.isDarkMode ? .06 : .5,
+                child: Image.asset(
+                  'assets/home_ui/complex_png/soft_ivory_wave_footer.png',
+                  height: 125,
+                  fit: BoxFit.fill,
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
+    ),
   );
 }
 
@@ -33,6 +67,25 @@ class _PageHeading extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
+      Row(
+        children: [
+          if (Navigator.of(context).canPop()) ...[
+            IconButton(
+              tooltip: 'Back',
+              onPressed: () => Navigator.maybePop(context),
+              icon: const Icon(Icons.arrow_back_rounded),
+            ),
+            const SizedBox(width: 4),
+          ],
+          Image.asset(
+            'assets/branding/trade_x_final_logo.png',
+            width: 54,
+            height: 54,
+            fit: BoxFit.contain,
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
       Text(
         eyebrow,
         style: const TextStyle(
@@ -63,8 +116,8 @@ class _PageHeading extends StatelessWidget {
               tooltip: actionTooltip,
               style: IconButton.styleFrom(
                 minimumSize: const Size(50, 50),
-                backgroundColor: const Color(0xFF181D25),
-                side: const BorderSide(color: TradeXColors.borderStrong),
+                backgroundColor: context.palette.surfaceRaised,
+                side: BorderSide(color: context.palette.border),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -101,8 +154,8 @@ class _BackHeading extends StatelessWidget {
         tooltip: 'Back',
         style: IconButton.styleFrom(
           minimumSize: const Size(48, 48),
-          backgroundColor: const Color(0xFF181D25),
-          side: const BorderSide(color: TradeXColors.borderStrong),
+          backgroundColor: context.palette.surfaceRaised,
+          side: BorderSide(color: context.palette.border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
@@ -128,7 +181,7 @@ class _UnreadSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _PremiumCard(
     borderColor: TradeXColors.goldDeep,
-    color: const Color(0xFF171C18),
+    color: context.palette.goldSoft,
     padding: const EdgeInsets.all(16),
     child: Row(
       children: [
@@ -247,10 +300,12 @@ class _FilterButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 4),
         backgroundColor: selected
             ? const Color(0xFFF0BE50)
-            : const Color(0xFF1A2029),
-        foregroundColor: selected ? Colors.black : const Color(0xFFC7CBD3),
+            : context.palette.surfaceMuted,
+        foregroundColor: selected
+            ? Colors.black
+            : context.palette.secondaryText,
         side: BorderSide(
-          color: selected ? TradeXColors.goldSoft : TradeXColors.borderStrong,
+          color: selected ? TradeXColors.goldSoft : context.palette.border,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
@@ -374,15 +429,15 @@ class _PremiumCard extends StatelessWidget {
   const _PremiumCard({
     required this.child,
     this.padding = const EdgeInsets.all(14),
-    this.color = const Color(0xFF12171E),
-    this.borderColor = TradeXColors.borderStrong,
+    this.color,
+    this.borderColor,
     this.onTap,
   });
 
   final Widget child;
   final EdgeInsets padding;
-  final Color color;
-  final Color borderColor;
+  final Color? color;
+  final Color? borderColor;
   final VoidCallback? onTap;
 
   @override
@@ -394,16 +449,13 @@ class _PremiumCard extends StatelessWidget {
       child: Ink(
         padding: padding,
         decoration: BoxDecoration(
-          color: color,
+          color: color ?? context.palette.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: borderColor),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x33000000),
-              blurRadius: 16,
-              offset: Offset(0, 7),
-            ),
-          ],
+          border: Border.all(color: borderColor ?? context.palette.border),
+          boxShadow: TradeXElevation.surface(
+            brightness: Theme.of(context).brightness,
+            palette: context.palette,
+          ),
         ),
         child: child,
       ),
@@ -418,15 +470,32 @@ class _ToneIcon extends StatelessWidget {
   final double size;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    decoration: BoxDecoration(
-      color: tone.background,
-      borderRadius: BorderRadius.circular(size * .27),
-    ),
-    child: Icon(tone.icon, color: tone.color, size: size * .46),
-  );
+  Widget build(BuildContext context) {
+    final asset = switch (tone.label) {
+      'TRADE IDEAS' => 'assets/home_ui/simple_svg/section_trade_alerts.svg',
+      'LEARNING' => 'assets/home_ui/simple_svg/section_course_updates.svg',
+      'PAYMENT' ||
+      'ACCOUNT' => 'assets/home_ui/simple_svg/section_payment_updates.svg',
+      _ => null,
+    };
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: tone.background,
+        borderRadius: BorderRadius.circular(size * .27),
+      ),
+      child: asset == null
+          ? Icon(tone.icon, color: tone.color, size: size * .46)
+          : Padding(
+              padding: EdgeInsets.all(size * .24),
+              child: SvgPicture.asset(
+                asset,
+                colorFilter: ColorFilter.mode(tone.color, BlendMode.srcIn),
+              ),
+            ),
+    );
+  }
 }
 
 class _Badge extends StatelessWidget {

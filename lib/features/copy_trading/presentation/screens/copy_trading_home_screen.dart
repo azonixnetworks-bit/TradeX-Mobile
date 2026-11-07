@@ -52,36 +52,58 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
       return CopyTradingScrollPage(
         onRefresh: _refresh,
         children: [
-          CopyHeroCard(
+          const CopyPageHeading(
+            title: 'Official cTrader',
+            goldTitle: 'Copy',
+            subtitle: 'Manage verified copy trading accounts securely.',
+            icon: Icons.sync_alt_rounded,
+          ),
+          const SizedBox(height: 18),
+          CopySectionCard(
+            highlight: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const CopyPageHeading(
-                  title: 'Official cTrader',
-                  goldTitle: 'Copy',
-                  subtitle: 'Manage verified copy trading accounts securely.',
-                  icon: Icons.sync_alt_rounded,
+                Row(
+                  children: [
+                    const CopyIconBadge(
+                      icon: Icons.account_balance_wallet_outlined,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            accounts.isEmpty
+                                ? 'No Connected Account'
+                                : '${active.length} Active ${active.length == 1 ? 'Account' : 'Accounts'}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            accounts.isEmpty
+                                ? 'Choose a TradeX IB broker to begin verification.'
+                                : '${verified.length} verified · ${pending.length} awaiting review',
+                            style: const TextStyle(
+                              color: copyMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 22),
-                Text(
-                  accounts.isEmpty
-                      ? 'No Connected Account'
-                      : '${active.length} Active ${active.length == 1 ? 'Account' : 'Accounts'}',
-                  style: const TextStyle(
-                    fontSize: 29,
-                    fontWeight: FontWeight.w900,
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: CopyStatusPill(
+                    status: data.copyTradeReady ? 'ACTIVE' : data.nextStep,
                   ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  accounts.isEmpty
-                      ? 'Choose a TradeX IB broker to begin verification.'
-                      : '${verified.length} verified · ${pending.length} awaiting review',
-                  style: const TextStyle(color: copyMuted, fontSize: 14),
-                ),
-                const SizedBox(height: 18),
-                CopyStatusPill(
-                  status: data.copyTradeReady ? 'ACTIVE' : data.nextStep,
                 ),
               ],
             ),

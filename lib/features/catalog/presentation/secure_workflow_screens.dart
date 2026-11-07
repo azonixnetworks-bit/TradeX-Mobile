@@ -7,6 +7,7 @@ import '../../../core/bloc/bloc_future_builder.dart';
 import '../../../core/domain/api_gateway.dart';
 import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../../secure_workflows/domain/services/secure_workflow_platform.dart';
 
 part 'secure_workflows/kyc_submission_screen.dart';

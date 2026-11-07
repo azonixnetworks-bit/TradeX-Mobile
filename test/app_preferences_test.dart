@@ -28,16 +28,13 @@ void main() {
 
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test(
-    'first installation defaults to system theme and language prompt',
-    () async {
-      SharedPreferences.setMockInitialValues({});
-      await AppPreferences.instance.load();
-      expect(AppPreferences.instance.themeMode, ThemeMode.system);
-      expect(AppPreferences.instance.learnLanguageSelected, isFalse);
-      expect(AppPreferences.instance.courseLanguage, 'en');
-    },
-  );
+  test('first installation defaults to professional light theme and language prompt', () async {
+    SharedPreferences.setMockInitialValues({});
+    await AppPreferences.instance.load();
+    expect(AppPreferences.instance.themeMode, ThemeMode.light);
+    expect(AppPreferences.instance.learnLanguageSelected, isFalse);
+    expect(AppPreferences.instance.courseLanguage, 'en');
+  });
 
   test('theme and course language selections persist', () async {
     SharedPreferences.setMockInitialValues({});

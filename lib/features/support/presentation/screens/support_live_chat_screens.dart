@@ -134,10 +134,9 @@ class _LiveChatWaitingScreenState extends State<LiveChatWaitingScreen> {
 
   @override
   Widget build(BuildContext context) => _SupportScaffold(
-    eyebrow: 'LIVE SUPPORT',
+    eyebrow: 'LIVE CHAT QUEUE',
     title: 'Finding the right support agent for you',
-    subtitle:
-        'Queue details appear only after the server confirms your request.',
+    subtitle: 'Your live position and wait estimate appear only after server confirmation.',
     child: Column(
       children: [
         Image.asset(
@@ -374,6 +373,7 @@ class _LiveChatConversationScreenState
   @override
   Widget build(BuildContext context) => _SupportScaffold(
     title: 'Live Support',
+    eyebrow: 'LIVE CHAT',
     subtitle: _session?.ticketReference.isNotEmpty == true
         ? 'Secure conversation · ${_session!.ticketReference}'
         : 'Authenticated support conversation',

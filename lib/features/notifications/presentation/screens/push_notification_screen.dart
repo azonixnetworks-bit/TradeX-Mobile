@@ -82,8 +82,8 @@ class _PushNotificationScreenState extends State<PushNotificationScreen>
         children: [
           const _PageHeading(
             eyebrow: 'DEVICE NOTIFICATIONS',
-            title: 'Push notifications',
-            subtitle: 'Manage alerts on this device.',
+            title: 'Enable Notifications',
+            subtitle: 'Stay informed with market updates, trade ideas and important account alerts.',
           ),
           const SizedBox(height: 20),
           _PremiumCard(
@@ -96,8 +96,10 @@ class _PushNotificationScreenState extends State<PushNotificationScreen>
                   height: 116,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF3A2E17),
-                    border: Border.all(color: TradeXColors.goldSoft),
+                    color: context.palette.goldSoft,
+                    border: Border.all(
+                      color: context.palette.gold.withValues(alpha: .35),
+                    ),
                   ),
                   child: const Icon(
                     Icons.notifications_active_rounded,
@@ -154,6 +156,24 @@ class _PushNotificationScreenState extends State<PushNotificationScreen>
             ),
           ),
           const SizedBox(height: 24),
+          const _PreferenceHeading('Why enable notifications?'),
+          const SizedBox(height: 10),
+          const _PushBenefit(
+            icon: Icons.bolt_rounded,
+            title: 'Real-Time Alerts',
+            subtitle: 'Market moves, trade ideas and important events.',
+          ),
+          const _PushBenefit(
+            icon: Icons.shield_outlined,
+            title: 'Account Security',
+            subtitle: 'Important account and payment notifications.',
+          ),
+          const _PushBenefit(
+            icon: Icons.menu_book_outlined,
+            title: 'Learning & Product Updates',
+            subtitle: 'New features, lessons and market guides.',
+          ),
+          const SizedBox(height: 14),
           const _PreferenceHeading('Device status'),
           const SizedBox(height: 10),
           _PremiumCard(
@@ -226,8 +246,8 @@ class _PushNotificationScreenState extends State<PushNotificationScreen>
           ],
           const SizedBox(height: 18),
           _PremiumCard(
-            borderColor: const Color(0xFF514727),
-            color: const Color(0xFF171912),
+            borderColor: context.palette.gold.withValues(alpha: .3),
+            color: context.palette.goldSoft,
             padding: const EdgeInsets.all(16),
             child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,4 +280,57 @@ class _PushNotificationScreenState extends State<PushNotificationScreen>
       ),
     );
   }
+}
+
+class _PushBenefit extends StatelessWidget {
+  const _PushBenefit({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 9),
+    child: _PremiumCard(
+      padding: const EdgeInsets.all(13),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: context.palette.goldSoft,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(icon, color: context.palette.goldText),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: context.palette.secondaryText,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

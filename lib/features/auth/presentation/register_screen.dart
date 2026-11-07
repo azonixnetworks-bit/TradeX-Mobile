@@ -73,14 +73,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) => TradeXAuthPage(
     title: 'Create Your Account',
-    subtitle: 'Start with your secure Trade X account details.',
+    subtitle: 'Join TradeX and start your professional trading journey.',
     onBack: widget.onBack,
+    securityDecor: true,
     footer: Wrap(
       alignment: WrapAlignment.center,
       children: [
-        const Text(
+        Text(
           'Already have an account? ',
-          style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 14,
+          ),
         ),
         GestureDetector(
           onTap: widget.onSignIn,
@@ -163,7 +167,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          TradeXGoldButton(label: 'Next', loading: _loading, onPressed: _next),
+          TradeXGoldButton(
+            label: 'Create Account',
+            loading: _loading,
+            onPressed: _next,
+          ),
         ],
       ),
     ),
@@ -176,6 +184,7 @@ class _PasswordChecklist extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final checks = <(String, bool)>[
       ('8+ characters', password.length >= 8),
       ('Uppercase letter', RegExp(r'[A-Z]').hasMatch(password)),
@@ -203,8 +212,8 @@ class _PasswordChecklist extends StatelessWidget {
                   check.$1,
                   style: TextStyle(
                     color: check.$2
-                        ? const Color(0xFFB8F5D3)
-                        : const Color(0xFF9CA3AF),
+                        ? const Color(0xFF16834A)
+                        : colors.onSurfaceVariant,
                     fontSize: 11,
                   ),
                 ),

@@ -16,95 +16,94 @@ class _SupportScaffold extends StatelessWidget {
   final bool showBack;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: TradeXColors.background,
-    body: Stack(
-      children: [
-        Positioned(
-          top: -35,
-          right: -100,
-          child: IgnorePointer(
-            child: Opacity(
-              opacity: .22,
-              child: Image.asset(
-                _globeAsset,
-                width: 360,
-                height: 290,
-                fit: BoxFit.cover,
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final textTheme = Theme.of(context).textTheme;
+    return Scaffold(
+      backgroundColor: palette.background,
+      body: Stack(
+        children: [
+          Positioned(
+            top: -35,
+            right: -100,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: context.isDarkMode ? .18 : .055,
+                child: Image.asset(
+                  _globeAsset,
+                  width: 360,
+                  height: 290,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ),
-        ),
-        Positioned(
-          top: 10,
-          right: -60,
-          child: IgnorePointer(
-            child: Opacity(
-              opacity: .22,
-              child: Image.asset(
-                '$_imageRoot/gold_orbit_lines.png',
-                width: 330,
+          Positioned(
+            top: 10,
+            right: -60,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: context.isDarkMode ? .18 : .045,
+                child: Image.asset(
+                  '$_imageRoot/gold_orbit_lines.png',
+                  width: 330,
+                ),
               ),
             ),
           ),
-        ),
-        SafeArea(
-          child: CustomScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(18, 10, 18, 30),
-                sliver: SliverList.list(
-                  children: [
-                    if (showBack)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: _BackButton(
-                          onTap: () => Navigator.of(context).maybePop(),
+          SafeArea(
+            child: CustomScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 30),
+                  sliver: SliverList.list(
+                    children: [
+                      if (showBack)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: _BackButton(
+                            onTap: () => Navigator.of(context).maybePop(),
+                          ),
                         ),
-                      ),
-                    if (showBack) const SizedBox(height: 16),
-                    if (eyebrow != null) ...[
+                      if (showBack) const SizedBox(height: 16),
+                      if (eyebrow != null) ...[
+                        Text(
+                          eyebrow!,
+                          style: TextStyle(
+                            color: palette.goldText,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 3,
+                            fontSize: 11,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                       Text(
-                        eyebrow!,
-                        style: const TextStyle(
-                          color: TradeXColors.goldBright,
+                        title,
+                        style: textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.w800,
-                          letterSpacing: 3,
-                          fontSize: 11,
                         ),
                       ),
                       const SizedBox(height: 8),
+                      Text(
+                        subtitle,
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: palette.secondaryText,
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      child,
                     ],
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: TradeXColors.primaryText,
-                        fontSize: 30,
-                        height: 1.1,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: TradeXColors.secondaryText,
-                        fontSize: 15,
-                        height: 1.45,
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                    child,
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class _SupportActionCard extends StatelessWidget {
@@ -164,30 +163,30 @@ class _SupportPanel extends StatelessWidget {
   final EdgeInsets padding;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: padding,
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          TradeXColors.surfaceRaised,
-          TradeXColors.surface,
-          TradeXColors.goldDeep.withValues(alpha: .09),
-        ],
-      ),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: TradeXColors.borderStrong),
-      boxShadow: [
-        BoxShadow(
-          color: TradeXColors.gold.withValues(alpha: .05),
-          blurRadius: 20,
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: palette.surface,
+        gradient: context.isDarkMode
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [palette.surfaceRaised, palette.surface],
+              )
+            : null,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: palette.border),
+        boxShadow: TradeXElevation.surface(
+          brightness: Theme.of(context).brightness,
+          palette: palette,
         ),
-      ],
-    ),
-    child: child,
-  );
+      ),
+      child: child,
+    );
+  }
 }
 
 class _SupportUnavailableBanner extends StatelessWidget {
@@ -451,26 +450,29 @@ class _SupportSearchField extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => TextField(
-    controller: controller,
-    enabled: enabled,
-    readOnly: readOnly,
-    onTap: onTap,
-    style: const TextStyle(color: TradeXColors.primaryText),
-    decoration: InputDecoration(
-      hintText: hint,
-      prefixIcon: const Padding(
-        padding: EdgeInsets.all(14),
-        child: SupportSvgIcon('search.svg', size: 22),
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return TextField(
+      controller: controller,
+      enabled: enabled,
+      readOnly: readOnly,
+      onTap: onTap,
+      style: TextStyle(color: palette.primaryText),
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: const Padding(
+          padding: EdgeInsets.all(14),
+          child: SupportSvgIcon('search.svg', size: 22),
+        ),
+        filled: true,
+        fillColor: palette.surfaceMuted,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: palette.border),
+        ),
       ),
-      filled: true,
-      fillColor: TradeXColors.surfaceRaised,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: TradeXColors.borderStrong),
-      ),
-    ),
-  );
+    );
+  }
 }
 
 class _SupportTextField extends StatelessWidget {
@@ -489,44 +491,25 @@ class _SupportTextField extends StatelessWidget {
   final int maxLines;
 
   @override
-  Widget build(BuildContext context) => TextField(
-    controller: controller,
-    maxLength: maxLength,
-    minLines: minLines,
-    maxLines: maxLines,
-    style: const TextStyle(color: TradeXColors.primaryText),
-    decoration: InputDecoration(
-      hintText: hint,
-      filled: true,
-      fillColor: TradeXColors.surfaceRaised,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(color: TradeXColors.borderStrong),
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return TextField(
+      controller: controller,
+      maxLength: maxLength,
+      minLines: minLines,
+      maxLines: maxLines,
+      style: TextStyle(color: palette.primaryText),
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: palette.surfaceMuted,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: palette.border),
+        ),
       ),
-    ),
-  );
-}
-
-class _AttachmentAction extends StatelessWidget {
-  const _AttachmentAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-  final String icon;
-  final String label;
-  final VoidCallback? onTap;
-  @override
-  Widget build(BuildContext context) => OutlinedButton.icon(
-    onPressed: onTap,
-    style: OutlinedButton.styleFrom(
-      minimumSize: const Size.fromHeight(62),
-      side: const BorderSide(color: TradeXColors.borderStrong),
-      foregroundColor: TradeXColors.goldBright,
-    ),
-    icon: SupportSvgIcon(icon, size: 22),
-    label: Text(label),
-  );
+    );
+  }
 }
 
 class _SelectedAttachment extends StatelessWidget {
@@ -626,22 +609,20 @@ class _IconTile extends StatelessWidget {
   final String icon;
   final double size;
   @override
-  Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [
-          TradeXColors.goldDeep.withValues(alpha: .36),
-          TradeXColors.surfaceRaised,
-        ],
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: palette.goldSoft,
+        borderRadius: BorderRadius.circular(size * .28),
+        border: Border.all(color: palette.gold.withValues(alpha: .28)),
       ),
-      borderRadius: BorderRadius.circular(size * .28),
-      border: Border.all(color: TradeXColors.gold.withValues(alpha: .35)),
-    ),
-    child: SupportSvgIcon(icon, size: size * .46),
-  );
+      child: SupportSvgIcon(icon, size: size * .46),
+    );
+  }
 }
 
 class SupportSvgIcon extends StatelessWidget {
@@ -706,63 +687,6 @@ class _SectionHeading extends StatelessWidget {
   );
 }
 
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.label);
-  final String label;
-  @override
-  Widget build(BuildContext context) => Text(
-    label,
-    style: const TextStyle(
-      color: TradeXColors.primaryText,
-      fontSize: 15,
-      fontWeight: FontWeight.w800,
-    ),
-  );
-}
-
-class _StepIndicator extends StatelessWidget {
-  const _StepIndicator();
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      for (var index = 1; index <= 3; index++) ...[
-        Container(
-          width: 38,
-          height: 38,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: index == 1
-                ? TradeXColors.goldBright
-                : TradeXColors.surfaceRaised,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: index == 1
-                  ? TradeXColors.goldBright
-                  : TradeXColors.borderStrong,
-            ),
-          ),
-          child: Text(
-            '$index',
-            style: TextStyle(
-              color: index == 1 ? Colors.black : TradeXColors.secondaryText,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-        if (index < 3)
-          Expanded(
-            child: Container(
-              height: 2,
-              color: index == 1
-                  ? TradeXColors.goldBright
-                  : TradeXColors.borderStrong,
-            ),
-          ),
-      ],
-    ],
-  );
-}
-
 class _FilterChip extends StatelessWidget {
   const _FilterChip({
     required this.label,
@@ -787,17 +711,6 @@ class _FilterChip extends StatelessWidget {
       color: selected ? Colors.black : TradeXColors.primaryText,
       fontWeight: FontWeight.w700,
     ),
-  );
-}
-
-class _StaticChip extends StatelessWidget {
-  const _StaticChip(this.label);
-  final String label;
-  @override
-  Widget build(BuildContext context) => Chip(
-    label: Text(label),
-    backgroundColor: TradeXColors.surfaceRaised,
-    side: const BorderSide(color: TradeXColors.borderStrong),
   );
 }
 

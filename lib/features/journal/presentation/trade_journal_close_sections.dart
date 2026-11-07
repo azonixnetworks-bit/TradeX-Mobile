@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/entities/trade_journal_entities.dart';
 import 'trade_journal_risk_psychology_sections.dart';
 import 'trade_journal_ui.dart';

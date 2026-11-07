@@ -46,7 +46,15 @@ class _CopyTradingBotActivationScreenState
       final ready = activation.copyTradeReady;
       return CopyTradingScrollPage(
         children: [
-          CopyHeroCard(
+          const CopyPageHeading(
+            title: 'Copy Bot',
+            goldTitle: 'Activation',
+            subtitle: 'Review your verified account and activation readiness securely.',
+            icon: Icons.smart_toy_outlined,
+          ),
+          const SizedBox(height: 18),
+          CopySectionCard(
+            highlight: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -77,9 +85,8 @@ class _CopyTradingBotActivationScreenState
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           CopySectionCard(
-            highlight: true,
             child: Column(
               children: [
                 const Row(
@@ -91,7 +98,7 @@ class _CopyTradingBotActivationScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'TradeX cTrader Copy Bot',
+                            'cTrader Copy Bot',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w900,
@@ -115,8 +122,11 @@ class _CopyTradingBotActivationScreenState
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          const CopySectionHeading(title: 'Setup Steps'),
+          const SizedBox(height: 18),
+          const CopySectionHeading(
+            title: 'Activation Checklist',
+            subtitle: 'Only verified backend capabilities are shown.',
+          ),
           const SizedBox(height: 9),
           const CopySectionCard(
             child: Column(

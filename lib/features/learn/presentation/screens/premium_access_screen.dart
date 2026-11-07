@@ -10,6 +10,7 @@ class PremiumAccessScreen extends StatefulWidget {
 
 class _PremiumAccessScreenState extends State<PremiumAccessScreen> {
   late Future<JsonMap> future = widget.repository.premiumAccess();
+  String? selectedProductUuid;
 
   @override
   Widget build(BuildContext context) => _LearnScaffold(
@@ -18,45 +19,131 @@ class _PremiumAccessScreenState extends State<PremiumAccessScreen> {
       future: future,
       onRetry: _reload,
       builder: (data) {
-        final products = LearnRepository.map(data['products']);
+        final productsData = LearnRepository.map(data['products']);
         final activation = LearnRepository.map(data['activation']);
-        final items = LearnRepository.list(products['items']).isNotEmpty
-            ? LearnRepository.list(products['items'])
-            : LearnRepository.list(products['products']);
-        final product = _educationPremiumProduct(items);
+        final rawProducts =
+            LearnRepository.list(productsData['items']).isNotEmpty
+            ? LearnRepository.list(productsData['items'])
+            : LearnRepository.list(productsData['products']);
+        final products = _educationPremiumProducts(rawProducts);
+        final selected = _selectedProduct(products);
+        final active =
+            LearnRepository.flag(activation['premium_active']) ||
+            LearnRepository.flag(activation['is_active']);
         return ListView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.only(bottom: 44),
           children: [
-            const Icon(Icons.workspace_premium_rounded, color: _gold, size: 72),
-            const SizedBox(height: 12),
-            _InfoCard(
-              title: 'Membership status',
-              body: LearnRepository.text(
-                activation['status'],
-                LearnRepository.flag(activation['premium_active']) ||
-                        LearnRepository.flag(activation['is_active'])
-                    ? 'Active'
-                    : 'No active entitlement',
+            LayoutBuilder(
+              builder: (context, constraints) => Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Image.asset(
+                      'assets/progress_ai_premium_ui/illustrations/premium_faceted_gold_bull_on_rock.png',
+                      height: constraints.maxWidth < 340 ? 120 : 145,
+                      width: constraints.maxWidth * .58,
+                      fit: BoxFit.contain,
+                      semanticLabel: 'Premium gold bull',
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(
+                      right: constraints.maxWidth * .36,
+                      bottom: 12,
+                    ),
+                    child: const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(text: 'Upgrade to\nTradeX '),
+                            TextSpan(
+                              text: 'Premium',
+                              style: TextStyle(color: _gold),
+                            ),
+                          ],
+                        ),
+                        style: TextStyle(
+                          fontSize: 25,
+                          height: 1.05,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            if (product.isEmpty)
+            Text(
+              active ? 'Your verified premium learning entitlement is active.' : 'Unlock the complete TradeX education experience with a verified premium entitlement.',
+              style: TextStyle(
+                color: context.palette.secondaryText,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 14),
+            if (products.isEmpty)
               const _InfoCard(
                 title: 'No offer available',
-                body: 'TradeX has not published a purchasable product for this account.',
+                body: 'TradeX has not published a purchasable education product for this account.',
               )
             else ...[
-              _ProductOfferCard(product: product, onPurchase: _openCheckout),
-              const SizedBox(height: 12),
+              if (products.length > 1)
+                _ProductPlanSelector(
+                  products: products,
+                  selectedUuid: LearnRepository.text(selected['uuid']),
+                  onSelected: (uuid) =>
+                      setState(() => selectedProductUuid = uuid),
+                ),
+              if (products.length > 1) const SizedBox(height: 14),
+              _PremiumPriceBlock(product: selected),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                key: const ValueKey('education-premium-product-card'),
+                onPressed: LearnRepository.text(selected['uuid']).isEmpty
+                    ? null
+                    : () =>
+                          _openCheckout(LearnRepository.text(selected['uuid'])),
+                iconAlignment: IconAlignment.end,
+                icon: const Icon(Icons.arrow_forward_rounded),
+                label: Text(
+                  active ? 'Manage Premium Access' : 'Subscribe securely',
+                ),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(54),
+                  backgroundColor: context.palette.gold,
+                  foregroundColor: context.palette.primaryButtonText,
+                  textStyle: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
             ],
-            const _InfoCard(
-              title: 'Verified access only',
-              body: 'Premium lessons unlock only after TradeX confirms payment and the education API returns an active entitlement.',
+            const SizedBox(height: 14),
+            _PremiumBenefitsCard(
+              description: LearnRepository.text(selected['description']),
             ),
+            const SizedBox(height: 14),
+            _PremiumVerificationStatus(activation: activation, active: active),
           ],
         );
       },
     ),
   );
+
+  JsonMap _selectedProduct(List<JsonMap> products) {
+    if (products.isEmpty) return <String, dynamic>{};
+    final selected = selectedProductUuid;
+    if (selected != null) {
+      for (final product in products) {
+        if (LearnRepository.text(product['uuid']) == selected) return product;
+      }
+    }
+    return products.first;
+  }
 
   void _reload() {
     setState(() {
@@ -77,161 +164,247 @@ class _PremiumAccessScreenState extends State<PremiumAccessScreen> {
   }
 }
 
-class _ProductOfferCard extends StatelessWidget {
-  const _ProductOfferCard({required this.product, required this.onPurchase});
-  final JsonMap product;
-  final ValueChanged<String> onPurchase;
+class _PremiumBenefitsCard extends StatelessWidget {
+  const _PremiumBenefitsCard({required this.description});
+
+  final String description;
 
   @override
-  Widget build(BuildContext context) {
-    final uuid = LearnRepository.text(product['uuid']);
-    final price = LearnRepository.map(product['price']);
-    final amount = LearnRepository.text(
-      product['formatted_price'],
-      LearnRepository.text(price['amount']),
-    );
-    final currency = LearnRepository.text(
-      product['currency'],
-      LearnRepository.text(price['currency']),
-    );
-    final subscribe = uuid.isEmpty ? null : () => onPurchase(uuid);
-    return Semantics(
-      button: subscribe != null,
-      label: 'Subscribe to TradeX Education Premium',
-      child: InkWell(
-        key: const ValueKey('education-premium-product-card'),
-        borderRadius: BorderRadius.circular(17),
-        onTap: subscribe,
-        child: _PremiumCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: TradeXColors.goldSoft,
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: const Icon(Icons.school_rounded, color: _gold),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'TradeX Education Premium',
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (amount.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    '$currency $amount'.trim(),
-                    style: const TextStyle(
-                      color: _gold,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 8),
-              Text(
-                LearnRepository.text(
-                  product['description'],
-                  'Unlock the complete TradeX learning experience with verified premium access.',
-                ),
-                style: const TextStyle(color: TradeXColors.secondaryText),
-              ),
-              const SizedBox(height: 12),
-              const Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _PremiumBenefitChip(
-                    icon: Icons.play_circle_outline_rounded,
-                    label: 'Premium lessons',
-                  ),
-                  _PremiumBenefitChip(
-                    icon: Icons.verified_user_outlined,
-                    label: 'Secure checkout',
-                  ),
-                  _PremiumBenefitChip(
-                    icon: Icons.all_inclusive_rounded,
-                    label: 'Full course access',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: subscribe,
-                icon: const Icon(Icons.lock_outline_rounded),
-                label: const Text('Subscribe securely'),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Choose an available payment method on the next secure screen.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: TradeXColors.tertiaryText,
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PremiumBenefitChip extends StatelessWidget {
-  const _PremiumBenefitChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-    decoration: BoxDecoration(
-      color: TradeXColors.goldSoft,
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: TradeXColors.gold.withValues(alpha: .35)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
+  Widget build(BuildContext context) => _PremiumCard(
+    child: Column(
       children: [
-        Icon(icon, size: 15, color: _gold),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        if (description.isNotEmpty) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              description,
+              style: TextStyle(
+                color: context.palette.secondaryText,
+                height: 1.4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Divider(color: context.palette.border),
+        ],
+        const _PremiumBenefitRow(
+          icon: Icons.school_outlined,
+          title: 'Premium lessons',
+          subtitle: 'Access is controlled by your verified entitlement.',
+        ),
+        Divider(color: context.palette.border),
+        const _PremiumBenefitRow(
+          icon: Icons.lock_outline_rounded,
+          title: 'Secure checkout',
+          subtitle: 'Continue through the existing TradeX payment flow.',
+        ),
+        Divider(color: context.palette.border),
+        const _PremiumBenefitRow(
+          icon: Icons.verified_user_outlined,
+          title: 'Verified activation',
+          subtitle: 'Lessons unlock only after payment confirmation.',
         ),
       ],
     ),
   );
 }
 
-JsonMap _educationPremiumProduct(List<dynamic> products) {
-  for (final raw in products) {
-    final product = LearnRepository.map(raw);
-    final identity = [
-      product['code'],
-      product['name'],
-      product['slug'],
-    ].map((value) => value?.toString().toLowerCase() ?? '').join(' ');
-    if (identity.contains('education') && identity.contains('premium')) {
-      return product;
-    }
+class _PremiumBenefitRow extends StatelessWidget {
+  const _PremiumBenefitRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 42,
+          child: Icon(icon, color: context.palette.gold, size: 27),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: context.palette.secondaryText,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ProductPlanSelector extends StatelessWidget {
+  const _ProductPlanSelector({
+    required this.products,
+    required this.selectedUuid,
+    required this.onSelected,
+  });
+
+  final List<JsonMap> products;
+  final String selectedUuid;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: SegmentedButton<String>(
+      showSelectedIcon: false,
+      segments: [
+        for (final product in products)
+          ButtonSegment<String>(
+            value: LearnRepository.text(product['uuid']),
+            label: Text(_productPeriodLabel(product)),
+          ),
+      ],
+      selected: {selectedUuid},
+      onSelectionChanged: (selection) => onSelected(selection.first),
+    ),
+  );
+}
+
+class _PremiumPriceBlock extends StatelessWidget {
+  const _PremiumPriceBlock({required this.product});
+
+  final JsonMap product;
+
+  @override
+  Widget build(BuildContext context) {
+    final price = LearnRepository.map(product['price']);
+    final formatted = LearnRepository.text(product['formatted_price']);
+    final amount = LearnRepository.text(price['amount']);
+    final currency = LearnRepository.text(
+      product['currency'],
+      LearnRepository.text(price['currency']),
+    );
+    final displayPrice = formatted.isNotEmpty
+        ? formatted
+        : [currency, amount].where((value) => value.isNotEmpty).join(' ');
+    final period = LearnRepository.text(
+      product['billing_period'],
+      LearnRepository.text(product['period']),
+    );
+    return Semantics(
+      label: 'Premium price $displayPrice',
+      child: Column(
+        children: [
+          Text(
+            LearnRepository.text(product['name'], 'TradeX Education Premium'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 5),
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: displayPrice.isEmpty
+                      ? 'Price unavailable'
+                      : displayPrice,
+                ),
+                if (period.isNotEmpty)
+                  TextSpan(
+                    text: ' / ${period.toLowerCase()}',
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+              ],
+            ),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+          ),
+        ],
+      ),
+    );
   }
-  return products.isEmpty
-      ? <String, dynamic>{}
-      : LearnRepository.map(products.first);
+}
+
+class _PremiumVerificationStatus extends StatelessWidget {
+  const _PremiumVerificationStatus({
+    required this.activation,
+    required this.active,
+  });
+
+  final JsonMap activation;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) => _PremiumCard(
+    child: Row(
+      children: [
+        Icon(
+          active ? Icons.verified_rounded : Icons.shield_outlined,
+          color: context.palette.gold,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Membership status',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                LearnRepository.text(
+                  activation['status'],
+                  active ? 'Active' : 'No active entitlement',
+                ),
+                style: TextStyle(
+                  color: context.palette.secondaryText,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+List<JsonMap> _educationPremiumProducts(List<dynamic> products) {
+  final mapped = products
+      .map(LearnRepository.map)
+      .where((product) {
+        final identity = [
+          product['code'],
+          product['name'],
+          product['slug'],
+        ].map((value) => value?.toString().toLowerCase() ?? '').join(' ');
+        return identity.contains('education') && identity.contains('premium');
+      })
+      .toList(growable: false);
+  if (mapped.isNotEmpty) return mapped;
+  return products.map(LearnRepository.map).toList(growable: false);
+}
+
+String _productPeriodLabel(JsonMap product) {
+  final period = LearnRepository.text(
+    product['billing_period'],
+    LearnRepository.text(product['period']),
+  );
+  if (period.isNotEmpty) return period;
+  return LearnRepository.text(product['name'], 'Premium');
 }

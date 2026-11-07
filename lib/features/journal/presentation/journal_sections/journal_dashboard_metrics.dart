@@ -15,7 +15,7 @@ class JournalPeriodSelector extends StatelessWidget {
     height: 34,
     padding: const EdgeInsets.only(left: 10, right: 4),
     decoration: BoxDecoration(
-      color: _dashboardBackground.withValues(alpha: .62),
+      color: context.palette.surfaceMuted,
       borderRadius: BorderRadius.circular(10),
       border: Border.all(color: _dashboardBorder.withValues(alpha: .85)),
     ),
@@ -23,14 +23,14 @@ class JournalPeriodSelector extends StatelessWidget {
       child: DropdownButton<String>(
         value: value,
         borderRadius: BorderRadius.circular(12),
-        dropdownColor: _dashboardSurfaceRaised,
-        icon: const Icon(
+        dropdownColor: context.palette.surfaceRaised,
+        icon: Icon(
           Icons.keyboard_arrow_down_rounded,
-          color: _dashboardMuted,
+          color: context.palette.secondaryText,
           size: 18,
         ),
-        style: const TextStyle(
-          color: _dashboardText,
+        style: TextStyle(
+          color: context.palette.primaryText,
           fontSize: 10.5,
           fontWeight: FontWeight.w700,
         ),
@@ -234,8 +234,8 @@ class WinRateCard extends StatelessWidget {
                     Text(
                       formatPercent(rate),
                       key: const ValueKey('journal-win-rate'),
-                      style: const TextStyle(
-                        color: _dashboardText,
+                      style: TextStyle(
+                        color: context.palette.primaryText,
                         fontSize: 27,
                         height: 1,
                         fontWeight: FontWeight.w900,
@@ -289,11 +289,14 @@ class OpenTradesCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _MetricHeader(
+          _MetricHeader(
             icon: Icons.description_outlined,
             title: 'Open Trades',
             accent: _dashboardBlue,
-            trailing: Icon(Icons.chevron_right_rounded, color: _dashboardText),
+            trailing: Icon(
+              Icons.chevron_right_rounded,
+              color: context.palette.primaryText,
+            ),
           ),
           const SizedBox(height: 14),
           Row(
@@ -306,17 +309,20 @@ class OpenTradesCard extends StatelessWidget {
                     Text(
                       '$open',
                       key: const ValueKey('journal-open-trades'),
-                      style: const TextStyle(
-                        color: _dashboardText,
+                      style: TextStyle(
+                        color: context.palette.primaryText,
                         fontSize: 28,
                         height: 1,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Total Open',
-                      style: TextStyle(color: _dashboardMuted, fontSize: 11),
+                      style: TextStyle(
+                        color: context.palette.secondaryText,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -352,11 +358,14 @@ class PlanFollowedCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _MetricHeader(
+        _MetricHeader(
           icon: Icons.verified_user_outlined,
           title: 'Plan Followed',
           accent: _dashboardGold,
-          trailing: Icon(Icons.chevron_right_rounded, color: _dashboardText),
+          trailing: Icon(
+            Icons.chevron_right_rounded,
+            color: context.palette.primaryText,
+          ),
         ),
         const SizedBox(height: 12),
         Row(
@@ -382,8 +391,8 @@ class PlanFollowedCard extends StatelessWidget {
                         : '$followedCount / $reviewedCount recent reviews',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: _dashboardMuted,
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
                       fontSize: 10.5,
                     ),
                   ),
@@ -426,11 +435,11 @@ class EquityCurveCard extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
                 'Recent Equity Curve',
                 style: TextStyle(
-                  color: _dashboardText,
+                  color: context.palette.primaryText,
                   fontSize: 17,
                   fontWeight: FontWeight.w900,
                 ),
@@ -442,16 +451,19 @@ class EquityCurveCard extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           currency == null ? 'Realized P&L' : 'Realized P&L · $currency',
-          style: const TextStyle(color: _dashboardMuted, fontSize: 10),
+          style: TextStyle(color: context.palette.secondaryText, fontSize: 10),
         ),
         const SizedBox(height: 14),
         if (values.isEmpty)
-          const Expanded(
+          Expanded(
             child: Center(
               child: Text(
                 'Close trades with P&L to build your equity curve.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: _dashboardMuted, fontSize: 12),
+                style: TextStyle(
+                  color: context.palette.secondaryText,
+                  fontSize: 12,
+                ),
               ),
             ),
           )

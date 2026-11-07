@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/repositories/auth_repositories.dart';
 import '../domain/services/quick_unlock_service.dart';
 
@@ -367,7 +368,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: TradeXColors.background,
+      backgroundColor: context.palette.background,
       body: Stack(
         fit: StackFit.expand,
         children: [

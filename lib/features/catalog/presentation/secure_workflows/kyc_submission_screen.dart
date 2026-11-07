@@ -40,6 +40,17 @@ class _KycSubmissionScreenState extends State<KycSubmissionScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Text(
+            'KYC Verification',
+            style: Theme.of(context).textTheme.headlineMedium
+                ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -.6),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            'Verify your identity using the document requirements assigned to your account.',
+            style: TextStyle(color: context.palette.secondaryText),
+          ),
+          const SizedBox(height: 16),
           const _SecurityNotice(
             'Your country and document requirements are validated by TradeX. Images are uploaded only when you submit.',
           ),

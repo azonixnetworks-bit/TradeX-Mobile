@@ -114,16 +114,13 @@ class _InstrumentSearchFieldState extends State<_InstrumentSearchField> {
                   margin: const EdgeInsets.only(top: 8),
                   constraints: const BoxConstraints(maxHeight: 288),
                   decoration: BoxDecoration(
-                    color: TradeXColors.surfaceRaised,
+                    color: context.palette.surfaceRaised,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: TradeXColors.borderStrong),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x55000000),
-                        blurRadius: 14,
-                        offset: Offset(0, 6),
-                      ),
-                    ],
+                    border: Border.all(color: context.palette.border),
+                    boxShadow: TradeXElevation.floating(
+                      brightness: Theme.of(context).brightness,
+                      palette: context.palette,
+                    ),
                   ),
                   child: ListView.separated(
                     padding: const EdgeInsets.symmetric(vertical: 6),

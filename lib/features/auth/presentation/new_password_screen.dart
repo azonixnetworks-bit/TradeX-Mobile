@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/tradex_design_system.dart';
 import 'widgets/auth_form_components.dart';
 
 class NewPasswordScreen extends StatefulWidget {
@@ -39,6 +40,19 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
   bool _resending = false;
   String? _errorMessage;
   String? _successMessage;
+
+  bool get _hasLength => _passwordController.text.length >= 8;
+  bool get _hasUppercase => RegExp(r'[A-Z]').hasMatch(_passwordController.text);
+  bool get _hasNumber => RegExp(r'[0-9]').hasMatch(_passwordController.text);
+  bool get _hasSymbol =>
+      RegExp(r'[^A-Za-z0-9]').hasMatch(_passwordController.text);
+
+  int get _strength => [
+    _hasLength,
+    _hasUppercase,
+    _hasNumber,
+    _hasSymbol,
+  ].where((value) => value).length;
 
   @override
   void dispose() {
@@ -199,9 +213,10 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return TradeXAuthPage(
-      title: 'Create New Password',
+      title: 'New Password',
       subtitle: 'Open the TradeX reset email and paste the reset link or token below.',
       onBack: widget.onBack,
+      securityDecor: true,
       child: Form(
         key: _formKey,
         child: Column(
@@ -226,6 +241,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
               obscureText: _obscurePassword,
               textInputAction: TextInputAction.next,
               validator: _validatePassword,
+              onChanged: (_) => setState(() {}),
               suffixIcon: IconButton(
                 onPressed: () {
                   setState(() {
@@ -266,9 +282,15 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
               },
             ),
             const SizedBox(height: 14),
-            const TradeXInfoBanner(
-              message: 'Use at least 8 characters with uppercase, lowercase, number, and symbol. Your current password cannot be reused.',
-              icon: Icons.password_rounded,
+            _PasswordStrength(value: _strength),
+            const SizedBox(height: 12),
+            _PasswordRequirements(
+              requirements: [
+                ('At least 8 characters', _hasLength),
+                ('One uppercase letter', _hasUppercase),
+                ('One number', _hasNumber),
+                ('One special character', _hasSymbol),
+              ],
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 14),
@@ -301,6 +323,116 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PasswordStrength extends StatelessWidget {
+  const _PasswordStrength({required this.value});
+
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final label = value <= 1
+        ? 'Weak'
+        : value <= 3
+        ? 'Good'
+        : 'Strong';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Password Strength',
+                style: TextStyle(
+                  color: palette.primaryText,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                color: palette.goldText,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 9),
+        Row(
+          children: List.generate(
+            4,
+            (index) => Expanded(
+              child: Container(
+                height: 5,
+                margin: EdgeInsets.only(right: index == 3 ? 0 : 6),
+                decoration: BoxDecoration(
+                  color: index < value ? palette.gold : palette.border,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PasswordRequirements extends StatelessWidget {
+  const _PasswordRequirements({required this.requirements});
+
+  final List<(String, bool)> requirements;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.surfaceMuted,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        children: requirements
+            .map(
+              (requirement) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    requirement.$2
+                        ? Image.asset(
+                            'assets/security_ui/glossy_gold_checkmark_badge.png',
+                            width: 22,
+                            height: 22,
+                          )
+                        : Icon(
+                            Icons.radio_button_unchecked_rounded,
+                            size: 20,
+                            color: palette.borderStrong,
+                          ),
+                    const SizedBox(width: 10),
+                    Text(
+                      requirement.$1,
+                      style: TextStyle(
+                        color: palette.secondaryText,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
       ),
     );
   }
