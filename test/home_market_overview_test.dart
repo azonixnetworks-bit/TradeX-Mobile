@@ -119,6 +119,34 @@ void main() {
     expect(find.text('Actual'), findsWidgets);
     expect(find.text('5.25%'), findsWidgets);
     expect(find.text('5.50%'), findsWidgets);
+
+    // Market Categories retain the existing horizontal scroller and actions;
+    // only the card visuals and compact viewport height have changed.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('home-market-categories-scroll')),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSize(
+        find.byKey(const ValueKey('home-market-categories-scroll')),
+      ).height,
+      132,
+    );
+    expect(
+      find.byKey(const ValueKey('home-market-category-forex')),
+      findsOneWidget,
+    );
+    await tester.drag(
+      find.byKey(const ValueKey('home-market-categories-scroll')),
+      const Offset(-420, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('home-market-category-crypto')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 
