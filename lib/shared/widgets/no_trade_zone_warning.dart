@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../core/theme/tradex_colors.dart';
 import '../../core/theme/tradex_palette.dart';
 import '../../features/home/domain/no_trade_zone_warning.dart';
 
