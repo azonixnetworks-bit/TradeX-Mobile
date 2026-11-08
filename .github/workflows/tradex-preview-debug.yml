@@ -1,0 +1,74 @@
+name: Trade X Preview Universal Debug APK
+
+on:
+  push:
+    branches: [build/side-by-side-debug-preview-20261108]
+    paths:
+      - '.github/workflows/tradex-preview-debug.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout latest TradeX code
+        uses: actions/checkout@v4
+      - name: Setup Java for Android
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Verify existing Home UI
+        run: |
+          flutter analyze --no-pub lib/features/home/presentation/home_dashboard/latest_content_section.dart lib/features/home/presentation/home_dashboard/market_clock_section.dart test/home_market_overview_test.dart
+          flutter test --no-pub test/home_market_overview_test.dart
+      - name: Configure side-by-side Android preview identity (runner only)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          gradle = Path("android/app/build.gradle.kts")
+          old = gradle.read_text()
+          anchor = "    buildTypes {\n"
+          assert old.count(anchor) == 1, "Expected a single Android buildTypes block"
+          preview = '    buildTypes {\n        getByName("debug") {\n            applicationIdSuffix = ".preview"\n        }\n'
+          gradle.write_text(old.replace(anchor, preview, 1))
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          xml = manifest.read_text()
+          assert xml.count('android:label="Trade X"') == 1
+          manifest.write_text(xml.replace('android:label="Trade X"', 'android:label="Trade X Preview"', 1))
+          print("Preview package: com.azonixnetworks.tradex_mobile.preview")
+          PY
+      - name: Build universal debug APK
+        run: flutter build apk --debug --no-pub
+      - name: Verify APK and preview package ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=build/app/outputs/flutter-apk/app-debug.apk
+          test -s "$APK"
+          AAPT=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name aapt | sort -V | tail -1)
+          test -n "$AAPT"
+          "$AAPT" dump badging "$APK" | grep '^package:'
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.azonixnetworks.tradex_mobile.preview'"
+          sha256sum "$APK"
+          ls -lh "$APK"
+      - name: Upload side-by-side preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TradeX-Preview-universal-debug-${{ github.sha }}
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
