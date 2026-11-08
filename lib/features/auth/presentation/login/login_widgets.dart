@@ -21,8 +21,8 @@ class _LoginHeader extends StatelessWidget {
         ),
 
         SizedBox(
-          width: 180,
-          height: 82,
+          width: 220,
+          height: 136,
           child: Image.asset(
             'assets/branding/trade_x_final_logo.png',
             fit: BoxFit.contain,
@@ -39,7 +39,7 @@ class _LoginHeader extends StatelessWidget {
             color: context.palette.secondaryText,
             fontSize: 9,
             fontWeight: FontWeight.w700,
-            letterSpacing: 1.35,
+            letterSpacing: 1.75,
           ),
         ),
       ],
@@ -111,73 +111,93 @@ class _LoginCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
+      padding: const EdgeInsets.fromLTRB(20, 21, 20, 23),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [context.palette.surface, context.palette.surfaceRaised],
-        ),
-        borderRadius: TradeXRadii.card,
-        border: Border.all(color: context.palette.border, width: 1),
-        boxShadow: TradeXElevation.surface(
-          brightness: Theme.of(context).brightness,
-          palette: context.palette,
-        ),
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(23),
+        border: Border.all(color: const Color(0xFFDEE2EA), width: 1.1),
+        boxShadow: const [
+          BoxShadow(color: Color(0x160E1B32), blurRadius: 28, offset: Offset(0, 14)),
+        ],
       ),
       child: Form(
         key: formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Welcome Back',
               style: TextStyle(
-                color: context.palette.primaryText,
-                fontSize: 25,
+                color: Color(0xFF101827),
+                fontSize: 29,
                 fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
+                letterSpacing: -0.7,
               ),
             ),
-
-            const SizedBox(height: 6),
-
-            Text(
+            const SizedBox(height: 8),
+            Container(
+              width: 60,
+              height: 3,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE9A400),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
               'Sign in securely to continue your trading journey.',
               style: TextStyle(
-                color: context.palette.secondaryText,
+                color: Color(0xFF5D6878),
                 fontSize: 13,
                 height: 1.4,
               ),
             ),
+            const SizedBox(height: 25),
 
-            const SizedBox(height: 22),
-
-            SwitchListTile.adaptive(
-              value: rememberDevice,
-              onChanged: submitting ? null : onRememberDeviceChanged,
-              contentPadding: EdgeInsets.zero,
-              activeThumbColor: TradeXColors.goldBright,
-              title: const Text(
-                'Remember this device',
-                style: TextStyle(
-                  color: TradeXColors.primaryText,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Remember this device',
+                        style: TextStyle(
+                          color: Color(0xFF111827),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        rememberDevice
+                            ? 'Use fingerprint or passcode for quick unlock.'
+                            : 'Stay signed in for faster and more secure access.',
+                        style: const TextStyle(
+                          color: Color(0xFF667085),
+                          fontSize: 11,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              subtitle: Text(
-                rememberDevice
-                    ? 'Use fingerprint or passcode for quick unlock.'
-                    : 'Use your email, password and authenticator code.',
-                style: const TextStyle(
-                  color: TradeXColors.secondaryText,
-                  fontSize: 11,
+                const SizedBox(width: 9),
+                Switch(
+                  value: rememberDevice,
+                  onChanged: submitting ? null : onRememberDeviceChanged,
+                  activeTrackColor: const Color(0xFFF6BD2C),
+                  activeThumbColor: Colors.white,
+                  inactiveTrackColor: const Color(0xFFE6EAF0),
+                  inactiveThumbColor: const Color(0xFF59687A),
+                  trackOutlineColor: WidgetStateProperty.all(
+                    const Color(0xFFC5CDD9),
+                  ),
                 ),
-              ),
+              ],
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 24),
 
             if (!rememberDevice) ...[
               _LoginField(
@@ -193,7 +213,7 @@ class _LoginCard extends StatelessWidget {
                 validator: validateEmail,
               ),
 
-              const SizedBox(height: 13),
+              const SizedBox(height: 12),
 
               _LoginField(
                 controller: passwordController,
@@ -209,12 +229,12 @@ class _LoginCard extends StatelessWidget {
                     obscurePassword
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
-                    color: TradeXColors.secondaryText,
+                    color: const Color(0xFF8B96A6),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 13),
+              const SizedBox(height: 12),
 
               _LoginField(
                 controller: securityCodeController,
@@ -261,7 +281,7 @@ class _LoginCard extends StatelessWidget {
                                 border: Border.all(
                                   color: useRecoveryCode
                                       ? TradeXColors.goldBright
-                                      : TradeXColors.borderStrong,
+                                      : const Color(0xFF596679),
                                 ),
                                 color: useRecoveryCode
                                     ? TradeXColors.goldBright
@@ -282,7 +302,7 @@ class _LoginCard extends StatelessWidget {
                               child: Text(
                                 'Use recovery code instead',
                                 style: TextStyle(
-                                  color: TradeXColors.secondaryText,
+                                  color: Color(0xFF647084),
                                   fontSize: 12,
                                 ),
                               ),
@@ -298,7 +318,7 @@ class _LoginCard extends StatelessWidget {
                   TextButton(
                     onPressed: onForgotPassword,
                     style: TextButton.styleFrom(
-                      foregroundColor: TradeXColors.goldBright,
+                      foregroundColor: const Color(0xFFB77D00),
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                     ),
                     child: const Text(
@@ -419,7 +439,7 @@ class _LoginCard extends StatelessWidget {
               ],
             ],
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
             _SignInButton(submitting: submitting, onPressed: onSubmit),
           ],
@@ -478,38 +498,39 @@ class _LoginField extends StatelessWidget {
       maxLength: maxLength,
       onFieldSubmitted: onFieldSubmitted,
       validator: validator,
-      style: TextStyle(color: context.palette.primaryText, fontSize: 14),
+      style: const TextStyle(color: Color(0xFF111827), fontSize: 14),
       cursorColor: context.palette.gold,
       decoration: InputDecoration(
         counterText: '',
         hintText: label,
-        hintStyle: TextStyle(color: context.palette.secondaryText),
-        prefixIcon: Icon(icon, color: context.palette.secondaryText, size: 21),
+        hintStyle: const TextStyle(color: Color(0xFF647084)),
+        prefixIcon: Icon(icon, color: const Color(0xFF596679), size: 22),
+        prefixIconConstraints: const BoxConstraints(minWidth: 52),
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: context.palette.surface,
+        fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 17,
+          vertical: 19,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
-          borderSide: BorderSide(color: context.palette.borderStrong),
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Color(0xFFCBD2DD)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
-          borderSide: BorderSide(color: context.palette.borderStrong),
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Color(0xFFCBD2DD), width: 1.1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
-          borderSide: BorderSide(color: context.palette.gold, width: 1.3),
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Color(0xFFD7A11C), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
+          borderRadius: BorderRadius.circular(15),
           borderSide: const BorderSide(color: TradeXColors.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(13),
+          borderRadius: BorderRadius.circular(15),
           borderSide: const BorderSide(color: TradeXColors.error, width: 1.3),
         ),
         errorStyle: const TextStyle(color: TradeXColors.error, fontSize: 11),
@@ -587,20 +608,20 @@ class _SignInButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 56,
+      height: 58,
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [
-              Color(0xFFFFD760),
-              TradeXColors.goldBright,
-              Color(0xFFF0A500),
+              Color(0xFFFFE26B),
+              Color(0xFFF7BE37),
+              Color(0xFFD79500),
             ],
           ),
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: TradeXColors.goldBright.withValues(alpha: 0.25),
+              color: const Color(0xFFDDA726).withValues(alpha: 0.19),
               blurRadius: 18,
               offset: const Offset(0, 6),
             ),
@@ -610,7 +631,7 @@ class _SignInButton extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: submitting ? null : onPressed,
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(16),
             child: Center(
               child: submitting
                   ? const SizedBox(
@@ -661,14 +682,14 @@ class _CreateAccountSection extends StatelessWidget {
       children: [
         const Text(
           'Don\'t have an account? ',
-          style: TextStyle(color: TradeXColors.secondaryText, fontSize: 14),
+          style: TextStyle(color: Color(0xFF647084), fontSize: 14),
         ),
         GestureDetector(
           onTap: onCreateAccount,
           child: const Text(
             'Create Account',
             style: TextStyle(
-              color: TradeXColors.goldBright,
+              color: Color(0xFFB77D00),
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -685,26 +706,26 @@ class _SecurityNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
       decoration: BoxDecoration(
-        color: TradeXColors.surface.withValues(alpha: 0.74),
+        color: const Color(0xFF303846),
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: TradeXColors.border),
+        border: Border.all(color: const Color(0xFF18202C)),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             Icons.verified_user_outlined,
-            color: TradeXColors.goldBright,
-            size: 18,
+            color: Color(0xFFFFC84C),
+            size: 20,
           ),
           SizedBox(width: 9),
           Flexible(
             child: Text(
               'Your account is protected with TradeX security.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: TradeXColors.secondaryText, fontSize: 11),
+              style: TextStyle(color: Color(0xFFF4F5F7), fontSize: 11),
             ),
           ),
         ],
@@ -762,19 +783,19 @@ class _LoginBackground extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                context.palette.surface,
-                context.palette.background,
-                context.palette.background,
+                Color(0xFFFFFFFF),
+                Color(0xFFF9FAFD),
+                Color(0xFFF9FAFD),
               ],
             ),
           ),
         ),
         Positioned(
-          top: 42,
-          right: -44,
-          width: 230,
+          top: 56,
+          right: -32,
+          width: 188,
           child: Opacity(
-            opacity: .13,
+            opacity: .18,
             child: Image.asset(
               'assets/auth_ui/shared/minimalist_ascending_candlestick_overlay.png',
             ),
@@ -784,9 +805,9 @@ class _LoginBackground extends StatelessWidget {
           left: 0,
           right: 0,
           bottom: 0,
-          height: 175,
+          height: 140,
           child: Opacity(
-            opacity: .75,
+            opacity: .82,
             child: Image.asset(
               'assets/auth_ui/shared/soft_cream_layered_wave_background.png',
               fit: BoxFit.cover,

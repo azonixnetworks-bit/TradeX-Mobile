@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../app/connectivity_observer.dart';
 import '../../../core/domain/user_facing_exception.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../../../core/theme/tradex_design_system.dart';
@@ -64,6 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _biometricConfirmed = false;
   bool _submitting = false;
   bool _automaticBiometricPromptAttempted = false;
+  ValueNotifier<bool>? _loginBannerVisibility;
 
   String? _errorMessage;
   bool _deviceSlotOccupied = false;
@@ -73,6 +75,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    // The reference login design has no phone status/notification strip.
+    // Restore the normal system bars as soon as the login page closes.
+    unawaited(SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: const [SystemUiOverlay.bottom],
+    ));
     final config = widget.quickUnlockConfig;
     if (config != null) {
       _rememberDevice = true;
@@ -86,7 +94,29 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final visibility = ConnectivityBannerVisibility.maybeOf(context);
+    if (identical(visibility, _loginBannerVisibility)) return;
+    final previous = _loginBannerVisibility;
+    _loginBannerVisibility = visibility;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (previous != null && previous.hasListeners) previous.value = false;
+      if (mounted && visibility != null && visibility.hasListeners) {
+        visibility.value = true;
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    final visibility = _loginBannerVisibility;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (visibility != null && visibility.hasListeners) {
+        visibility.value = false;
+      }
+    });
+    unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
     _emailController.dispose();
     _passwordController.dispose();
     _securityCodeController.dispose();
@@ -368,28 +398,29 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.palette.background,
+      backgroundColor: const Color(0xFFF9FAFC),
       body: Stack(
         fit: StackFit.expand,
         children: [
           const _LoginBackground(),
 
           SafeArea(
+            top: false,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return SingleChildScrollView(
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 26),
+                  padding: const EdgeInsets.fromLTRB(12, 26, 12, 28),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight - 36,
+                      minHeight: constraints.maxHeight - 54,
                     ),
                     child: Column(
                       children: [
                         _LoginHeader(onBack: widget.onBack),
 
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 17),
 
                         _LoginCard(
                           formKey: _formKey,
@@ -433,16 +464,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const _SecurityNote(),
 
-                        const SizedBox(height: 26),
+                        const SizedBox(height: 20),
 
                         const Text(
                           'DISCIPLINE CREATES FREEDOM',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: TradeXColors.goldBright,
+                            color: Color(0xFFB87A05),
                             fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 3.1,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 3.8,
                           ),
                         ),
                       ],
