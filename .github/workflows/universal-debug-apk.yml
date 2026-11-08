@@ -1,0 +1,51 @@
+name: TradeX Universal Debug APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/universal-debug-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-universal-debug:
+    name: Build universal Android debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+      - name: Configure Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+      - name: Analyze changed dashboard code
+        run: flutter analyze --no-pub lib/features/home/presentation/home_dashboard/latest_content_section.dart lib/features/home/presentation/home_dashboard/market_clock_section.dart test/home_market_overview_test.dart
+      - name: Verify home dashboard tests
+        run: flutter test --no-pub test/home_market_overview_test.dart
+      - name: Build universal debug APK (no ABI splits)
+        run: flutter build apk --debug --no-pub
+      - name: Verify APK and calculate SHA256
+        run: |
+          test -s build/app/outputs/flutter-apk/app-debug.apk
+          ls -lh build/app/outputs/flutter-apk/app-debug.apk
+          sha256sum build/app/outputs/flutter-apk/app-debug.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TradeX-universal-debug-${{ github.sha }}
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
