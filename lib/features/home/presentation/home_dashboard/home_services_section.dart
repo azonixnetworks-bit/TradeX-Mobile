@@ -9,6 +9,7 @@ class _HomeContent extends StatelessWidget {
     required this.tradeIdeasRepository,
     required this.learningRepository,
     required this.marketNewsRepository,
+    required this.marketNewsWarningSource,
   });
 
   final ValueChanged<String> onActionTap;
@@ -17,6 +18,7 @@ class _HomeContent extends StatelessWidget {
   final DashboardTradeIdeasRepository tradeIdeasRepository;
   final DashboardLearningRepository learningRepository;
   final MarketNewsRepositoryContract marketNewsRepository;
+  final NoTradeWarningSource marketNewsWarningSource;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +68,13 @@ class _HomeContent extends StatelessWidget {
                 onAction: () => onActionTap('Economic News'),
               ),
               const SizedBox(height: 10),
+              // Use the existing 30-minute funded-account news caution rules.
+              // Warning-only: does not intercept or disable trade ideas.
+              NoTradeZoneWarningBanner(source: marketNewsWarningSource),
+              HomeHighImpactNewsPreview(
+                repository: marketNewsRepository,
+                onOpenAll: () => onActionTap('Economic News'),
+              ),
               _MarketNewsSection(
                 repository: marketNewsRepository,
                 onOpenAll: () => onActionTap('Economic News'),
