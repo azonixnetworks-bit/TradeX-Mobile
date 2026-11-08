@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/tradex_palette.dart';
+import '../../../../core/theme/tradex_palette.dart';
 import '../../domain/market_news_repository.dart';
 
 /// Presentation-only spotlight for an existing published HIGH-impact event.
