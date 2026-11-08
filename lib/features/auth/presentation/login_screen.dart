@@ -470,7 +470,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           'DISCIPLINE CREATES FREEDOM',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Color(0xFFB87A05),
+                            color: Color(0xFF3B4656),
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 3.8,
