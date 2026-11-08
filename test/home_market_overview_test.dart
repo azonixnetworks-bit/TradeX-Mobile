@@ -127,6 +127,9 @@ void main() {
       240,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('home-market-categories-scroll')),
+    );
     await tester.pumpAndSettle();
     expect(
       tester.getSize(
