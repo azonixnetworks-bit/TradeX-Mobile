@@ -36,7 +36,7 @@ class _LoginHeader extends StatelessWidget {
           'TRADING EDUCATION  •  TRADING SERVICES',
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: context.palette.secondaryText,
+            color: const Color(0xFF344054),
             fontSize: 9,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.75,
@@ -147,7 +147,7 @@ class _LoginCard extends StatelessWidget {
             const Text(
               'Sign in securely to continue your trading journey.',
               style: TextStyle(
-                color: Color(0xFF5D6878),
+                color: Color(0xFF344054),
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -174,7 +174,7 @@ class _LoginCard extends StatelessWidget {
                             ? 'Use fingerprint or passcode for quick unlock.'
                             : 'Stay signed in for faster and more secure access.',
                         style: const TextStyle(
-                          color: Color(0xFF667085),
+                          color: Color(0xFF344054),
                           fontSize: 11,
                           height: 1.3,
                         ),
@@ -302,7 +302,7 @@ class _LoginCard extends StatelessWidget {
                               child: Text(
                                 'Use recovery code instead',
                                 style: TextStyle(
-                                  color: Color(0xFF647084),
+                                  color: Color(0xFF344054),
                                   fontSize: 12,
                                 ),
                               ),
@@ -318,7 +318,7 @@ class _LoginCard extends StatelessWidget {
                   TextButton(
                     onPressed: onForgotPassword,
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFFB77D00),
+                      foregroundColor: const Color(0xFF805500),
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                     ),
                     child: const Text(
@@ -393,7 +393,7 @@ class _LoginCard extends StatelessWidget {
                         style: TextStyle(
                           color: biometricConfirmed
                               ? TradeXColors.success
-                              : TradeXColors.secondaryText,
+                              : const Color(0xFF344054),
                           fontSize: 11,
                           height: 1.35,
                         ),
@@ -406,7 +406,7 @@ class _LoginCard extends StatelessWidget {
               const Text(
                 'Your passcode and biometric data stay only on this device.',
                 style: TextStyle(
-                  color: TradeXColors.secondaryText,
+                  color: Color(0xFF344054),
                   fontSize: 10,
                 ),
               ),
@@ -415,7 +415,7 @@ class _LoginCard extends StatelessWidget {
                 const Text(
                   'Sign in normally, then set up fingerprint or passcode from Profile.',
                   style: TextStyle(
-                    color: TradeXColors.goldBright,
+                    color: Color(0xFF805500),
                     fontSize: 10,
                   ),
                 ),
@@ -503,8 +503,8 @@ class _LoginField extends StatelessWidget {
       decoration: InputDecoration(
         counterText: '',
         hintText: label,
-        hintStyle: const TextStyle(color: Color(0xFF647084)),
-        prefixIcon: Icon(icon, color: const Color(0xFF596679), size: 22),
+        hintStyle: const TextStyle(color: Color(0xFF344054)),
+        prefixIcon: Icon(icon, color: const Color(0xFF344054), size: 22),
         prefixIconConstraints: const BoxConstraints(minWidth: 52),
         suffixIcon: suffixIcon,
         filled: true,
@@ -561,10 +561,10 @@ class _QuickUnlockMethodButton extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 10),
         decoration: BoxDecoration(
-          color: selected ? context.palette.goldSoft : context.palette.surface,
+          color: selected ? const Color(0xFFF7EFD8) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? context.palette.gold : context.palette.border,
+            color: selected ? const Color(0xFFD7B24A) : const Color(0xFFD2D8E1),
           ),
         ),
         child: Row(
@@ -574,8 +574,8 @@ class _QuickUnlockMethodButton extends StatelessWidget {
               icon,
               size: 18,
               color: selected
-                  ? context.palette.goldText
-                  : context.palette.secondaryText,
+                  ? const Color(0xFF73500B)
+                  : const Color(0xFF344054),
             ),
             const SizedBox(width: 6),
             Flexible(
@@ -584,8 +584,8 @@ class _QuickUnlockMethodButton extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: selected
-                      ? context.palette.goldText
-                      : context.palette.primaryText,
+                      ? const Color(0xFF73500B)
+                      : const Color(0xFF111827),
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
@@ -682,14 +682,14 @@ class _CreateAccountSection extends StatelessWidget {
       children: [
         const Text(
           'Don\'t have an account? ',
-          style: TextStyle(color: Color(0xFF647084), fontSize: 14),
+          style: TextStyle(color: Color(0xFF344054), fontSize: 14),
         ),
         GestureDetector(
           onTap: onCreateAccount,
           child: const Text(
             'Create Account',
             style: TextStyle(
-              color: Color(0xFFB77D00),
+              color: Color(0xFF805500),
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -708,9 +708,9 @@ class _SecurityNote extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
       decoration: BoxDecoration(
-        color: const Color(0xFF303846),
+        color: Colors.black,
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: const Color(0xFF18202C)),
+        border: Border.all(color: Colors.black),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
@@ -725,7 +725,7 @@ class _SecurityNote extends StatelessWidget {
             child: Text(
               'Your account is protected with TradeX security.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0xFFF4F5F7), fontSize: 11),
+              style: TextStyle(color: Colors.white, fontSize: 11),
             ),
           ),
         ],
