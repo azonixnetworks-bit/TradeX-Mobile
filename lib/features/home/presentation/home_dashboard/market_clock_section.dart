@@ -305,6 +305,7 @@ class _WorldClockTile extends StatelessWidget {
     const radius = BorderRadius.all(Radius.circular(18));
 
     return Padding(
+      key: ValueKey('market-session-card-' + clock.label),
       padding: const EdgeInsets.fromLTRB(1, 2, 1, 8),
       child: DecoratedBox(
         decoration: BoxDecoration(
