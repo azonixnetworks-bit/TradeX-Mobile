@@ -1,0 +1,29 @@
+name: Temporary Light Market Clock CI
+
+on:
+  push:
+    branches:
+      - ui/light-market-clock-reference-20261108
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  market-clock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Analyze only updated UI sources and new theme test
+        run: flutter analyze --no-pub lib/features/home/presentation/home_dashboard_screen.dart test/home_market_clock_theme_test.dart
+      - name: Verify both light and dark painter switching
+        run: flutter test --no-pub test/home_market_clock_theme_test.dart
+      - name: Verify unchanged market/dashboard behavior
+        run: flutter test --no-pub test/home_market_overview_test.dart
