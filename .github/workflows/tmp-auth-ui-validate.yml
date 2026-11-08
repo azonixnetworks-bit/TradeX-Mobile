@@ -7,6 +7,7 @@ on:
       - '.github/workflows/tmp-auth-ui-validate.yml'
       - 'lib/features/auth/presentation/register_screen.dart'
       - 'lib/features/auth/presentation/widgets/auth_form_components.dart'
+      - 'test/register_wave_keyboard_test.dart'
   workflow_dispatch:
 
 permissions:
@@ -34,6 +35,6 @@ jobs:
       - name: Analyze auth UI
         run: flutter analyze --no-pub lib/features/auth/presentation/register_screen.dart lib/features/auth/presentation/widgets/auth_form_components.dart
       - name: Run authentication widget and model tests
-        run: flutter test --no-pub test/auth_recovery_ui_test.dart test/auth_models_test.dart test/widget_test.dart
+        run: flutter test --no-pub test/auth_recovery_ui_test.dart test/auth_models_test.dart test/widget_test.dart test/register_wave_keyboard_test.dart
       - name: Build Android debug APK
         run: flutter build apk --debug --no-pub
