@@ -77,6 +77,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     onBack: widget.onBack,
     securityDecor: true,
     centerContentVertically: true,
+    keepDecorationFixedOnKeyboard: true,
     highContrastText: true,
     footer: Wrap(
       alignment: WrapAlignment.center,
