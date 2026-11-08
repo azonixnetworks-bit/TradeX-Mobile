@@ -199,7 +199,7 @@ class _LightMarketClockDialPainter extends CustomPainter {
         );
 
         final marker = _polar(center, trackRadius, segment.endMinute % 1440);
-        final dotRadius = math.max(2, radius * .015);
+        final dotRadius = math.max(2.0, radius * .015);
         canvas.drawCircle(marker, dotRadius, Paint()..color = Colors.white);
         canvas.drawCircle(
           marker,
