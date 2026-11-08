@@ -252,33 +252,33 @@ class _WarningChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = TradeXPalette.of(context);
     return Container(
-    constraints: const BoxConstraints(maxWidth: 240),
-    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-    decoration: BoxDecoration(
-      color: palette.surfaceMuted,
-      borderRadius: BorderRadius.circular(99),
-      border: Border.all(color: palette.borderStrong),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: palette.goldText, size: 13),
-        const SizedBox(width: 5),
-        Flexible(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: palette.primaryText,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
+      constraints: const BoxConstraints(maxWidth: 240),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: palette.surfaceMuted,
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: palette.borderStrong),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: palette.goldText, size: 13),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: palette.primaryText,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
   }
 }
 
