@@ -17,8 +17,6 @@ class _LightMarketClockDialPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.shortestSide / 2;
-    final outer = radius * .94;
-
     // Reference light dial: navy outer hours, silver concentric face,
     // thin gold bezel. The background outside the circle stays transparent.
     _drawLightFace(canvas, center, radius);
