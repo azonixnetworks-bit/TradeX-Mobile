@@ -305,7 +305,7 @@ class _WorldClockTile extends StatelessWidget {
     const radius = BorderRadius.all(Radius.circular(18));
 
     return Padding(
-      key: ValueKey('market-session-card-' + clock.label),
+      key: ValueKey('market-session-card-${clock.label}'),
       padding: const EdgeInsets.fromLTRB(1, 2, 1, 8),
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -355,7 +355,7 @@ class _WorldClockTile extends StatelessWidget {
                 height: 34,
                 child: IgnorePointer(
                   child: Image.asset(
-                    key: ValueKey('market-session-art-' + clock.label),
+                    key: ValueKey('market-session-art-${clock.label}'),
                     _cityAsset(clock.label),
                     alignment: Alignment.bottomCenter,
                     fit: BoxFit.contain,
@@ -430,7 +430,7 @@ class _WorldClockTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      clock.hours + ' ' + clock.time.timeZoneName,
+                      '${clock.hours} ${clock.time.timeZoneName}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
