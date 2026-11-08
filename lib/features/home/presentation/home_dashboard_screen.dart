@@ -17,6 +17,8 @@ import '../../../core/domain/profile_photo_store.dart';
 import '../../../core/theme/tradex_colors.dart';
 import '../../../core/theme/tradex_design_system.dart';
 import '../../../core/theme/tradex_palette.dart';
+import '../../../shared/widgets/no_trade_zone_warning.dart';
+import 'widgets/home_high_impact_news_preview.dart';
 import '../domain/trade_ideas_repository.dart';
 import '../domain/learning_repository.dart';
 import '../domain/home_feature_dependencies.dart';
