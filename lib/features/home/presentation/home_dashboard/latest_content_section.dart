@@ -39,7 +39,8 @@ class _CategoryGrid extends StatelessWidget {
       ),
     ];
     return SizedBox(
-      height: 154,
+      key: const ValueKey('home-market-categories-scroll'),
+      height: 132,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -48,7 +49,8 @@ class _CategoryGrid extends StatelessWidget {
         itemBuilder: (context, index) {
           final category = categories[index];
           return SizedBox(
-            width: 264,
+            key: ValueKey('home-market-category-${category.label.toLowerCase()}'),
+            width: 184,
             child: _CategoryTile(
               label: category.label,
               ideas: category.ideas,
@@ -83,84 +85,173 @@ class _CategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Ink(
-        padding: const EdgeInsets.all(16),
+    // The category data and existing navigation callbacks are intentionally
+    // untouched. This styling matches the compact white/gold session cards.
+    const cornerRadius = BorderRadius.all(Radius.circular(18));
+    const gold = Color(0xFFD6A23A);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(1, 2, 1, 8),
+      child: DecoratedBox(
         decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage(imageAsset),
-            fit: BoxFit.cover,
-          ),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: accent.withValues(alpha: .78)),
+          borderRadius: cornerRadius,
           boxShadow: [
-            BoxShadow(color: accent.withValues(alpha: .18), blurRadius: 14),
+            BoxShadow(
+              color: const Color(0xFF87601B).withValues(alpha: .18),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: .045),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: 0,
-              right: 0,
-              child: SvgPicture.asset(
-                iconAsset,
-                width: 38,
-                height: 38,
-                colorFilter: ColorFilter.mode(accent, BlendMode.srcIn),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: cornerRadius,
+          clipBehavior: Clip.antiAlias,
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: cornerRadius,
+              border: Border.all(
+                color: const Color(0xFFDAAA45),
+                width: 1.1,
+              ),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFFFFFFF),
+                  Color(0xFFFFFEFB),
+                  Color(0xFFFBF6EE),
+                ],
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Spacer(),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: TradeXColors.primaryText,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                const Text(
-                  'Trade Ideas',
-                  style: TextStyle(
-                    color: TradeXColors.secondaryText,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+            child: InkWell(
+              onTap: onTap,
+              child: Stack(
+                children: [
+                  const Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomPaint(
+                        painter: _SessionCardFinishPainter(),
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: .28),
-                        borderRadius: BorderRadius.circular(99),
-                        border: Border.all(
-                          color: accent.withValues(alpha: .74),
-                        ),
-                      ),
-                      child: Text(
-                        ideas,
-                        style: TextStyle(
-                          color: TradeXColors.goldBright,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Positioned(
+                    right: -8,
+                    bottom: 0,
+                    width: 137,
+                    height: 65,
+                    child: IgnorePointer(
+                      child: Opacity(
+                        opacity: .16,
+                        child: ColorFiltered(
+                          colorFilter: const ColorFilter.mode(
+                            gold,
+                            BlendMode.srcIn,
+                          ),
+                          child: Image.asset(
+                            imageAsset,
+                            fit: BoxFit.contain,
+                            alignment: Alignment.bottomRight,
+                            filterQuality: FilterQuality.high,
+                          ),
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 10, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF101827),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            SvgPicture.asset(
+                              iconAsset,
+                              width: 23,
+                              height: 23,
+                              colorFilter: const ColorFilter.mode(
+                                Color(0xFFB7831E),
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Container(
+                          width: 26,
+                          height: 2,
+                          decoration: BoxDecoration(
+                            color: gold,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                        const Text(
+                          'Trade Ideas',
+                          style: TextStyle(
+                            color: Color(0xFF5D6878),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF8E8),
+                            borderRadius: BorderRadius.circular(99),
+                            border: Border.all(
+                              color: gold.withValues(alpha: .55),
+                              width: .8,
+                            ),
+                          ),
+                          child: Text(
+                            ideas,
+                            style: const TextStyle(
+                              color: Color(0xFF8B5C12),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              height: 1.1,
+                            ),
+                          ),
+                        ),
+                        // Keep existing per-market accent in the visual
+                        // treatment without recoloring the common gold theme.
+                        const Spacer(),
+                        Container(
+                          width: 24,
+                          height: 1,
+                          color: accent.withValues(alpha: .12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );

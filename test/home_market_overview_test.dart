@@ -119,6 +119,36 @@ void main() {
     expect(find.text('Actual'), findsWidgets);
     expect(find.text('5.25%'), findsWidgets);
     expect(find.text('5.50%'), findsWidgets);
+
+    // Market Categories retain the existing horizontal scroller and actions;
+    // only the card visuals and compact viewport height have changed.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('home-market-categories-scroll')),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('home-market-categories-scroll')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSize(
+        find.byKey(const ValueKey('home-market-categories-scroll')),
+      ).height,
+      132,
+    );
+    // The horizontally lazily-built items need not be instantiated when
+    // their strip is outside the test's clipped viewport. Verify the list
+    // configuration and all four entries without depending on lazy children.
+    final categoryList = tester.widget<ListView>(
+      find.descendant(
+        of: find.byKey(const ValueKey('home-market-categories-scroll')),
+        matching: find.byType(ListView),
+      ),
+    );
+    expect(categoryList.scrollDirection, Axis.horizontal);
+    expect(categoryList.physics, isA<BouncingScrollPhysics>());
+    expect(categoryList.childrenDelegate.estimatedChildCount, 7);
     expect(tester.takeException(), isNull);
   });
 
