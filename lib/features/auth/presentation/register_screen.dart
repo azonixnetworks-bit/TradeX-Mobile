@@ -76,13 +76,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     subtitle: 'Join TradeX and start your professional trading journey.',
     onBack: widget.onBack,
     securityDecor: true,
+    centerContentVertically: true,
+    keepDecorationFixedOnKeyboard: true,
+    highContrastText: true,
     footer: Wrap(
       alignment: WrapAlignment.center,
       children: [
         Text(
           'Already have an account? ',
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            color: const Color(0xFF344054),
             fontSize: 14,
           ),
         ),
@@ -91,7 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: const Text(
             'Sign In',
             style: TextStyle(
-              color: Color(0xFFFFC83D),
+              color: Color(0xFF916100),
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -107,6 +110,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _name,
             label: 'Full Name',
             icon: Icons.person_outline_rounded,
+            highContrastText: true,
             textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.next,
             validator: (value) => value == null || value.trim().length < 2
@@ -118,6 +122,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _email,
             label: 'Email Address',
             icon: Icons.mail_outline_rounded,
+            highContrastText: true,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             validator: (value) =>
@@ -132,6 +137,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _password,
             label: 'Password',
             icon: Icons.lock_outline_rounded,
+            highContrastText: true,
             obscureText: _hidePassword,
             textInputAction: TextInputAction.next,
             onChanged: (_) => setState(() {}),
@@ -152,6 +158,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _confirmation,
             label: 'Confirm Password',
             icon: Icons.lock_reset_rounded,
+            highContrastText: true,
             obscureText: _hideConfirmation,
             textInputAction: TextInputAction.done,
             validator: (value) =>
@@ -184,7 +191,6 @@ class _PasswordChecklist extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final checks = <(String, bool)>[
       ('8+ characters', password.length >= 8),
       ('Uppercase letter', RegExp(r'[A-Z]').hasMatch(password)),
@@ -205,7 +211,7 @@ class _PasswordChecklist extends StatelessWidget {
                   size: 15,
                   color: check.$2
                       ? const Color(0xFF18D77A)
-                      : const Color(0xFF7D8796),
+                      : const Color(0xFF344054),
                 ),
                 const SizedBox(width: 4),
                 Text(
@@ -213,7 +219,7 @@ class _PasswordChecklist extends StatelessWidget {
                   style: TextStyle(
                     color: check.$2
                         ? const Color(0xFF16834A)
-                        : colors.onSurfaceVariant,
+                        : const Color(0xFF344054),
                     fontSize: 11,
                   ),
                 ),

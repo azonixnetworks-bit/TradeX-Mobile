@@ -14,6 +14,9 @@ class TradeXAuthPage extends StatelessWidget {
     this.footer,
     this.titleIconAsset,
     this.securityDecor = false,
+    this.centerContentVertically = false,
+    this.keepDecorationFixedOnKeyboard = false,
+    this.highContrastText = false,
     this.decorTopAsset,
     this.decorFooterAsset,
   });
@@ -25,6 +28,10 @@ class TradeXAuthPage extends StatelessWidget {
   final Widget? footer;
   final String? titleIconAsset;
   final bool securityDecor;
+  // Registration-only UI options. Existing auth screens keep their defaults.
+  final bool centerContentVertically;
+  final bool keepDecorationFixedOnKeyboard;
+  final bool highContrastText;
   final String? decorTopAsset;
   final String? decorFooterAsset;
 
@@ -33,6 +40,9 @@ class TradeXAuthPage extends StatelessWidget {
     final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
+      // Keep the background's bottom wave pinned to the device viewport;
+      // the keyboard covers it instead of pushing it upward.
+      resizeToAvoidBottomInset: !keepDecorationFixedOnKeyboard,
       backgroundColor: palette.background,
       body: Stack(
         fit: StackFit.expand,
@@ -45,13 +55,29 @@ class TradeXAuthPage extends StatelessWidget {
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
+                // Gently center the registration content on tall displays.
+                // Do not offset the form while a keyboard is visible.
+                final extraTopInset =
+                    centerContentVertically &&
+                        MediaQuery.viewInsetsOf(context).bottom == 0
+                    ? ((constraints.maxHeight - 600.0) * 0.45)
+                        .clamp(0.0, 96.0)
+                        .toDouble()
+                    : 0.0;
+                final keyboardInset = keepDecorationFixedOnKeyboard
+                    ? MediaQuery.viewInsetsOf(context).bottom
+                    : 0.0;
                 return SingleChildScrollView(
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 26),
+                  padding: EdgeInsets.fromLTRB(
+                    20, 10 + extraTopInset, 20, 26 + keyboardInset,
+                  ),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight - 36,
+                      minHeight: (constraints.maxHeight - 36 - extraTopInset)
+                          .clamp(0.0, double.infinity)
+                          .toDouble(),
                     ),
                     child: Column(
                       children: [
@@ -92,6 +118,9 @@ class TradeXAuthPage extends StatelessWidget {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: textTheme.headlineMedium?.copyWith(
+                                  color: highContrastText
+                                      ? const Color(0xFF111827)
+                                      : null,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: -.4,
                                 ),
@@ -113,7 +142,9 @@ class TradeXAuthPage extends StatelessWidget {
                           subtitle,
                           textAlign: TextAlign.center,
                           style: textTheme.bodyMedium?.copyWith(
-                            color: palette.secondaryText,
+                            color: highContrastText
+                                ? const Color(0xFF344054)
+                                : palette.secondaryText,
                           ),
                         ),
                         const SizedBox(height: 22),
@@ -127,7 +158,9 @@ class TradeXAuthPage extends StatelessWidget {
                           'DISCIPLINE CREATES FREEDOM',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: palette.goldText,
+                            color: highContrastText
+                                ? const Color(0xFF344054)
+                                : palette.goldText,
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 3.1,
@@ -206,6 +239,7 @@ class TradeXAuthField extends StatelessWidget {
     this.readOnly = false,
     this.focusNode,
     this.textCapitalization = TextCapitalization.none,
+    this.highContrastText = false,
   });
 
   final TextEditingController controller;
@@ -225,6 +259,7 @@ class TradeXAuthField extends StatelessWidget {
   final bool readOnly;
   final FocusNode? focusNode;
   final TextCapitalization textCapitalization;
+  final bool highContrastText;
 
   @override
   Widget build(BuildContext context) {
@@ -244,11 +279,25 @@ class TradeXAuthField extends StatelessWidget {
       onTap: onTap,
       textCapitalization: textCapitalization,
       cursorColor: palette.goldText,
-      style: TextStyle(color: palette.primaryText, fontSize: 14),
+      style: TextStyle(
+        color: highContrastText ? const Color(0xFF182230) : palette.primaryText,
+        fontSize: 14,
+      ),
       decoration: InputDecoration(
         counterText: '',
         labelText: label,
-        labelStyle: TextStyle(color: palette.secondaryText),
+        labelStyle: TextStyle(
+          color: highContrastText
+              ? const Color(0xFF344054)
+              : palette.secondaryText,
+          fontWeight: highContrastText ? FontWeight.w600 : null,
+        ),
+        floatingLabelStyle: highContrastText
+            ? const TextStyle(
+                color: Color(0xFF344054),
+                fontWeight: FontWeight.w600,
+              )
+            : null,
         prefixIcon: Icon(icon, color: palette.goldText, size: 21),
         prefixText: prefixText,
         prefixStyle: const TextStyle(
