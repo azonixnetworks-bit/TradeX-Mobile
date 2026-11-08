@@ -15,6 +15,7 @@ class TradeXAuthPage extends StatelessWidget {
     this.titleIconAsset,
     this.securityDecor = false,
     this.centerContentVertically = false,
+    this.keepDecorationFixedOnKeyboard = false,
     this.highContrastText = false,
     this.decorTopAsset,
     this.decorFooterAsset,
@@ -29,6 +30,7 @@ class TradeXAuthPage extends StatelessWidget {
   final bool securityDecor;
   // Registration-only UI options. Existing auth screens keep their defaults.
   final bool centerContentVertically;
+  final bool keepDecorationFixedOnKeyboard;
   final bool highContrastText;
   final String? decorTopAsset;
   final String? decorFooterAsset;
@@ -38,6 +40,9 @@ class TradeXAuthPage extends StatelessWidget {
     final palette = context.palette;
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
+      // Keep the background's bottom wave pinned to the device viewport;
+      // the keyboard covers it instead of pushing it upward.
+      resizeToAvoidBottomInset: !keepDecorationFixedOnKeyboard,
       backgroundColor: palette.background,
       body: Stack(
         fit: StackFit.expand,
@@ -59,11 +64,14 @@ class TradeXAuthPage extends StatelessWidget {
                         .clamp(0.0, 96.0)
                         .toDouble()
                     : 0.0;
+                final keyboardInset = keepDecorationFixedOnKeyboard
+                    ? MediaQuery.viewInsetsOf(context).bottom
+                    : 0.0;
                 return SingleChildScrollView(
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: EdgeInsets.fromLTRB(
-                    20, 10 + extraTopInset, 20, 26,
+                    20, 10 + extraTopInset, 20, 26 + keyboardInset,
                   ),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
