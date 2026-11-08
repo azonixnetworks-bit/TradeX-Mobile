@@ -229,7 +229,7 @@ class _LoginCard extends StatelessWidget {
                     obscurePassword
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
-                    color: TradeXColors.secondaryText,
+                    color: const Color(0xFF8B96A6),
                   ),
                 ),
               ),
@@ -281,7 +281,7 @@ class _LoginCard extends StatelessWidget {
                                 border: Border.all(
                                   color: useRecoveryCode
                                       ? TradeXColors.goldBright
-                                      : TradeXColors.borderStrong,
+                                      : const Color(0xFF596679),
                                 ),
                                 color: useRecoveryCode
                                     ? TradeXColors.goldBright
@@ -302,7 +302,7 @@ class _LoginCard extends StatelessWidget {
                               child: Text(
                                 'Use recovery code instead',
                                 style: TextStyle(
-                                  color: TradeXColors.secondaryText,
+                                  color: Color(0xFF647084),
                                   fontSize: 12,
                                 ),
                               ),
@@ -318,7 +318,7 @@ class _LoginCard extends StatelessWidget {
                   TextButton(
                     onPressed: onForgotPassword,
                     style: TextButton.styleFrom(
-                      foregroundColor: TradeXColors.goldBright,
+                      foregroundColor: const Color(0xFFB77D00),
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                     ),
                     child: const Text(
