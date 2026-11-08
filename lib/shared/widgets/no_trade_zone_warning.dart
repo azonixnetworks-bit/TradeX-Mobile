@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/tradex_colors.dart';
+import '../../core/theme/tradex_palette.dart';
 import '../../features/home/domain/no_trade_zone_warning.dart';
 
 class NoTradeZoneWarningBanner extends StatefulWidget {
@@ -145,8 +146,9 @@ class _NoTradeWarningPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = TradeXPalette.of(context);
     final active = evaluation.phase == NoTradeWarningPhase.active;
-    final accent = active ? TradeXColors.error : TradeXColors.success;
+    final accent = active ? palette.error : palette.success;
     final event = evaluation.primaryEvent!;
     final scheduled = event.scheduledAtUtc?.toLocal();
     final countdownTarget = active ? evaluation.windowEndsAtUtc : null;
@@ -195,8 +197,8 @@ class _NoTradeWarningPanel extends StatelessWidget {
                       active
                           ? 'High-impact economic news is active. Avoid trading on funded accounts during this period.'
                           : "The news caution window has ended. Follow your funded account provider's trading rules.",
-                      style: const TextStyle(
-                        color: TradeXColors.primaryText,
+                      style: TextStyle(
+                        color: palette.primaryText,
                         fontSize: 11,
                         height: 1.4,
                       ),
@@ -247,26 +249,28 @@ class _WarningChip extends StatelessWidget {
   final String label;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    final palette = TradeXPalette.of(context);
+    return Container(
     constraints: const BoxConstraints(maxWidth: 240),
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
     decoration: BoxDecoration(
-      color: TradeXColors.background.withValues(alpha: .58),
+      color: palette.surfaceMuted,
       borderRadius: BorderRadius.circular(99),
-      border: Border.all(color: TradeXColors.borderStrong),
+      border: Border.all(color: palette.borderStrong),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: TradeXColors.goldBright, size: 13),
+        Icon(icon, color: palette.goldText, size: 13),
         const SizedBox(width: 5),
         Flexible(
           child: Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: TradeXColors.primaryText,
+            style: TextStyle(
+              color: palette.primaryText,
               fontSize: 10,
               fontWeight: FontWeight.w800,
             ),
@@ -275,6 +279,7 @@ class _WarningChip extends StatelessWidget {
       ],
     ),
   );
+  }
 }
 
 String _countdown(DateTime target, DateTime now) {
