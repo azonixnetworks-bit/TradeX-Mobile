@@ -47,6 +47,7 @@ import 'bloc/home_market_news_cubit.dart';
 part 'home_dashboard/dashboard_shell.dart';
 part 'home_dashboard/home_services_section.dart';
 part 'home_dashboard/market_clock_section.dart';
+part 'home_dashboard/market_clock_light_dial.dart';
 part 'home_dashboard/market_news_section.dart';
 part 'home_dashboard/home_learning_section.dart';
 part 'home_dashboard/live_trade_ideas_section.dart';
