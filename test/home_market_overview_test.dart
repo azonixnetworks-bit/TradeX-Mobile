@@ -63,6 +63,15 @@ void main() {
     expect(marketClockSize.width, lessThanOrEqualTo(450));
     expect(marketClockSize.height, marketClockSize.width);
     expect(find.byKey(const ValueKey('market-session-scroll')), findsOneWidget);
+    // Session cards are compact but retain the original horizontal scroller.
+    expect(
+      tester.getSize(find.byKey(const ValueKey('market-session-scroll'))).height,
+      132,
+    );
+    expect(
+      find.byKey(const ValueKey('market-session-card-London')),
+      findsOneWidget,
+    );
     expect(find.text('London'), findsOneWidget);
     expect(find.text('New York'), findsOneWidget);
     expect(find.text('Device Time'), findsNothing);

@@ -252,14 +252,14 @@ class _WorldClockGrid extends StatelessWidget {
     ];
     return SizedBox(
       key: const ValueKey('market-session-scroll'),
-      height: 142,
+      height: 132,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: clocks.length,
         separatorBuilder: (_, _) => const SizedBox(width: 9),
         itemBuilder: (context, index) =>
-            SizedBox(width: 148, child: _WorldClockTile(clock: clocks[index])),
+            SizedBox(width: 156, child: _WorldClockTile(clock: clocks[index])),
       ),
     );
   }
@@ -296,91 +296,157 @@ class _WorldClockTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Presentation only: time, status and session hours continue to be
+    // supplied by the existing live market-clock API and timezone logic.
     final isOpen = clock.session?.isOpen ?? false;
-    final stateColor = isOpen ? TradeXColors.success : const Color(0xFFFF6666);
-    return Container(
-      height: 142,
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0A0E0D),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF2B302D)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            clock.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: TradeXColors.primaryText,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
+    final stateColor = isOpen
+        ? const Color(0xFF087E62)
+        : const Color(0xFFBC2026);
+    const radius = BorderRadius.all(Radius.circular(18));
+
+    return Padding(
+      key: ValueKey('market-session-card-${clock.label}'),
+      padding: const EdgeInsets.fromLTRB(1, 2, 1, 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF87601B).withValues(alpha: .18),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: .045),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            border: Border.all(
+              color: const Color(0xFFDAAA45),
+              width: 1.1,
+            ),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFFFFFFF),
+                Color(0xFFFFFEFB),
+                Color(0xFFFBF6EE),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            _digitalTime(clock.time),
-            maxLines: 1,
-            style: const TextStyle(
-              color: TradeXColors.primaryText,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
-          ),
-          const SizedBox(height: 3),
-          Row(
+          child: Stack(
             children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  color: stateColor,
-                  shape: BoxShape.circle,
+              const Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(painter: _SessionCardFinishPainter()),
                 ),
               ),
-              const SizedBox(width: 3),
-              Expanded(
-                child: Text(
-                  isOpen ? 'Open' : 'Closed',
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: stateColor,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
+              Positioned(
+                left: 8,
+                right: 8,
+                bottom: 2,
+                height: 34,
+                child: IgnorePointer(
+                  child: Image.asset(
+                    key: ValueKey('market-session-art-${clock.label}'),
+                    _cityAsset(clock.label),
+                    alignment: Alignment.bottomCenter,
+                    fit: BoxFit.contain,
+                    cacheWidth: 420,
+                    filterQuality: FilterQuality.high,
                   ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(11, 8, 8, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      clock.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF101827),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Container(
+                      width: 24,
+                      height: 1.6,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD79D20),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      _digitalTime(clock.time),
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: Color(0xFF111827),
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        height: 1.1,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: stateColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            isOpen ? 'Open' : 'Closed',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: stateColor,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${clock.hours} ${clock.time.timeZoneName}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF5D6878),
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                        height: 1.15,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            '${clock.hours} ${clock.time.timeZoneName}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: TradeXColors.tertiaryText,
-              fontSize: 8,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const Spacer(),
-          SizedBox(
-            height: 48,
-            width: double.infinity,
-            child: Image.asset(
-              key: ValueKey('market-session-art-${clock.label}'),
-              _cityAsset(clock.label),
-              alignment: Alignment.bottomCenter,
-              fit: BoxFit.contain,
-              cacheWidth: 420,
-              filterQuality: FilterQuality.high,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -399,6 +465,50 @@ class _WorldClockTile extends StatelessWidget {
     'Sydney' => 'assets/market_sessions/sydney.png',
     _ => 'assets/market_sessions/london.png',
   };
+}
+
+/// Subtle ivory highlights and gold bottom waves, matching the approved card
+/// reference. Pure paint: does not affect taps, scrolling or clock updates.
+class _SessionCardFinishPainter extends CustomPainter {
+  const _SessionCardFinishPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final sheen = Path()
+      ..moveTo(w * .72, 0)
+      ..lineTo(w, 0)
+      ..lineTo(w, h * .24)
+      ..quadraticBezierTo(w * .87, h * .13, w * .72, 0)
+      ..close();
+    canvas.drawPath(sheen, Paint()..color = const Color(0x55FFFFFF));
+
+    final ivoryWave = Path()
+      ..moveTo(0, h - 18)
+      ..quadraticBezierTo(w * .27, h - 29, w * .49, h - 18)
+      ..quadraticBezierTo(w * .78, h - 9, w, h - 23)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(ivoryWave, Paint()..color = const Color(0x50F9E4B1));
+
+    final goldWave = Path()
+      ..moveTo(0, h - 15)
+      ..quadraticBezierTo(w * .25, h - 26, w * .49, h - 15)
+      ..quadraticBezierTo(w * .8, h - 5, w, h - 19);
+    canvas.drawPath(
+      goldWave,
+      Paint()
+        ..color = const Color(0x66D8AA4B)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SessionCardFinishPainter oldDelegate) => false;
 }
 
 class _LivePill extends StatelessWidget {
