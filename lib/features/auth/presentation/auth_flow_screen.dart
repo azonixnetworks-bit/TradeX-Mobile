@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import '../data/pending_registration_store.dart';
 
 import '../domain/entities/password_recovery_session.dart';
 import '../domain/entities/registration_session.dart';
@@ -13,6 +17,7 @@ import 'registration_totp_setup_screen.dart';
 import 'registration_details_screen.dart';
 import 'registration_recovery_codes_screen.dart';
 import 'registration_verification_gate_screen.dart';
+import 'registration_pending_dashboard_screen.dart';
 import 'splash_screen.dart';
 import 'welcome_screen.dart';
 import 'widgets/otp_verification_screen.dart';
@@ -24,6 +29,7 @@ enum _AuthStep {
   register,
   registerLanguage,
   registerGate,
+  pendingRegistrationDashboard,
   registerEmailOtp,
   registerWhatsAppOtp,
   registerTotpSetup,
@@ -70,6 +76,16 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   RegistrationTotpSetup? _registrationTotpSetup;
   RegistrationRecoveryCodes? _registrationRecoveryCodes;
   _RegistrationDraft? _registrationDraft;
+  final PendingRegistrationStore _pendingStore = const PendingRegistrationStore();
+  Future<void>? _pendingLoadFuture;
+
+  RegistrationReferralValidatorContract get _referralValidator {
+    final repository = widget.registrationRepository;
+    if (repository is RegistrationReferralValidatorContract) {
+      return repository as RegistrationReferralValidatorContract;
+    }
+    throw StateError('Referral validation service is unavailable.');
+  }
 
   PasswordRecoverySession? _recoverySession;
 
@@ -84,6 +100,19 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     // Show the same branded splash on cold start, including quick unlock.
     _step = _AuthStep.splash;
     _loadLoginHistory();
+    _pendingLoadFuture = _restorePendingRegistration();
+  }
+
+  Future<void> _restorePendingRegistration() async {
+    try {
+      final pending = await _pendingStore.read();
+      if (!mounted || pending == null) return;
+      _registrationSession = pending.session;
+      _registrationEmail = pending.email;
+      _registrationWhatsApp = pending.phone;
+    } catch (_) {
+      // Secure-storage availability must not block normal login.
+    }
   }
 
   Future<void> _loadLoginHistory() async {
@@ -106,6 +135,12 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   void _showWelcome() => _setStep(_AuthStep.welcome);
 
   Future<void> _continueAfterSplash() async {
+    await _pendingLoadFuture;
+    if (!mounted) return;
+    if (_registrationSession != null) {
+      _setStep(_AuthStep.pendingRegistrationDashboard);
+      return;
+    }
     final completed =
         _hasCompletedFirstLogin ??
         await widget.authRepository.hasCompletedFirstLogin();
@@ -140,9 +175,11 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       case _AuthStep.registerLanguage:
         _setStep(_AuthStep.register);
       case _AuthStep.registerGate:
-        _setStep(_AuthStep.registerLanguage);
+        _setStep(_AuthStep.pendingRegistrationDashboard);
+      case _AuthStep.pendingRegistrationDashboard:
+        _setStep(_AuthStep.login);
       case _AuthStep.registerEmailOtp:
-        _setStep(_AuthStep.registerGate);
+        _setStep(_AuthStep.pendingRegistrationDashboard);
       case _AuthStep.registerWhatsAppOtp:
         _setStep(_AuthStep.registerEmailOtp);
       case _AuthStep.registerTotpSetup:
@@ -172,6 +209,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   }
 
   void _clearRegistration() {
+    unawaited(_pendingStore.clear().catchError((Object _) {}));
     _registrationSession = null;
     _registrationTotpSetup = null;
     _registrationRecoveryCodes = null;
@@ -238,53 +276,57 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     required String referralCode,
   }) async {
     final draft = _registrationDraft;
-
     if (draft == null) {
       throw StateError('Registration details are missing. Please start again.');
     }
 
-    setState(() {
-      _registrationDraft = _RegistrationDraft(
+    if (referralCode.trim().isNotEmpty &&
+        !await _referralValidator.validateReferralCode(referralCode)) {
+      throw StateError('The referral code is invalid or unavailable.');
+    }
+
+    // Registration is still pending; no authenticated access token is issued.
+    final session = await widget.registrationRepository.start(
+      name: draft.name,
+      email: draft.email,
+      whatsappNumber: phone,
+      password: draft.password,
+      passwordConfirmation: draft.passwordConfirmation,
+      countryCode: countryCode,
+      languageCode: 'en',
+      referralCode: referralCode,
+    );
+
+    try {
+      await _pendingStore.save(
+        session: session,
         name: draft.name,
         email: draft.email,
-        whatsappNumber: phone,
-        password: draft.password,
-        passwordConfirmation: draft.passwordConfirmation,
-        countryCode: countryCode,
-        referralCode: referralCode,
+        phone: phone,
       );
-      _step = _AuthStep.registerGate;
+    } catch (_) {
+      // In-memory verification remains available when keychain is unavailable.
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _registrationSession = session;
+      _registrationEmail = draft.email.trim();
+      _registrationWhatsApp = phone.trim();
+      _registrationDraft = null; // Stop retaining password data in the widget.
+      _step = _AuthStep.pendingRegistrationDashboard;
     });
   }
 
   Future<void> _beginVerification() async {
-    final draft = _registrationDraft;
-
-    if (draft == null) {
-      throw StateError('Registration details are missing. Please start again.');
-    }
-
-    final session = await widget.registrationRepository.start(
-      name: draft.name,
-      email: draft.email,
-      whatsappNumber: draft.whatsappNumber,
-      password: draft.password,
-      passwordConfirmation: draft.passwordConfirmation,
-      countryCode: draft.countryCode,
-      languageCode: 'en',
-      referralCode: draft.referralCode,
-    );
-
-    if (!mounted) {
+    final session = _registrationSession;
+    if (session == null || !session.expiresAt.isAfter(DateTime.now())) {
+      _clearRegistration();
+      _setStep(_AuthStep.register);
       return;
     }
 
-    setState(() {
-      _registrationSession = session;
-      _registrationEmail = draft.email.trim();
-      _registrationWhatsApp = draft.whatsappNumber.trim();
-      _step = _AuthStep.registerEmailOtp;
-    });
+    _setStep(_AuthStep.registerEmailOtp);
   }
 
   Future<void> _verifyRegistrationEmail(String code) async {
@@ -351,6 +393,11 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
 
     final recoveryCodes = await widget.registrationRepository
         .bootstrapRecoveryCodes(session);
+    try {
+      await _pendingStore.clear();
+    } catch (_) {
+      // The completed session is no longer valid as pending state.
+    }
 
     if (!mounted) {
       return;
@@ -515,6 +562,13 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
         return RegistrationDetailsScreen(
           onBack: () => _setStep(_AuthStep.register),
           onContinue: _completeRegistrationDetails,
+          onCheckReferralCode: _referralValidator.validateReferralCode,
+        );
+      case _AuthStep.pendingRegistrationDashboard:
+        return RegistrationPendingDashboardScreen(
+          email: _registrationEmail,
+          onVerifyNow: _beginVerification,
+          onExit: _showLogin,
         );
       case _AuthStep.registerGate:
         return RegistrationVerificationGateScreen(

@@ -1,0 +1,37 @@
+name: TradeX Registration Onboarding Flutter
+
+on:
+  push:
+    branches:
+      - feature/referral-validation-pending-onboarding
+    paths:
+      - 'lib/features/auth/**'
+      - 'test/auth*'
+      - 'test/registration_onboarding_flow_test.dart'
+      - '.github/workflows/registration-onboarding.yml'
+  pull_request:
+    paths:
+      - 'lib/features/auth/**'
+      - 'test/auth*'
+      - 'test/registration_onboarding_flow_test.dart'
+      - '.github/workflows/registration-onboarding.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  flutter-registration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analyze registration code (errors are fatal)
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/features/auth
+      - name: Run auth and onboarding widget tests
+        run: |
+          flutter test test/auth_models_test.dart
+          flutter test test/registration_onboarding_flow_test.dart

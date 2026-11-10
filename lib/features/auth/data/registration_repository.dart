@@ -4,10 +4,29 @@ import '../domain/entities/registration_session.dart';
 import '../models/registration_session.dart' as dto;
 import '../domain/repositories/auth_repositories.dart';
 
-class RegistrationRepository implements RegistrationRepositoryContract {
+class RegistrationRepository implements RegistrationRepositoryContract, RegistrationReferralValidatorContract {
   RegistrationRepository(this._apiClient);
 
   final TradeXApiClient _apiClient;
+
+  @override
+  Future<bool> validateReferralCode(String referralCode) async {
+    final response = await _apiClient.publicPost(
+      '/api/v1/auth/register/referral/validate',
+      <String, dynamic>{
+        if (referralCode.trim().isNotEmpty)
+          'referral_code': referralCode.trim().toUpperCase(),
+      },
+    );
+
+    final data = _data(response);
+    if (data['valid'] is! bool) {
+      throw const ApiException(
+        message: 'TradeX returned an invalid referral validation response.',
+      );
+    }
+    return data['valid'] as bool;
+  }
 
   @override
   Future<RegistrationSession> start({

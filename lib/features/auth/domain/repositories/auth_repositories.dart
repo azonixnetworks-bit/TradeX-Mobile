@@ -99,6 +99,11 @@ abstract interface class RegistrationRepositoryContract {
   );
 }
 
+/// Optional capability so existing registration repository fakes remain compatible.
+abstract interface class RegistrationReferralValidatorContract {
+  Future<bool> validateReferralCode(String referralCode);
+}
+
 abstract interface class PasswordRecoveryRepositoryContract {
   Future<PasswordRecoverySession> start({
     required String email,
