@@ -82,7 +82,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   RegistrationReferralValidatorContract get _referralValidator {
     final repository = widget.registrationRepository;
     if (repository is RegistrationReferralValidatorContract) {
-      return repository;
+      return repository as RegistrationReferralValidatorContract;
     }
     throw StateError('Referral validation service is unavailable.');
   }
