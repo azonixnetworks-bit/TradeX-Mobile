@@ -93,6 +93,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   String _registrationWhatsApp = '';
   String _recoveryEmail = '';
   String _recoveryWhatsApp = '';
+  bool _recoveryWhatsAppFirst = false;
 
   @override
   void initState() {
@@ -193,11 +194,17 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       case _AuthStep.forgotPassword:
         _showLogin();
       case _AuthStep.recoveryEmailOtp:
-        _setStep(_AuthStep.forgotPassword);
+        _setStep(_recoveryWhatsAppFirst
+            ? _AuthStep.recoveryWhatsAppOtp
+            : _AuthStep.forgotPassword);
       case _AuthStep.recoveryWhatsAppOtp:
-        _setStep(_AuthStep.recoveryEmailOtp);
+        _setStep(_recoveryWhatsAppFirst
+            ? _AuthStep.forgotPassword
+            : _AuthStep.recoveryEmailOtp);
       case _AuthStep.recoveryTotp:
-        _setStep(_AuthStep.recoveryWhatsAppOtp);
+        _setStep(_recoveryWhatsAppFirst
+            ? _AuthStep.recoveryEmailOtp
+            : _AuthStep.recoveryWhatsAppOtp);
       case _AuthStep.newPassword:
         _setStep(_AuthStep.recoveryTotp);
       case _AuthStep.registerComplete:
@@ -222,6 +229,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
     _recoverySession = null;
     _recoveryEmail = '';
     _recoveryWhatsApp = '';
+    _recoveryWhatsAppFirst = false;
   }
 
   Future<void> _login({
@@ -418,15 +426,21 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       whatsappNumber: whatsappNumber,
     );
 
-    if (!mounted) {
-      return;
+    if (!mounted) return;
+
+    if (!const {'VERIFY_EMAIL_OTP', 'VERIFY_WHATSAPP_OTP'}
+        .contains(session.nextAction)) {
+      throw StateError('Invalid password recovery next step.');
     }
 
     setState(() {
       _recoverySession = session;
       _recoveryEmail = email.trim();
       _recoveryWhatsApp = whatsappNumber.trim();
-      _step = _AuthStep.recoveryEmailOtp;
+      _recoveryWhatsAppFirst = session.nextAction == 'VERIFY_WHATSAPP_OTP';
+      _step = _recoveryWhatsAppFirst
+          ? _AuthStep.recoveryWhatsAppOtp
+          : _AuthStep.recoveryEmailOtp;
     });
   }
 
@@ -439,7 +453,9 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
 
     await widget.passwordRecoveryRepository.verifyEmail(session, code);
 
-    _setStep(_AuthStep.recoveryWhatsAppOtp);
+    _setStep(_recoveryWhatsAppFirst
+        ? _AuthStep.recoveryTotp
+        : _AuthStep.recoveryWhatsAppOtp);
   }
 
   Future<void> _resendRecoveryEmail() async {
@@ -461,7 +477,9 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
 
     await widget.passwordRecoveryRepository.verifyWhatsApp(session, code);
 
-    _setStep(_AuthStep.recoveryTotp);
+    _setStep(_recoveryWhatsAppFirst
+        ? _AuthStep.recoveryEmailOtp
+        : _AuthStep.recoveryTotp);
   }
 
   Future<void> _resendRecoveryWhatsApp() async {
@@ -660,11 +678,14 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
           subtitle:
               'Enter the 8 digits from the TradeX password recovery email.',
           codeLength: 8,
-          channelLabel:
-              'If eligible, a verification code was sent to $_recoveryEmail.',
+          channelLabel: _recoveryEmail.isEmpty
+              ? 'If eligible, a code was sent to your registered email.'
+              : 'If eligible, a code was sent to $_recoveryEmail.',
           onVerify: _verifyRecoveryEmail,
           onResend: _resendRecoveryEmail,
-          onBack: _showForgotPassword,
+          onBack: () => _setStep(_recoveryWhatsAppFirst
+              ? _AuthStep.recoveryWhatsAppOtp
+              : _AuthStep.forgotPassword),
         );
 
       case _AuthStep.recoveryWhatsAppOtp:
@@ -672,10 +693,14 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
           title: 'Verify Recovery WhatsApp',
           subtitle: 'Enter the 6-digit recovery code sent through WhatsApp.',
           codeLength: 6,
-          channelLabel: 'Recovery verification for $_recoveryWhatsApp.',
+          channelLabel: _recoveryWhatsApp.isEmpty
+              ? 'Recovery code sent to your registered WhatsApp.'
+              : 'Recovery verification for $_recoveryWhatsApp.',
           onVerify: _verifyRecoveryWhatsApp,
           onResend: _resendRecoveryWhatsApp,
-          onBack: () => _setStep(_AuthStep.recoveryEmailOtp),
+          onBack: () => _setStep(_recoveryWhatsAppFirst
+              ? _AuthStep.forgotPassword
+              : _AuthStep.recoveryEmailOtp),
         );
 
       case _AuthStep.recoveryTotp:
@@ -686,7 +711,9 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
           channelLabel: 'After verification, TradeX will email a short-lived password reset link.',
           onVerify: _verifyRecoveryTotp,
           onResend: () async {},
-          onBack: () => _setStep(_AuthStep.recoveryWhatsAppOtp),
+          onBack: () => _setStep(_recoveryWhatsAppFirst
+              ? _AuthStep.recoveryEmailOtp
+              : _AuthStep.recoveryWhatsAppOtp),
           initialCooldownSeconds: 0,
           showResend: false,
         );

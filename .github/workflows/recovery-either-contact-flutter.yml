@@ -1,0 +1,31 @@
+name: Password Recovery Either Contact Flutter
+
+on:
+  push:
+    branches:
+      - fix/password-recovery-either-contact-20261110
+  pull_request:
+    paths:
+      - 'lib/features/auth/**'
+      - 'test/forgot_password_either_contact_test.dart'
+      - '.github/workflows/recovery-either-contact-flutter.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  flutter-recovery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analyze recovery form, models and flow
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/features/auth test/forgot_password_either_contact_test.dart
+      - name: Run recovery UI regression tests
+        run: |
+          flutter test test/forgot_password_either_contact_test.dart
+          flutter test test/auth_recovery_ui_test.dart

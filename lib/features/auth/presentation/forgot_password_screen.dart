@@ -46,7 +46,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final email = value?.trim() ?? '';
 
     if (email.isEmpty) {
-      return 'Email address is required.';
+      return _whatsappController.text.trim().isEmpty
+          ? 'Enter your email or WhatsApp number.'
+          : null;
     }
 
     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
@@ -60,9 +62,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   String? _validateWhatsApp(String? value) {
     final number = value?.trim() ?? '';
 
-    if (number.isEmpty) {
-      return 'WhatsApp number is required.';
-    }
+    if (number.isEmpty) return null;
 
     if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(number)) {
       return 'Use international format, for example +94771234567.';
@@ -111,7 +111,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       title: 'Forgot Password',
 
       subtitle:
-          'Confirm the email and WhatsApp number linked to your TradeX account.',
+          'Enter your registered email or WhatsApp number. Both contacts must be verified to reset your password.',
 
       onBack: widget.onBack,
 
@@ -155,7 +155,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               asset:
                   'assets/auth_recovery_ui/minimal_chat_phone_icon.png',
               iconColor: Color(0xFF25D366),
-              label: 'Confirm your registered mobile',
+              label: 'Recover with your WhatsApp',
             ),
 
             const SizedBox(height: 10),
