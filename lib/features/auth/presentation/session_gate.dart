@@ -573,9 +573,15 @@ class _SessionLoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: TradeXColors.background,
-      body: Center(
-        child: CircularProgressIndicator(color: TradeXColors.goldBright),
+      backgroundColor: Color(0xFF020A12),
+      body: SizedBox.expand(
+        child: Image(
+          image: AssetImage(
+            'assets/branding/tradex_bull_bear_trading_emblem.png',
+          ),
+          fit: BoxFit.cover,
+          alignment: Alignment.center,
+        ),
       ),
     );
   }
