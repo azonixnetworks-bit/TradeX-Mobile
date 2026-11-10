@@ -21,8 +21,8 @@ class _LoginHeader extends StatelessWidget {
         ),
 
         SizedBox(
-          width: 220,
-          height: 136,
+          width: 210,
+          height: 100,
           child: Image.asset(
             'assets/branding/trade_x_final_logo.png',
             fit: BoxFit.contain,

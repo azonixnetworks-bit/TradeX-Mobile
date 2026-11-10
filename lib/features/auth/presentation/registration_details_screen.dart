@@ -1,3 +1,4 @@
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -9,13 +10,14 @@ class RegistrationDetailsScreen extends StatefulWidget {
     required this.onBack,
     required this.onContinue,
   });
+
   final VoidCallback onBack;
   final Future<void> Function({
     required String countryCode,
     required String phone,
     required String referralCode,
-  })
-  onContinue;
+  }) onContinue;
+
   @override
   State<RegistrationDetailsScreen> createState() =>
       _RegistrationDetailsScreenState();
@@ -26,13 +28,75 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
   final _country = TextEditingController(text: 'Sri Lanka');
   final _phone = TextEditingController();
   final _referral = TextEditingController();
-  bool _risk = false, _disclaimer = false, _terms = false, _loading = false;
+
+  // Backend expects the two-letter ISO code (e.g. LK, IN, AE).
+  String _selectedCountryCode = 'LK';
+  String _selectedDialCode = '94';
+
+  bool _risk = false;
+  bool _disclaimer = false;
+  bool _terms = false;
+  bool _loading = false;
+
   @override
   void dispose() {
     _country.dispose();
     _phone.dispose();
     _referral.dispose();
     super.dispose();
+  }
+
+  void _selectCountry() {
+    FocusScope.of(context).unfocus();
+    showCountryPicker(
+      context: context,
+      showPhoneCode: true,
+      showSearch: true,
+      favorite: const ['LK', 'IN', 'AE', 'GB', 'US'],
+      countryListTheme: CountryListThemeData(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+        backgroundColor: Colors.white,
+        textStyle: const TextStyle(color: Color(0xFF182230), fontSize: 15),
+        inputDecoration: InputDecoration(
+          hintText: 'Search country or dialing code',
+          prefixIcon: const Icon(Icons.search, color: Color(0xFFC39319)),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+      onSelect: (country) {
+        if (!mounted) return;
+        final changed = _selectedCountryCode != country.countryCode;
+        setState(() {
+          _selectedCountryCode = country.countryCode;
+          _selectedDialCode = country.phoneCode;
+          _country.text = country.name;
+          // Avoid sending a number from a previous country with a new prefix.
+          if (changed) _phone.clear();
+        });
+      },
+    );
+  }
+
+  String _nationalPhoneNumber() {
+    final digits = _phone.text.replaceAll(RegExp(r'\D'), '');
+    // Remove the domestic trunk zero only for these common cases.
+    // For countries such as Italy, a leading zero may be significant.
+    if (const {'LK', 'GB', 'IN', 'AE'}.contains(_selectedCountryCode)) {
+      return digits.replaceFirst(RegExp(r'^0'), '');
+    }
+    return digits;
+  }
+
+  String? _validatePhone(String? value) {
+    final national = _nationalPhoneNumber();
+    final fullNumber = '$_selectedDialCode$national';
+    if (national.isEmpty) return 'Enter your WhatsApp / mobile number.';
+    if (national.length < 6 || fullNumber.length > 15) {
+      return 'Enter a valid international mobile number.';
+    }
+    return null;
   }
 
   Future<void> _continue() async {
@@ -43,8 +107,8 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
     setState(() => _loading = true);
     try {
       await widget.onContinue(
-        countryCode: 'LK',
-        phone: '+94${_phone.text.trim()}',
+        countryCode: _selectedCountryCode,
+        phone: '+$_selectedDialCode${_nationalPhoneNumber()}',
         referralCode: _referral.text.trim(),
       );
     } finally {
@@ -68,18 +132,25 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
             label: 'Country',
             icon: Icons.public_rounded,
             readOnly: true,
+            onTap: _selectCountry,
+            validator: (v) => v == null || v.trim().isEmpty
+                ? 'Select your country.'
+                : null,
           ),
           const SizedBox(height: 13),
           TradeXAuthField(
             controller: _phone,
             label: 'WhatsApp / Mobile Number',
             icon: Icons.phone_android_rounded,
-            prefixText: '+94 ',
+            // Displays the selected dialing prefix when the field is focused.
+            prefixText: '+$_selectedDialCode ',
             keyboardType: TextInputType.phone,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            validator: (v) => v == null || v.trim().length < 8
-                ? 'Enter a valid mobile number.'
-                : null,
+            textInputAction: TextInputAction.next,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(15),
+            ],
+            validator: _validatePhone,
           ),
           const SizedBox(height: 13),
           TradeXAuthField(

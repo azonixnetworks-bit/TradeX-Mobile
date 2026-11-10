@@ -75,6 +75,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     title: 'Create Your Account',
     subtitle: 'Join TradeX and start your professional trading journey.',
     onBack: widget.onBack,
+    pinBackToTop: true,
     securityDecor: true,
     centerContentVertically: true,
     keepDecorationFixedOnKeyboard: true,
@@ -85,7 +86,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Text(
           'Already have an account? ',
           style: TextStyle(
-            color: const Color(0xFF344054),
+            color: const Color.fromARGB(255, 0, 0, 0),
             fontSize: 14,
           ),
         ),
