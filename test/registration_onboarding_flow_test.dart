@@ -62,6 +62,42 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Continue accepts empty referral without calling validation API', (tester) async {
+    usePhone(tester);
+    String? submittedReferral;
+    var validationCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.light,
+        home: RegistrationDetailsScreen(
+          onBack: () {},
+          onContinue: ({required countryCode, required phone, required referralCode}) async {
+            submittedReferral = referralCode;
+          },
+          onCheckReferralCode: (_) async {
+            validationCalls++;
+            return false;
+          },
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextFormField).at(1), '771234567');
+    for (var index = 0; index < 3; index++) {
+      final checkbox = find.byType(CheckboxListTile).at(index);
+      await tester.ensureVisible(checkbox);
+      await tester.tap(checkbox);
+      await tester.pump();
+    }
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+
+    expect(submittedReferral, '');
+    expect(validationCalls, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('invalid referral is shown and cannot be treated as valid', (tester) async {
     usePhone(tester);
     await tester.pumpWidget(
