@@ -80,6 +80,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('TradeX Dashboard'), findsOneWidget);
     expect(verified, false);
-    expect(tester.takeException(), isNull);
+    // Let framework report the full render diagnostic if the dialog overflows.
   });
 }
