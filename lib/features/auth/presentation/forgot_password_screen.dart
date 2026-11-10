@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -15,18 +16,21 @@ class ForgotPasswordScreen extends StatefulWidget {
   final Future<void> Function({
     required String email,
     required String whatsappNumber,
-  })
-  onSubmit;
+  }) onSubmit;
 
   @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  State<ForgotPasswordScreen> createState() =>
+      _ForgotPasswordScreenState();
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _whatsappController = TextEditingController();
+  final TextEditingController _emailController =
+      TextEditingController();
+
+  final TextEditingController _whatsappController =
+      TextEditingController();
 
   bool _submitting = false;
   String? _errorMessage;
@@ -45,7 +49,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return 'Email address is required.';
     }
 
-    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+        .hasMatch(email)) {
       return 'Enter a valid email address.';
     }
 
@@ -104,20 +109,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     return TradeXAuthPage(
       title: 'Forgot Password',
-      subtitle: 'Confirm the email and WhatsApp number linked to your TradeX account.',
+
+      subtitle:
+          'Confirm the email and WhatsApp number linked to your TradeX account.',
+
       onBack: widget.onBack,
+
       decorTopAsset:
           'assets/auth_recovery_ui/subtle_gold_uptrend_candlesticks.png',
-      decorFooterAsset: 'assets/auth_recovery_ui/soft_ivory_wave_layers.png',
+
+      decorFooterAsset:
+          'assets/auth_recovery_ui/soft_ivory_wave_layers.png',
+
       child: Form(
         key: _formKey,
         child: Column(
           children: [
-            _RecoverySectionLabel(
-              asset: 'assets/auth_recovery_ui/minimalist_charcoal_envelope_icon.png',
+
+            // EMAIL HEADER — GOLD
+            const _RecoverySectionLabel(
+              icon: Icons.mail_outline_rounded,
+              iconColor: Color(0xFFD4A017),
               label: 'Recover with your email',
             ),
+
             const SizedBox(height: 10),
+
             TradeXAuthField(
               controller: _emailController,
               label: 'Email Address',
@@ -126,14 +143,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               textInputAction: TextInputAction.next,
               validator: _validateEmail,
             ),
+
             const SizedBox(height: 16),
+
             const _OrDivider(),
+
             const SizedBox(height: 16),
-            _RecoverySectionLabel(
-              asset: 'assets/auth_recovery_ui/minimal_chat_phone_icon.png',
+
+            // WHATSAPP HEADER — ORIGINAL PNG + GREEN
+            const _RecoverySectionLabel(
+              asset:
+                  'assets/auth_recovery_ui/minimal_chat_phone_icon.png',
+              iconColor: Color(0xFF25D366),
               label: 'Confirm your registered mobile',
             ),
+
             const SizedBox(height: 10),
+
             TradeXAuthField(
               controller: _whatsappController,
               label: 'WhatsApp Number',
@@ -141,7 +167,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               keyboardType: TextInputType.phone,
               textInputAction: TextInputAction.done,
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'[0-9+]'),
+                ),
                 LengthLimitingTextInputFormatter(16),
               ],
               validator: _validateWhatsApp,
@@ -151,16 +179,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 }
               },
             ),
+
             const SizedBox(height: 14),
+
             const TradeXInfoBanner(
-              message: 'For privacy, TradeX returns the same response whether or not the account details are eligible.',
+              message:
+                  'For privacy, TradeX returns the same response whether or not the account details are eligible.',
               icon: Icons.info_outline_rounded,
             ),
+
             if (_errorMessage != null) ...[
               const SizedBox(height: 14),
-              TradeXErrorBanner(message: _errorMessage!),
+              TradeXErrorBanner(
+                message: _errorMessage!,
+              ),
             ],
+
             const SizedBox(height: 18),
+
             TradeXGoldButton(
               label: 'Send Code',
               onPressed: _submit,
@@ -174,44 +210,84 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 }
 
+// EMAIL AND WHATSAPP HEADER ICON COMPONENT
 class _RecoverySectionLabel extends StatelessWidget {
-  const _RecoverySectionLabel({required this.asset, required this.label});
+  const _RecoverySectionLabel({
+    this.icon,
+    this.asset,
+    required this.iconColor,
+    required this.label,
+  });
 
-  final String asset;
+  final IconData? icon;
+  final String? asset;
+  final Color iconColor;
   final String label;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Image.asset(asset, width: 30, height: 30, fit: BoxFit.contain),
-      const SizedBox(width: 10),
-      Expanded(
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.titleSmall
-              ?.copyWith(fontWeight: FontWeight.w800),
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        if (asset != null)
+          Image.asset(
+            asset!,
+            width: 25,
+            height: 25,
+            fit: BoxFit.contain,
+            color: iconColor,
+            colorBlendMode: BlendMode.srcIn,
+          )
+        else
+          Icon(
+            icon ?? Icons.help_outline_rounded,
+            size: 25,
+            color: iconColor,
+          ),
+
+        const SizedBox(width: 10),
+
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context)
+                .textTheme
+                .titleSmall
+                ?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
+// OR DIVIDER — UNCHANGED
 class _OrDivider extends StatelessWidget {
   const _OrDivider();
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      const Expanded(child: Divider()),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Text(
-          'OR',
-          style: Theme.of(context).textTheme.labelSmall
-              ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 1.4),
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(child: Divider()),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            'OR',
+            style: Theme.of(context)
+                .textTheme
+                .labelSmall
+                ?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.4,
+                ),
+          ),
         ),
-      ),
-      const Expanded(child: Divider()),
-    ],
-  );
+
+        const Expanded(child: Divider()),
+      ],
+    );
+  }
 }
