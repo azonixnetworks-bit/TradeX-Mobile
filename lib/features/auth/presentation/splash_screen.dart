@@ -38,7 +38,7 @@ class _SplashScreenState extends State<SplashScreen> {
         backgroundColor: Color(0xFF020A12),
         body: SizedBox.expand(
           child: Image(
-            image: AssetImage('assets/branding/tradex_new_splash.png'),
+            image: AssetImage('assets/branding/tradex_bull_bear_trading_emblem.png'),
             fit: BoxFit.cover,
             alignment: Alignment.center,
             filterQuality: FilterQuality.high,
