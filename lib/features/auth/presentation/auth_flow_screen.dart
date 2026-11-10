@@ -81,9 +81,8 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   @override
   void initState() {
     super.initState();
-    _step = widget.quickUnlockConfig == null
-        ? _AuthStep.splash
-        : _AuthStep.login;
+    // Show the same branded splash on cold start, including quick unlock.
+    _step = _AuthStep.splash;
     _loadLoginHistory();
   }
 
