@@ -39,12 +39,11 @@ class _RegistrationPendingDashboardScreenState
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: const Row(
-          children: [
-            Icon(Icons.verified_user_outlined, color: Color(0xFFC28D12)),
-            SizedBox(width: 10),
-            Expanded(child: Text('Complete Your Verification')),
-          ],
+        icon: const Icon(Icons.verified_user_outlined, color: Color(0xFFC28D12)),
+        title: const Text(
+          'Complete Your Verification',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
         ),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
