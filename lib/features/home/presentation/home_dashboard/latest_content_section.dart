@@ -616,12 +616,14 @@ class _SectionTitle extends StatelessWidget {
     super.key,
     required this.icon,
     required this.title,
+    this.titleColor,
     this.action,
     this.onAction,
   });
 
   final IconData icon;
   final String title;
+  final Color? titleColor;
   final String? action;
   final VoidCallback? onAction;
 
@@ -634,8 +636,8 @@ class _SectionTitle extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
-              color: TradeXColors.primaryText,
+            style: TextStyle(
+              color: titleColor ?? TradeXColors.primaryText,
               fontSize: 19,
               fontWeight: FontWeight.w900,
             ),
