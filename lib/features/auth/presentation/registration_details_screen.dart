@@ -287,7 +287,9 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
             ),
           ],
           const SizedBox(height: 10),
-          CheckboxListTile(
+          Material(
+            type: MaterialType.transparency,
+            child: CheckboxListTile(
             value: _risk,
             onChanged: (v) => setState(() => _risk = v ?? false),
             controlAffinity: ListTileControlAffinity.leading,
@@ -300,7 +302,10 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
               ),
             ),
           ),
-          CheckboxListTile(
+
+          ),          Material(
+            type: MaterialType.transparency,
+            child: CheckboxListTile(
             value: _disclaimer,
             onChanged: (v) => setState(() => _disclaimer = v ?? false),
             controlAffinity: ListTileControlAffinity.leading,
@@ -313,7 +318,10 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
               ),
             ),
           ),
-          CheckboxListTile(
+
+          ),          Material(
+            type: MaterialType.transparency,
+            child: CheckboxListTile(
             value: _terms,
             onChanged: (v) => setState(() => _terms = v ?? false),
             controlAffinity: ListTileControlAffinity.leading,
@@ -326,7 +334,8 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
               ),
             ),
           ),
-          if (!_risk || !_disclaimer || !_terms)
+
+          ),          if (!_risk || !_disclaimer || !_terms)
             const Text(
               'Accept all three agreements to continue.',
               style: TextStyle(color: Color(0xFFFF7A7A), fontSize: 12),
