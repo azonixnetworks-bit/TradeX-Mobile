@@ -290,52 +290,52 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
           Material(
             type: MaterialType.transparency,
             child: CheckboxListTile(
-            value: _risk,
-            onChanged: (v) => setState(() => _risk = v ?? false),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              'I understand that I trade at my own risk.',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontSize: 13,
+              value: _risk,
+              onChanged: (v) => setState(() => _risk = v ?? false),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                'I understand that I trade at my own risk.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 13,
+                ),
               ),
             ),
           ),
-
-          ),          Material(
+          Material(
             type: MaterialType.transparency,
             child: CheckboxListTile(
-            value: _disclaimer,
-            onChanged: (v) => setState(() => _disclaimer = v ?? false),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              'I have read the Trade Disclaimer.',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontSize: 13,
+              value: _disclaimer,
+              onChanged: (v) => setState(() => _disclaimer = v ?? false),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                'I have read the Trade Disclaimer.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 13,
+                ),
               ),
             ),
           ),
-
-          ),          Material(
+          Material(
             type: MaterialType.transparency,
             child: CheckboxListTile(
-            value: _terms,
-            onChanged: (v) => setState(() => _terms = v ?? false),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              'I accept the Terms & Conditions.',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontSize: 13,
+              value: _terms,
+              onChanged: (v) => setState(() => _terms = v ?? false),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                'I accept the Terms & Conditions.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 13,
+                ),
               ),
             ),
           ),
-
-          ),          if (!_risk || !_disclaimer || !_terms)
+          if (!_risk || !_disclaimer || !_terms)
             const Text(
               'Accept all three agreements to continue.',
               style: TextStyle(color: Color(0xFFFF7A7A), fontSize: 12),
