@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/tradex_design_system.dart';
 
-class WelcomeScreen extends StatelessWidget {
+/// Welcome onboarding with swipeable introduction slides.
+/// The existing registration/login/skip callbacks remain unchanged.
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({
     super.key,
     required this.onGetStarted,
@@ -13,6 +15,20 @@ class WelcomeScreen extends StatelessWidget {
   final VoidCallback onGetStarted;
   final VoidCallback onSignIn;
   final VoidCallback onSkip;
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  final PageController _pageController = PageController();
+  int _activePage = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +62,7 @@ class WelcomeScreen extends StatelessWidget {
                             ),
                             const Spacer(),
                             TextButton(
-                              onPressed: onSkip,
+                              onPressed: widget.onSkip,
                               child: Text(
                                 'Skip',
                                 style: TextStyle(
@@ -58,71 +74,64 @@ class WelcomeScreen extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 22),
-                        Text.rich(
-                          TextSpan(
-                            children: [
-                              const TextSpan(text: 'Learn. Trade.\nGrow with '),
-                              TextSpan(
-                                text: 'TradeX.',
-                                style: TextStyle(color: palette.goldText),
+                        SizedBox(
+                          height: (viewport.maxHeight - 265).clamp(440.0, 720.0),
+                          child: PageView(
+                            controller: _pageController,
+                            onPageChanged: (index) {
+                              setState(() => _activePage = index);
+                            },
+                            children: const [
+                              _WelcomePage(
+                                titleFirstLine: 'Learn. Trade.',
+                                titleSecondPrefix: 'Grow with ',
+                                titleGold: 'TradeX.',
+                                description:
+                                    'Master the markets with expert education and access professional trading services — all in one app.',
+                                heroAsset:
+                                    'assets/auth_ui/welcome/bull_bear_stage.png',
+                              ),
+                              _WelcomePage(
+                                titleFirstLine: 'Powerful Trading',
+                                titleSecondPrefix: '',
+                                titleGold: 'Tools & Insights',
+                                description:
+                                    'Plan, analyze and trade smarter with professional tools, trade ideas, market news and real-time insights.',
+                                heroAsset:
+                                    'assets/auth_ui/welcome/trading_tools_hero.png',
+                              ),
+                              _WelcomePage(
+                                titleFirstLine: 'Build Your',
+                                titleSecondPrefix: 'Trading ',
+                                titleGold: 'Success',
+                                description:
+                                    'Learn, practice, copy trade, manage funded accounts and track your progress — all in one place.',
+                                heroAsset:
+                                    'assets/auth_ui/welcome/trading_success_hero.png',
                               ),
                             ],
-                          ),
-                          style: TextStyle(
-                            color: palette.primaryText,
-                            fontSize: 39,
-                            height: 1.08,
-                            letterSpacing: -1.15,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          'Master the markets with expert education and access professional trading services — all in one app.',
-                          style: TextStyle(
-                            color: palette.secondaryText,
-                            fontSize: 16,
-                            height: 1.42,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        SizedBox(
-                          height: (viewport.maxHeight * .34).clamp(
-                            250.0,
-                            360.0,
-                          ),
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                minHeight: 250,
-                                maxHeight: 360,
-                              ),
-                              child: const _WelcomeHero(),
-                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
                         _PrimaryWelcomeButton(
                           label: 'Get Started',
                           icon: Icons.arrow_forward_rounded,
-                          onPressed: onGetStarted,
+                          onPressed: widget.onGetStarted,
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
                           width: double.infinity,
                           height: 54,
                           child: OutlinedButton(
-                            onPressed: onSignIn,
+                            onPressed: widget.onSignIn,
                             style: OutlinedButton.styleFrom(
                               foregroundColor: palette.primaryText,
                               side: BorderSide(color: palette.borderStrong),
                               shape: RoundedRectangleBorder(
                                 borderRadius: TradeXRadii.control,
                               ),
-                              backgroundColor: palette.surface.withValues(
-                                alpha: .72,
-                              ),
+                              backgroundColor:
+                                  palette.surface.withValues(alpha: .72),
                             ),
                             child: const Text(
                               'Sign In',
@@ -134,7 +143,7 @@ class WelcomeScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        const Center(child: _PageIndicator()),
+                        Center(child: _PageIndicator(activeIndex: _activePage)),
                       ],
                     ),
                   ),
@@ -148,12 +157,81 @@ class WelcomeScreen extends StatelessWidget {
   }
 }
 
+class _WelcomePage extends StatelessWidget {
+  const _WelcomePage({
+    required this.titleFirstLine,
+    required this.titleSecondPrefix,
+    required this.titleGold,
+    required this.description,
+    required this.heroAsset,
+  });
+
+  final String titleFirstLine;
+  final String titleSecondPrefix;
+  final String titleGold;
+  final String description;
+  final String heroAsset;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: '$titleFirstLine\n$titleSecondPrefix'),
+              TextSpan(
+                text: titleGold,
+                style: TextStyle(color: palette.goldText),
+              ),
+            ],
+          ),
+          style: TextStyle(
+            color: palette.primaryText,
+            fontSize: 39,
+            height: 1.08,
+            letterSpacing: -1.15,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          description,
+          style: TextStyle(
+            color: palette.secondaryText,
+            fontSize: 16,
+            height: 1.42,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Expanded(
+          child: Center(
+            child: Image.asset(
+              heroAsset,
+              fit: BoxFit.contain,
+              alignment: Alignment.center,
+              filterQuality: FilterQuality.high,
+              errorBuilder: (context, error, stackTrace) => const Center(
+                child: Icon(Icons.broken_image_outlined, size: 42),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _PrimaryWelcomeButton extends StatelessWidget {
   const _PrimaryWelcomeButton({
     required this.label,
     required this.icon,
     required this.onPressed,
   });
+
   final String label;
   final IconData icon;
   final VoidCallback onPressed;
@@ -206,102 +284,38 @@ class _PrimaryWelcomeButton extends StatelessWidget {
 }
 
 class _PageIndicator extends StatelessWidget {
-  const _PageIndicator();
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Container(
-        width: 9,
-        height: 9,
-        decoration: BoxDecoration(
-          color: context.palette.goldText,
-          shape: BoxShape.circle,
-        ),
-      ),
-      const SizedBox(width: 10),
-      Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(
-          color: context.palette.borderStrong,
-          shape: BoxShape.circle,
-        ),
-      ),
-      const SizedBox(width: 10),
-      Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(
-          color: context.palette.borderStrong,
-          shape: BoxShape.circle,
-        ),
-      ),
-    ],
-  );
-}
+  const _PageIndicator({required this.activeIndex});
 
-class _WelcomeHero extends StatelessWidget {
-  const _WelcomeHero();
+  final int activeIndex;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, bounds) => Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.bottomCenter,
-      children: [
-        Positioned(
-          right: bounds.maxWidth * .05,
-          top: 0,
-          width: bounds.maxWidth * .58,
-          child: Image.asset(
-            'assets/auth_ui/welcome/3d_smartphone_with_rising_trading_chart.png',
-            fit: BoxFit.contain,
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (index) {
+        return Padding(
+          padding: EdgeInsets.only(left: index == 0 ? 0 : 10),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: index == activeIndex ? 9 : 8,
+            height: index == activeIndex ? 9 : 8,
+            decoration: BoxDecoration(
+              color: index == activeIndex
+                  ? palette.goldText
+                  : palette.borderStrong,
+              shape: BoxShape.circle,
+            ),
           ),
-        ),
-        Positioned(
-          left: bounds.maxWidth * .01,
-          bottom: 0,
-          width: bounds.maxWidth * .56,
-          child: Image.asset(
-            'assets/auth_ui/welcome/trading_strategy_market_analysis_books.png',
-            fit: BoxFit.contain,
-          ),
-        ),
-        Positioned(
-          left: bounds.maxWidth * .08,
-          bottom: bounds.maxHeight * .29,
-          width: bounds.maxWidth * .40,
-          child: Image.asset(
-            'assets/auth_ui/welcome/elegant_gold_tasseled_graduation_cap.png',
-            fit: BoxFit.contain,
-          ),
-        ),
-        Positioned(
-          right: 0,
-          bottom: 0,
-          width: bounds.maxWidth * .35,
-          child: Image.asset(
-            'assets/auth_ui/welcome/ascending_gold_growth_bars.png',
-            fit: BoxFit.contain,
-          ),
-        ),
-        Positioned(
-          right: bounds.maxWidth * .03,
-          bottom: bounds.maxHeight * .08,
-          width: bounds.maxWidth * .46,
-          child: Image.asset(
-            'assets/auth_ui/welcome/polished_golden_ascending_arrow.png',
-            fit: BoxFit.contain,
-          ),
-        ),
-      ],
-    ),
-  );
+        );
+      }),
+    );
+  }
 }
 
 class _WelcomeBackdrop extends StatelessWidget {
   const _WelcomeBackdrop();
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;

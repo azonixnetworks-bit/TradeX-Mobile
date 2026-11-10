@@ -19,6 +19,7 @@ class TradeXAuthPage extends StatelessWidget {
     this.highContrastText = false,
     this.decorTopAsset,
     this.decorFooterAsset,
+    this.pinBackToTop = false,
   });
 
   final String title;
@@ -28,6 +29,7 @@ class TradeXAuthPage extends StatelessWidget {
   final Widget? footer;
   final String? titleIconAsset;
   final bool securityDecor;
+  final bool pinBackToTop;
   // Registration-only UI options. Existing auth screens keep their defaults.
   final bool centerContentVertically;
   final bool keepDecorationFixedOnKeyboard;
@@ -83,7 +85,7 @@ class TradeXAuthPage extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            if (onBack != null)
+                            if (onBack != null && !pinBackToTop)
                               IconButton(
                                 onPressed: onBack,
                                 icon: Icon(
@@ -95,8 +97,8 @@ class TradeXAuthPage extends StatelessWidget {
                               const SizedBox(width: 48),
                             const Spacer(),
                             SizedBox(
-                              width: 76,
-                              height: 76,
+                              width: 210,
+                              height: 100,
                               child: Image.asset(
                                 'assets/branding/trade_x_final_logo.png',
                                 fit: BoxFit.contain,
@@ -173,6 +175,21 @@ class TradeXAuthPage extends StatelessWidget {
               },
             ),
           ),
+          if (pinBackToTop && onBack != null)
+            Positioned(
+              top: 0,
+              left: 8,
+              child: SafeArea(
+                child: IconButton(
+                  onPressed: onBack,
+                  icon: Icon(
+                    Icons.arrow_back_rounded,
+                    color: palette.primaryText,
+                  ),
+                  tooltip: 'Back',
+                ),
+              ),
+            ),
         ],
       ),
     );

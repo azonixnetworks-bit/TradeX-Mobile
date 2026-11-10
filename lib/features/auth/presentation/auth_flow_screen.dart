@@ -517,7 +517,10 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
           onContinue: _completeRegistrationDetails,
         );
       case _AuthStep.registerGate:
-        return RegistrationVerificationGateScreen(onVerify: _beginVerification);
+        return RegistrationVerificationGateScreen(
+          onVerify: _beginVerification,
+          onBack: () => _setStep(_AuthStep.registerLanguage),
+        );
 
       case _AuthStep.registerEmailOtp:
         return OtpVerificationScreen(
