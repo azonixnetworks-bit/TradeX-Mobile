@@ -7,11 +7,13 @@ on:
     paths:
       - 'lib/features/auth/**'
       - 'test/auth*'
+      - 'test/registration_onboarding_flow_test.dart'
       - '.github/workflows/registration-onboarding.yml'
   pull_request:
     paths:
       - 'lib/features/auth/**'
       - 'test/auth*'
+      - 'test/registration_onboarding_flow_test.dart'
       - '.github/workflows/registration-onboarding.yml'
 
 permissions:
@@ -29,5 +31,7 @@ jobs:
       - run: flutter pub get
       - name: Analyze registration code (errors are fatal)
         run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/features/auth
-      - name: Run auth model tests
-        run: flutter test test/auth_models_test.dart
+      - name: Run auth and onboarding widget tests
+        run: |
+          flutter test test/auth_models_test.dart
+          flutter test test/registration_onboarding_flow_test.dart
