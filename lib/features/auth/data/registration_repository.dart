@@ -14,7 +14,8 @@ class RegistrationRepository implements RegistrationRepositoryContract, Registra
     final response = await _apiClient.publicPost(
       '/api/v1/auth/register/referral/validate',
       <String, dynamic>{
-        'referral_code': referralCode.trim().toUpperCase(),
+        if (referralCode.trim().isNotEmpty)
+          'referral_code': referralCode.trim().toUpperCase(),
       },
     );
 

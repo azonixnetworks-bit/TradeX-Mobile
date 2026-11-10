@@ -38,6 +38,30 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('referral field is optional and empty is not validated', (tester) async {
+    usePhone(tester);
+    var validations = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.light,
+        home: RegistrationDetailsScreen(
+          onBack: () {},
+          onContinue: ({required countryCode, required phone, required referralCode}) async {},
+          onCheckReferralCode: (_) async {
+            validations++;
+            return false;
+          },
+        ),
+      ),
+    );
+
+    expect(find.text('Referral Code (Optional)'), findsOneWidget);
+    expect(find.text('Referral code is required.'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(validations, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('invalid referral is shown and cannot be treated as valid', (tester) async {
     usePhone(tester);
     await tester.pumpWidget(

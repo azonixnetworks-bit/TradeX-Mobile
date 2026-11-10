@@ -165,7 +165,9 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
     }
     _referralDebounce?.cancel();
     final code = _referral.text.trim().toUpperCase();
-    if (_referralIsValid != true) {
+    // The referral field is optional. Validate only when a code is entered.
+    // A supplied but invalid code still prevents registration.
+    if (code.isNotEmpty && _referralIsValid != true) {
       final valid = await _checkReferral(code, ++_referralRevision);
       if (!valid) return;
     }
@@ -233,7 +235,7 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
           const SizedBox(height: 13),
           TradeXAuthField(
             controller: _referral,
-            label: 'Referral Code',
+            label: 'Referral Code (Optional)',
             icon: Icons.local_activity_outlined,
             textCapitalization: TextCapitalization.characters,
             onChanged: _referralChanged,
@@ -259,9 +261,7 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
                     newValue.copyWith(text: newValue.text.toUpperCase()),
               ),
             ],
-            validator: (v) => v == null || v.trim().isEmpty
-                ? 'Referral code is required.'
-                : null,
+
           ),
           if (_referralError != null || _referralIsValid != null || _referralChecking) ...[
             const SizedBox(height: 6),

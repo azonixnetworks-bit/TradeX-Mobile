@@ -280,7 +280,8 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       throw StateError('Registration details are missing. Please start again.');
     }
 
-    if (!await _referralValidator.validateReferralCode(referralCode)) {
+    if (referralCode.trim().isNotEmpty &&
+        !await _referralValidator.validateReferralCode(referralCode)) {
       throw StateError('The referral code is invalid or unavailable.');
     }
 
