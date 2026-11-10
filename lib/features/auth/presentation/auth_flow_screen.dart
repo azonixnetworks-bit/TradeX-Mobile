@@ -177,7 +177,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       case _AuthStep.registerGate:
         _setStep(_AuthStep.pendingRegistrationDashboard);
       case _AuthStep.pendingRegistrationDashboard:
-        _setStep(_AuthStep.registerLanguage);
+        _setStep(_AuthStep.login);
       case _AuthStep.registerEmailOtp:
         _setStep(_AuthStep.pendingRegistrationDashboard);
       case _AuthStep.registerWhatsAppOtp:
@@ -318,11 +318,14 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   }
 
   Future<void> _beginVerification() async {
-    if (_registrationSession != null) {
-      _setStep(_AuthStep.registerEmailOtp);
+    final session = _registrationSession;
+    if (session == null || !session.expiresAt.isAfter(DateTime.now())) {
+      _clearRegistration();
+      _setStep(_AuthStep.register);
       return;
     }
-    throw StateError('Registration session is missing. Please start again.');
+
+    _setStep(_AuthStep.registerEmailOtp);
   }
 
   Future<void> _verifyRegistrationEmail(String code) async {
