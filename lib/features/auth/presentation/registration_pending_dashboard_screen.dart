@@ -38,6 +38,7 @@ class _RegistrationPendingDashboardScreenState
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         icon: const Icon(Icons.verified_user_outlined, color: Color(0xFFC28D12)),
         title: const Text(
@@ -185,15 +186,15 @@ class _VerificationPreviewRow extends StatelessWidget {
   final String title;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 5),
-    child: Row(
-      children: [
-        Icon(icon, size: 19, color: const Color(0xFFC28D12)),
-        const SizedBox(width: 10),
-        Expanded(child: Text(title)),
-        const Text('Pending', style: TextStyle(color: Color(0xFF8E620D), fontSize: 12)),
-      ],
+  Widget build(BuildContext context) => ListTile(
+    dense: true,
+    visualDensity: VisualDensity.compact,
+    contentPadding: EdgeInsets.zero,
+    leading: Icon(icon, size: 20, color: const Color(0xFFC28D12)),
+    title: Text(title, softWrap: true),
+    subtitle: const Text(
+      'Pending',
+      style: TextStyle(color: Color(0xFF8E620D), fontSize: 11),
     ),
   );
 }
