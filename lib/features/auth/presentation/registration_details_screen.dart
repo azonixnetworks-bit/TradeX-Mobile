@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +11,7 @@ class RegistrationDetailsScreen extends StatefulWidget {
     super.key,
     required this.onBack,
     required this.onContinue,
+    required this.onCheckReferralCode,
   });
 
   final VoidCallback onBack;
@@ -17,6 +20,7 @@ class RegistrationDetailsScreen extends StatefulWidget {
     required String phone,
     required String referralCode,
   }) onContinue;
+  final Future<bool> Function(String referralCode) onCheckReferralCode;
 
   @override
   State<RegistrationDetailsScreen> createState() =>
@@ -28,6 +32,12 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
   final _country = TextEditingController(text: 'Sri Lanka');
   final _phone = TextEditingController();
   final _referral = TextEditingController();
+  Timer? _referralDebounce;
+  int _referralRevision = 0;
+  bool? _referralIsValid;
+  bool _referralChecking = false;
+  String? _referralError;
+  String? _submitError;
 
   // Backend expects the two-letter ISO code (e.g. LK, IN, AE).
   String _selectedCountryCode = 'LK';
@@ -42,6 +52,7 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
   void dispose() {
     _country.dispose();
     _phone.dispose();
+    _referralDebounce?.cancel();
     _referral.dispose();
     super.dispose();
   }
@@ -99,18 +110,85 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
     return null;
   }
 
+  void _referralChanged(String value) {
+    _referralDebounce?.cancel();
+    final revision = ++_referralRevision;
+    final code = value.trim().toUpperCase();
+    setState(() {
+      _referralIsValid = null;
+      _referralChecking = false;
+      _referralError = null;
+      _submitError = null;
+    });
+    if (code.isEmpty) return;
+
+    // Debounce server lookups; stale responses are ignored.
+    _referralDebounce = Timer(const Duration(milliseconds: 500), () {
+      _checkReferral(code, revision);
+    });
+  }
+
+  Future<bool> _checkReferral(String code, int revision) async {
+    if (!mounted || code.isEmpty) return false;
+    setState(() {
+      _referralChecking = true;
+      _referralError = null;
+    });
+    try {
+      final valid = await widget.onCheckReferralCode(code);
+      if (!mounted ||
+          revision != _referralRevision ||
+          _referral.text.trim().toUpperCase() != code) {
+        return false;
+      }
+      setState(() {
+        _referralChecking = false;
+        _referralIsValid = valid;
+      });
+      return valid;
+    } catch (_) {
+      if (mounted && revision == _referralRevision) {
+        setState(() {
+          _referralChecking = false;
+          _referralIsValid = null;
+          _referralError = 'Unable to check referral code. Please retry.';
+        });
+      }
+      return false; // fail closed when network or backend is unavailable
+    }
+  }
+
   Future<void> _continue() async {
     if (!_form.currentState!.validate() || !_risk || !_disclaimer || !_terms) {
       setState(() {});
       return;
     }
-    setState(() => _loading = true);
+    _referralDebounce?.cancel();
+    final code = _referral.text.trim().toUpperCase();
+    if (_referralIsValid != true) {
+      final valid = await _checkReferral(code, ++_referralRevision);
+      if (!valid) return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _submitError = null;
+    });
     try {
+      // Laravel revalidates the referral atomically when starting registration.
       await widget.onContinue(
         countryCode: _selectedCountryCode,
         phone: '+$_selectedDialCode${_nationalPhoneNumber()}',
-        referralCode: _referral.text.trim(),
+        referralCode: code,
       );
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _referralIsValid = null;
+          _submitError = 'Unable to start registration. Check your details and referral code.';
+        });
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -158,6 +236,21 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
             label: 'Referral Code',
             icon: Icons.local_activity_outlined,
             textCapitalization: TextCapitalization.characters,
+            onChanged: _referralChanged,
+            suffixIcon: _referralChecking
+                ? const Padding(
+                    padding: EdgeInsets.all(14),
+                    child: SizedBox(
+                      width: 17,
+                      height: 17,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : _referralIsValid == true
+                    ? const Icon(Icons.check_circle_rounded, color: Color(0xFF16834A))
+                    : _referralIsValid == false
+                        ? const Icon(Icons.cancel_rounded, color: Color(0xFFD32F2F))
+                        : null,
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
               LengthLimitingTextInputFormatter(30),
@@ -170,6 +263,29 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
                 ? 'Referral code is required.'
                 : null,
           ),
+          if (_referralError != null || _referralIsValid != null || _referralChecking) ...[
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _referralError ??
+                    (_referralChecking
+                        ? 'Checking referral code…'
+                        : _referralIsValid == true
+                            ? 'Valid referral code'
+                            : 'Referral code is invalid or unavailable.'),
+                style: TextStyle(
+                  color: _referralIsValid == true
+                      ? const Color(0xFF16834A)
+                      : _referralChecking
+                          ? const Color(0xFF667085)
+                          : const Color(0xFFD32F2F),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           CheckboxListTile(
             value: _risk,
@@ -215,6 +331,14 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen> {
               'Accept all three agreements to continue.',
               style: TextStyle(color: Color(0xFFFF7A7A), fontSize: 12),
             ),
+          if (_submitError != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _submitError!,
+              style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ],
           const SizedBox(height: 12),
           TradeXGoldButton(
             label: 'Continue',
