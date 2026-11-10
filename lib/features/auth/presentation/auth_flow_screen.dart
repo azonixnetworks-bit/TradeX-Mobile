@@ -79,6 +79,14 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
   final PendingRegistrationStore _pendingStore = const PendingRegistrationStore();
   Future<void>? _pendingLoadFuture;
 
+  RegistrationReferralValidatorContract get _referralValidator {
+    final repository = widget.registrationRepository;
+    if (repository is RegistrationReferralValidatorContract) {
+      return repository;
+    }
+    throw StateError('Referral validation service is unavailable.');
+  }
+
   PasswordRecoverySession? _recoverySession;
 
   String _registrationEmail = '';
@@ -272,9 +280,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
       throw StateError('Registration details are missing. Please start again.');
     }
 
-    final validator = widget.registrationRepository;
-    if (validator is! RegistrationReferralValidatorContract ||
-        !await validator.validateReferralCode(referralCode)) {
+    if (!await _referralValidator.validateReferralCode(referralCode)) {
       throw StateError('The referral code is invalid or unavailable.');
     }
 
@@ -552,13 +558,7 @@ class _AuthFlowScreenState extends State<AuthFlowScreen> {
         return RegistrationDetailsScreen(
           onBack: () => _setStep(_AuthStep.register),
           onContinue: _completeRegistrationDetails,
-          onCheckReferralCode: (code) async {
-            final validator = widget.registrationRepository;
-            if (validator is! RegistrationReferralValidatorContract) {
-              throw StateError('Referral validation service is unavailable.');
-            }
-            return validator.validateReferralCode(code);
-          },
+          onCheckReferralCode: _referralValidator.validateReferralCode,
         );
       case _AuthStep.pendingRegistrationDashboard:
         return RegistrationPendingDashboardScreen(
