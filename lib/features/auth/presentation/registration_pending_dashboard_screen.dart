@@ -131,8 +131,13 @@ class _RegistrationPendingDashboardScreenState
                     children: [
                       Icon(Icons.lock_clock_outlined, color: Color(0xFF906411)),
                       SizedBox(width: 9),
-                      Text('Verification pending',
-                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+                      Expanded(
+                        child: Text(
+                          'Verification pending',
+                          softWrap: true,
+                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(height: 10),
