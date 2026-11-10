@@ -20,6 +20,9 @@ class RegistrationDetailsScreen extends StatefulWidget {
     required String phone,
     required String referralCode,
   }) onContinue;
+  /// Wired from AuthFlowScreen. The field is optional for the user, but
+  /// entered codes must be verified against the backend before continuing.
+  /// Keep this named callback in sync with auth_flow_screen.dart.
   final Future<bool> Function(String referralCode) onCheckReferralCode;
 
   @override
