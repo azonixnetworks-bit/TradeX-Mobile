@@ -62,6 +62,7 @@ class _HomeContent extends StatelessWidget {
                 key: const ValueKey('economic-news-title'),
                 icon: Icons.newspaper_rounded,
                 title: 'Economic News',
+                titleColor: Colors.black,
                 action: 'View all',
                 onAction: () => onActionTap('Economic News'),
               ),
