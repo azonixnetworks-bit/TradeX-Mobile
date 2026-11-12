@@ -105,7 +105,15 @@ void main() {
     expect(find.text('Economic News'), findsOneWidget);
     expect(find.byKey(const ValueKey('market-news-card-0')), findsOneWidget);
     expect(find.byKey(const ValueKey('market-news-card-3')), findsOneWidget);
-    expect(find.text('Federal Reserve holds rates steady'), findsOneWidget);
+    // The high-impact spotlight may show the same published event. This
+    // assertion searches the existing news grid rather than counting headlines.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('market-news-section')),
+        matching: find.text('Federal Reserve holds rates steady'),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey('market-news-artwork-icon-event-1')),
       findsOneWidget,
