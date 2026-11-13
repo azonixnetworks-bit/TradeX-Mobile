@@ -42,18 +42,18 @@ class TradeXPalette extends ThemeExtension<TradeXPalette> {
   final Color primaryButtonText;
 
   static const light = TradeXPalette(
-    background: Color(0xFFF5F7FA),
+    background: Color(0xFFFAF9FB),
     surface: Color(0xFFFFFFFF),
     surfaceRaised: Color(0xFFFFFFFF),
-    surfaceMuted: Color(0xFFEEF1F5),
+    surfaceMuted: Color(0xFFF5F3F6),
     primaryText: Color(0xFF101828),
     secondaryText: Color(0xFF5D6878),
     tertiaryText: Color(0xFF7B8493),
-    border: Color(0xFFE3E7ED),
-    borderStrong: Color(0xFFD2D8E1),
+    border: Color(0xFFE6E2E9),
+    borderStrong: Color(0xFFDAD5DF),
     gold: Color(0xFFD7B24A),
     goldText: Color(0xFF76550D),
-    goldSoft: Color(0xFFF7EFD8),
+    goldSoft: Color(0xFFFFF2D6),
     success: Color(0xFF067A55),
     error: Color(0xFFB42318),
     warning: Color(0xFF946200),
