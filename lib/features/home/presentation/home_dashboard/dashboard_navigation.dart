@@ -13,6 +13,7 @@ class _DashboardNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = TradeXPalette.of(context);
+    final compact = MediaQuery.sizeOf(context).width < 355;
 
     return SafeArea(
       top: false,
@@ -65,11 +66,15 @@ class _DashboardNavBar extends StatelessWidget {
                             curve: TradeXMotion.enter,
                             transform: Matrix4.translationValues(
                               0,
-                              selected ? -10 : 0,
+                              selected ? (compact ? -8 : -10) : 0,
                               0,
                             ),
-                            width: selected ? 50 : 42,
-                            height: selected ? 50 : 42,
+                            width: selected
+                                ? (compact ? 46 : 50)
+                                : (compact ? 40 : 42),
+                            height: selected
+                                ? (compact ? 46 : 50)
+                                : (compact ? 40 : 42),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: selected
@@ -123,7 +128,7 @@ class _DashboardNavBar extends StatelessWidget {
                                       style: theme.textTheme.labelSmall
                                           ?.copyWith(
                                             color: palette.goldText,
-                                            fontSize: 9.5,
+                                            fontSize: compact ? 8.75 : 9.5,
                                             fontWeight: FontWeight.w800,
                                             letterSpacing: 0,
                                           ),
