@@ -75,7 +75,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         ),
                         const SizedBox(height: 22),
                         SizedBox(
-                          height: (viewport.maxHeight - 265).clamp(440.0, 720.0),
+                          height: (viewport.maxHeight - 265).clamp(338.0, 720.0),
                           child: PageView(
                             controller: _pageController,
                             onPageChanged: (index) {
@@ -190,7 +190,7 @@ class _WelcomePage extends StatelessWidget {
           ),
           style: TextStyle(
             color: palette.primaryText,
-            fontSize: 39,
+            fontSize: MediaQuery.sizeOf(context).width < 360 ? 32 : 39,
             height: 1.08,
             letterSpacing: -1.15,
             fontWeight: FontWeight.w900,
