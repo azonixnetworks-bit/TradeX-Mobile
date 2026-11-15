@@ -76,32 +76,30 @@ class _MarketNewsSectionState extends State<_MarketNewsSection>
             );
           }
 
-          final visible = items.take(4).toList(growable: false);
-          return Container(
+          return SizedBox(
             key: const ValueKey('market-news-section'),
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-            decoration: _panelDecoration(context),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: visible.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 7,
-                    mainAxisSpacing: 7,
-                    childAspectRatio: 1.35,
-                  ),
-                  itemBuilder: (context, index) => _MarketNewsCard(
-                    key: ValueKey('market-news-card-$index'),
-                    item: visible[index],
-                    artworkIndex: index,
-                    onTap: widget.onOpenAll,
-                  ),
-                ),
-              ],
+            height: 190,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: List<Widget>.generate(items.length, (index) {
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      right: index == items.length - 1 ? 0 : 12,
+                    ),
+                    child: SizedBox(
+                      width: 300,
+                      child: _MarketNewsCard(
+                        key: ValueKey('market-news-card-$index'),
+                        item: items[index],
+                        artworkIndex: index,
+                        onTap: widget.onOpenAll,
+                      ),
+                    ),
+                  );
+                }),
+              ),
             ),
           );
         },

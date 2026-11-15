@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'dart:typed_data';
+
+import 'package:path_provider/path_provider.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/tradex_api_client.dart';
@@ -9,6 +12,8 @@ class TradeIdeasRepository implements DashboardTradeIdeasRepository {
   TradeIdeasRepository(this._apiClient, this.detailsRepository);
 
   final TradeXApiClient _apiClient;
+  static const _chartCacheLifetime = Duration(days: 7);
+  static Future<void>? _chartCacheCleanup;
   TradeXApiClient get apiClient => _apiClient;
   @override
   final TradeIdeaRepositoryContract detailsRepository;
@@ -47,14 +52,82 @@ class TradeIdeasRepository implements DashboardTradeIdeasRepository {
   @override
   Future<Uint8List?> chartBytes(DashboardTradeIdea idea) async {
     if (!idea.chartAvailable) return null;
+    final cached = await _readCachedChart(idea.uuid);
+    if (cached != null) return cached;
+
     try {
-      return await _apiClient.getBytes(
+      final bytes = await _apiClient.getBytes(
         '/api/v1/trade-ideas/${idea.uuid}/chart',
       );
+      if (bytes.isNotEmpty) await _writeCachedChart(idea.uuid, bytes);
+      return bytes;
     } on ApiException {
       return null;
     }
   }
+
+  Future<Uint8List?> _readCachedChart(String uuid) async {
+    try {
+      final directory = await _chartCacheDirectory();
+      _chartCacheCleanup ??= _removeExpiredCharts(directory);
+      await _chartCacheCleanup;
+      final file = File(
+        '${directory.path}${Platform.pathSeparator}${_safeChartName(uuid)}.img',
+      );
+      if (!await file.exists()) return null;
+      final modifiedAt = await file.lastModified();
+      if (DateTime.now().difference(modifiedAt) >= _chartCacheLifetime) {
+        await file.delete();
+        return null;
+      }
+      final bytes = await file.readAsBytes();
+      return bytes.isEmpty ? null : bytes;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _writeCachedChart(String uuid, Uint8List bytes) async {
+    try {
+      final directory = await _chartCacheDirectory();
+      final destination = File(
+        '${directory.path}${Platform.pathSeparator}${_safeChartName(uuid)}.img',
+      );
+      final temporary = File('${destination.path}.tmp');
+      await temporary.writeAsBytes(bytes, flush: true);
+      if (await destination.exists()) await destination.delete();
+      await temporary.rename(destination.path);
+    } catch (_) {
+      // A cache write failure must never hide a chart fetched from Laravel.
+    }
+  }
+
+  Future<Directory> _chartCacheDirectory() async {
+    final support = await getApplicationSupportDirectory();
+    final directory = Directory(
+      '${support.path}${Platform.pathSeparator}trade_idea_charts',
+    );
+    if (!await directory.exists()) await directory.create(recursive: true);
+    return directory;
+  }
+
+  Future<void> _removeExpiredCharts(Directory directory) async {
+    final now = DateTime.now();
+    await for (final entity in directory.list()) {
+      if (entity is! File || entity.path.endsWith('.tmp')) continue;
+      try {
+        final modifiedAt = await entity.lastModified();
+        if (now.difference(modifiedAt) >= _chartCacheLifetime) {
+          await entity.delete();
+        }
+      } catch (_) {
+        // Continue cleaning the remaining cached charts.
+      }
+    }
+  }
+
+  String _safeChartName(String uuid) =>
+      uuid.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
 
   @override
   Future<Map<String, dynamic>> react(
