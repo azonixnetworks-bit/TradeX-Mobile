@@ -411,15 +411,10 @@ class _TradeChartPreview extends StatelessWidget {
 }
 
 class _SignalValue extends StatelessWidget {
-  const _SignalValue({
-    required this.label,
-    required this.value,
-    this.valueColor = const Color(0xFF171717),
-  });
+  const _SignalValue({required this.label, required this.value});
 
   final String label;
   final String value;
-  final Color valueColor;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -438,8 +433,8 @@ class _SignalValue extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: valueColor,
+            style: const TextStyle(
+              color: Color(0xFF171717),
               fontSize: 10,
               fontWeight: FontWeight.w800,
             ),

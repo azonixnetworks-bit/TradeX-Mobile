@@ -78,7 +78,10 @@ class _HomeContent extends StatelessWidget {
                     onAction: () => onActionTap('Market categories'),
                   ),
                   const SizedBox(height: 10),
-                  _CategoryGrid(onTap: onActionTap),
+                  _CategoryGrid(
+                    repository: tradeIdeasRepository,
+                    onTap: onActionTap,
+                  ),
                   const SizedBox(height: 20),
                   _SectionTitle(
                     icon: Icons.menu_book_rounded,

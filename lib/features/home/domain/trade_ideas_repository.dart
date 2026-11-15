@@ -6,6 +6,10 @@ abstract interface class DashboardTradeIdeasRepository {
   TradeIdeaRepositoryContract get detailsRepository;
   Future<List<DashboardTradeIdea>> latestThree();
   Future<List<DashboardTradeIdea>> latestCrypto({int limit = 5});
+  Future<List<DashboardTradeIdea>> latestByCategory(
+    String category, {
+    int limit = 50,
+  });
   Future<Uint8List?> chartBytes(DashboardTradeIdea idea);
   Future<Map<String, dynamic>> react(DashboardTradeIdea idea, String? reaction);
 }
@@ -27,6 +31,7 @@ class DashboardTradeIdea {
     required this.likesCount,
     required this.dislikesCount,
     required this.viewerReaction,
+    required this.publishedAt,
   });
 
   factory DashboardTradeIdea.fromJson(Map<String, dynamic> json) {
@@ -79,6 +84,7 @@ class DashboardTradeIdea {
       viewerReaction: reactions is Map
           ? reactions['viewer_reaction']?.toString()
           : null,
+      publishedAt: DateTime.tryParse(json['published_at']?.toString() ?? ''),
     );
   }
 
@@ -97,6 +103,7 @@ class DashboardTradeIdea {
   int likesCount;
   int dislikesCount;
   String? viewerReaction;
+  final DateTime? publishedAt;
 
   void applyReaction(String? next) {
     if (viewerReaction == next) return;

@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/activity/activity_tracking_scope.dart';
 import '../../../core/domain/user_facing_exception.dart';
@@ -61,3 +62,4 @@ part 'home_dashboard/trade_ideas_tab_widgets.dart';
 part 'home_dashboard/affiliate_tab_widgets.dart';
 part 'home_dashboard/dashboard_navigation.dart';
 part 'home_dashboard/home_shared_widgets.dart';
+part 'home_dashboard/market_category_trade_ideas_screen.dart';

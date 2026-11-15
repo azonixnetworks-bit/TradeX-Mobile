@@ -198,6 +198,29 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       _selectTab(2);
       return;
     }
+    const marketCategories = <String>{
+      'forex',
+      'commodities',
+      'indices',
+      'crypto',
+    };
+    if (normalized.endsWith(' trade ideas')) {
+      final category = normalized.substring(
+        0,
+        normalized.length - ' trade ideas'.length,
+      );
+      if (marketCategories.contains(category)) {
+        Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(
+            builder: (_) => _MarketCategoryTradeIdeasScreen(
+              category: category[0].toUpperCase() + category.substring(1),
+              repository: widget.dependencies.dashboardTradeIdeasRepository,
+            ),
+          ),
+        );
+        return;
+      }
+    }
     if (normalized == 'economic news') {
       Navigator.of(context).push<void>(
         MaterialPageRoute<void>(

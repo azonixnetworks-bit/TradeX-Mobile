@@ -1,9 +1,103 @@
 part of '../home_dashboard_screen.dart';
 
-class _CategoryGrid extends StatelessWidget {
-  const _CategoryGrid({required this.onTap});
+class _CategoryGrid extends StatefulWidget {
+  const _CategoryGrid({required this.repository, required this.onTap});
 
+  final DashboardTradeIdeasRepository repository;
   final ValueChanged<String> onTap;
+
+  @override
+  State<_CategoryGrid> createState() => _CategoryGridState();
+}
+
+class _CategoryGridState extends State<_CategoryGrid>
+    with WidgetsBindingObserver {
+  static const _categoryLabels = <String>[
+    'Forex',
+    'Commodities',
+    'Indices',
+    'Crypto',
+  ];
+  final Map<String, int> _unread = {};
+  final Map<String, List<DashboardTradeIdea>> _loadedIdeas = {};
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_refreshBadges());
+    _refreshTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => unawaited(_refreshBadges()),
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(_refreshBadges());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshBadges() async {
+    final preferences = await SharedPreferences.getInstance();
+    final results = await Future.wait(
+      _categoryLabels.map((label) async {
+        try {
+          final ideas = await widget.repository.latestByCategory(
+            _marketApiCategory(label),
+          );
+          final seen =
+              preferences
+                  .getStringList(
+                    'tradex.market_category_seen.${label.toLowerCase()}',
+                  )
+                  ?.toSet() ??
+              <String>{};
+          return (
+            label: label,
+            ideas: ideas,
+            unread: ideas.where((idea) => !seen.contains(idea.uuid)).length,
+          );
+        } catch (_) {
+          return (label: label, ideas: const <DashboardTradeIdea>[], unread: 0);
+        }
+      }),
+    );
+    if (!mounted) return;
+    setState(() {
+      for (final result in results) {
+        _loadedIdeas[result.label] = result.ideas;
+        _unread[result.label] = result.unread;
+      }
+    });
+  }
+
+  Future<void> _openCategory(String label) async {
+    var ideas = _loadedIdeas[label] ?? const <DashboardTradeIdea>[];
+    if (ideas.isEmpty) {
+      try {
+        ideas = await widget.repository.latestByCategory(
+          _marketApiCategory(label),
+        );
+      } catch (_) {
+        // Navigation remains available when the badge refresh is offline.
+      }
+    }
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setStringList(
+      'tradex.market_category_seen.${label.toLowerCase()}',
+      ideas.map((idea) => idea.uuid).toList(growable: false),
+    );
+    if (mounted) setState(() => _unread[label] = 0);
+    widget.onTap('$label trade ideas');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +143,9 @@ class _CategoryGrid extends StatelessWidget {
         itemBuilder: (context, index) {
           final category = categories[index];
           return SizedBox(
-            key: ValueKey('home-market-category-${category.label.toLowerCase()}'),
+            key: ValueKey(
+              'home-market-category-${category.label.toLowerCase()}',
+            ),
             width: 184,
             child: _CategoryTile(
               label: category.label,
@@ -57,7 +153,8 @@ class _CategoryGrid extends StatelessWidget {
               accent: category.accent,
               imageAsset: category.imageAsset,
               iconAsset: category.iconAsset,
-              onTap: () => onTap('${category.label} trade ideas'),
+              unreadCount: _unread[category.label] ?? 0,
+              onTap: () => unawaited(_openCategory(category.label)),
             ),
           );
         },
@@ -73,6 +170,7 @@ class _CategoryTile extends StatelessWidget {
     required this.accent,
     required this.imageAsset,
     required this.iconAsset,
+    required this.unreadCount,
     required this.onTap,
   });
 
@@ -81,6 +179,7 @@ class _CategoryTile extends StatelessWidget {
   final Color accent;
   final String imageAsset;
   final String iconAsset;
+  final int unreadCount;
   final VoidCallback onTap;
 
   @override
@@ -115,10 +214,7 @@ class _CategoryTile extends StatelessWidget {
           child: Ink(
             decoration: BoxDecoration(
               borderRadius: cornerRadius,
-              border: Border.all(
-                color: const Color(0xFFDAAA45),
-                width: 1.1,
-              ),
+              border: Border.all(color: const Color(0xFFDAAA45), width: 1.1),
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -135,9 +231,7 @@ class _CategoryTile extends StatelessWidget {
                 children: [
                   const Positioned.fill(
                     child: IgnorePointer(
-                      child: CustomPaint(
-                        painter: _SessionCardFinishPainter(),
-                      ),
+                      child: CustomPaint(painter: _SessionCardFinishPainter()),
                     ),
                   ),
                   Positioned(
@@ -248,6 +342,37 @@ class _CategoryTile extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 7,
+                      top: 7,
+                      child: Container(
+                        constraints: const BoxConstraints(minWidth: 21),
+                        height: 21,
+                        padding: const EdgeInsets.symmetric(horizontal: 5),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD6A23A),
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(color: Colors.white, width: 1.5),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x33000000),
+                              blurRadius: 5,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          unreadCount > 99 ? '99+' : '$unreadCount',
+                          style: const TextStyle(
+                            color: Color(0xFF171308),
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -257,6 +382,12 @@ class _CategoryTile extends StatelessWidget {
     );
   }
 }
+
+String _marketApiCategory(String label) => switch (label.toLowerCase()) {
+  'commodities' => 'DERIV',
+  'indices' => 'STOCKS',
+  _ => label.toUpperCase(),
+};
 
 class _LatestContentCard extends StatefulWidget {
   const _LatestContentCard({

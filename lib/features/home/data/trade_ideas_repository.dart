@@ -25,6 +25,15 @@ class TradeIdeasRepository implements DashboardTradeIdeasRepository {
   Future<List<DashboardTradeIdea>> latestCrypto({int limit = 5}) =>
       _latest(perPage: limit.clamp(1, 20).toInt(), category: 'CRYPTO');
 
+  @override
+  Future<List<DashboardTradeIdea>> latestByCategory(
+    String category, {
+    int limit = 50,
+  }) => _latest(
+    perPage: limit.clamp(1, 100).toInt(),
+    category: category.toUpperCase(),
+  );
+
   Future<List<DashboardTradeIdea>> _latest({
     required int perPage,
     String? category,
