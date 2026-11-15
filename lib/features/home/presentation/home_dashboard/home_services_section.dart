@@ -20,6 +20,7 @@ class _HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final homeHeadingColor = context.isDarkMode ? Colors.white : Colors.black;
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
@@ -27,26 +28,6 @@ class _HomeContent extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned(
-                    top: -24,
-                    right: 16,
-                    child: IgnorePointer(
-                      child: Opacity(
-                        opacity: context.isDarkMode ? .12 : .38,
-                        child: Image.asset(
-                          'assets/home_ui/complex_png/delicate_golden_candlestick_trend.png',
-                          width: 150,
-                        ),
-                      ),
-                    ),
-                  ),
-                  _Header(onLogout: onLogout, onNotificationTap: onActionTap),
-                ],
-              ),
-              const SizedBox(height: 14),
               _SectionTitle(
                 icon: Icons.apps_rounded,
                 title: 'Services',
@@ -62,7 +43,7 @@ class _HomeContent extends StatelessWidget {
                 key: const ValueKey('economic-news-title'),
                 icon: Icons.newspaper_rounded,
                 title: 'Economic News',
-                titleColor: Colors.black,
+                titleColor: homeHeadingColor,
                 action: 'View all',
                 onAction: () => onActionTap('Economic News'),
               ),
@@ -75,6 +56,7 @@ class _HomeContent extends StatelessWidget {
               _SectionTitle(
                 icon: Icons.bar_chart_rounded,
                 title: 'Market Categories',
+                titleColor: homeHeadingColor,
                 action: 'View all',
                 onAction: () => onActionTap('Market categories'),
               ),
@@ -84,6 +66,7 @@ class _HomeContent extends StatelessWidget {
               _SectionTitle(
                 icon: Icons.menu_book_rounded,
                 title: 'Continue Learning',
+                titleColor: homeHeadingColor,
                 action: 'View all',
                 onAction: () => onActionTap('Learning library'),
               ),
@@ -96,6 +79,7 @@ class _HomeContent extends StatelessWidget {
               _SectionTitle(
                 icon: Icons.lightbulb_rounded,
                 title: 'Latest Trade Idea',
+                titleColor: homeHeadingColor,
                 action: 'View all',
                 onAction: () => onActionTap('Trade ideas'),
               ),
@@ -108,6 +92,7 @@ class _HomeContent extends StatelessWidget {
               _SectionTitle(
                 icon: Icons.article_rounded,
                 title: 'Latest from TradeX',
+                titleColor: homeHeadingColor,
                 action: 'View all',
                 onAction: () => onActionTap('TradeX content'),
               ),
@@ -128,65 +113,6 @@ class _HomeContent extends StatelessWidget {
               ),
             ]),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.onLogout, required this.onNotificationTap});
-
-  final Future<void> Function() onLogout;
-  final ValueChanged<String> onNotificationTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Image.asset(
-          'assets/branding/trade_x_wordmark.png',
-          width: 136,
-          height: 36,
-          fit: BoxFit.contain,
-        ),
-        const Spacer(),
-        IconButton(
-          tooltip: 'Notifications',
-          onPressed: () => onNotificationTap('Notifications'),
-          icon: Badge(
-            smallSize: 9,
-            backgroundColor: TradeXColors.goldBright,
-            child: SvgPicture.asset(
-              'assets/home_ui/simple_svg/notification_bell.svg',
-              width: 23,
-              height: 23,
-              colorFilter: ColorFilter.mode(
-                Theme.of(context).colorScheme.onSurface,
-                BlendMode.srcIn,
-              ),
-            ),
-          ),
-        ),
-        PopupMenuButton<String>(
-          color: context.palette.surfaceRaised,
-          icon: SvgPicture.asset(
-            'assets/home_ui/simple_svg/profile_user.svg',
-            width: 23,
-            height: 23,
-            colorFilter: ColorFilter.mode(
-              context.palette.goldText,
-              BlendMode.srcIn,
-            ),
-          ),
-          onSelected: (value) async {
-            if (value == 'logout') await onLogout();
-            if (value == 'services') onNotificationTap('Services');
-          },
-          itemBuilder: (context) => const [
-            PopupMenuItem(value: 'services', child: Text('TradeX services')),
-            PopupMenuItem(value: 'logout', child: Text('Sign out')),
-          ],
         ),
       ],
     );

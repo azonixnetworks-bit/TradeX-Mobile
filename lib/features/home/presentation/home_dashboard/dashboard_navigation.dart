@@ -1,6 +1,53 @@
 part of '../home_dashboard_screen.dart';
 
-class _DashboardNavBar extends StatelessWidget {
+class _DashboardTopBar extends StatelessWidget {
+  const _DashboardTopBar({required this.onNotifications});
+
+  final VoidCallback onNotifications;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TradeXPalette.of(context);
+    return Container(
+      key: const ValueKey('dashboard-top-bar'),
+      height: 64,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: palette.background,
+        border: Border(
+          bottom: BorderSide(color: palette.gold.withValues(alpha: .18)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Image.asset(
+            'assets/branding/trade_x_wordmark.png',
+            width: 136,
+            height: 36,
+            fit: BoxFit.contain,
+          ),
+          const Spacer(),
+          IconButton(
+            key: const ValueKey('dashboard-notifications-button'),
+            tooltip: 'Notifications',
+            onPressed: onNotifications,
+            icon: Badge(
+              smallSize: 9,
+              backgroundColor: TradeXColors.goldBright,
+              child: Icon(
+                Icons.notifications_none_rounded,
+                color: palette.goldText,
+                size: 25,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardNavBar extends StatefulWidget {
   const _DashboardNavBar({
     required this.selectedIndex,
     required this.onChanged,
@@ -10,137 +57,216 @@ class _DashboardNavBar extends StatelessWidget {
   final ValueChanged<int> onChanged;
 
   @override
+  State<_DashboardNavBar> createState() => _DashboardNavBarState();
+}
+
+class _DashboardNavBarState extends State<_DashboardNavBar> {
+  late double _previousIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _previousIndex = widget.selectedIndex.toDouble();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DashboardNavBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedIndex != widget.selectedIndex) {
+      _previousIndex = oldWidget.selectedIndex.toDouble();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final palette = TradeXPalette.of(context);
-
+    final dark = theme.brightness == Brightness.dark;
     return SafeArea(
       top: false,
-      minimum: const EdgeInsets.fromLTRB(
-        TradeXSpacing.sm,
-        TradeXSpacing.xs,
-        TradeXSpacing.sm,
-        TradeXSpacing.xs,
-      ),
-      child: SizedBox(
-        key: const ValueKey('dashboard-nav-root'),
-        height: 78,
-        child: Container(
-          key: const ValueKey('dashboard-nav-surface'),
-          padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
-          decoration: BoxDecoration(
-            color: palette.navBackground,
-            borderRadius: BorderRadius.circular(TradeXRadii.xl),
-            boxShadow: TradeXElevation.floating(
-              brightness: theme.brightness,
-              palette: palette,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final itemWidth = constraints.maxWidth / _tabItems.length;
+          return TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 420),
+            curve: Curves.easeOutBack,
+            tween: Tween<double>(
+              begin: _previousIndex,
+              end: widget.selectedIndex.toDouble(),
             ),
-          ),
-          child: Row(
-            children: List<Widget>.generate(_tabItems.length, (index) {
-              final item = _tabItems[index];
-              final selected = index == selectedIndex;
-
-              return Expanded(
-                child: Semantics(
-                  label: item.label,
-                  selected: selected,
-                  button: true,
-                  child: InkWell(
-                    key: ValueKey('dashboard-nav-item-$index'),
-                    onTap: () => onChanged(index),
-                    borderRadius: BorderRadius.circular(TradeXRadii.lg),
-                    child: AnimatedContainer(
-                      key: selected
-                          ? ValueKey('dashboard-nav-selected-$index')
-                          : null,
-                      duration: TradeXMotion.standard,
-                      curve: TradeXMotion.enter,
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AnimatedContainer(
-                            duration: TradeXMotion.standard,
-                            curve: TradeXMotion.enter,
-                            transform: Matrix4.translationValues(
-                              0,
-                              selected ? -10 : 0,
-                              0,
-                            ),
-                            width: selected ? 50 : 42,
-                            height: selected ? 50 : 42,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: selected
-                                  ? LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [palette.goldText, palette.gold],
-                                    )
-                                  : null,
-                              color: selected ? null : Colors.transparent,
-                              border: selected
-                                  ? Border.all(
-                                      color: palette.background,
-                                      width: 4,
-                                    )
-                                  : null,
-                              boxShadow: selected
-                                  ? [
-                                      BoxShadow(
-                                        color: palette.gold.withValues(
-                                          alpha: .34,
-                                        ),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 7),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Icon(
-                              item.icon,
-                              size: selected ? 23 : 21,
-                              color: selected
-                                  ? palette.primaryButtonText
-                                  : palette.secondaryText,
-                            ),
+            builder: (context, activeIndex, child) {
+              final activeCenter = (activeIndex + .5) * itemWidth;
+              return SizedBox(
+                key: const ValueKey('dashboard-nav-root'),
+                height: 82,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(
+                      top: 17,
+                      child: ClipPath(
+                        clipper: _TradeXNavNotchClipper(
+                          notchCenter: activeCenter,
+                        ),
+                        child: Container(
+                          key: const ValueKey('dashboard-nav-surface'),
+                          decoration: BoxDecoration(
+                            color: dark
+                                ? const Color(0xFF0A100E)
+                                : theme.colorScheme.surface,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: .38),
+                                blurRadius: 18,
+                                offset: const Offset(0, -5),
+                              ),
+                            ],
                           ),
-                          AnimatedSwitcher(
-                            duration: TradeXMotion.quick,
-                            child: selected
-                                ? Transform.translate(
-                                    key: ValueKey('label-${item.label}'),
-                                    offset: const Offset(0, -8),
-                                    child: Text(
-                                      item.label,
-                                      key: ValueKey(
-                                        'dashboard-nav-label-$index',
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.labelSmall
-                                          ?.copyWith(
-                                            color: palette.goldText,
-                                            fontSize: 9.5,
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: 0,
-                                          ),
-                                    ),
-                                  )
-                                : const SizedBox.shrink(key: ValueKey('empty')),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
+                    Positioned(
+                      left: activeCenter - 25,
+                      top: 0,
+                      child: Container(
+                        key: ValueKey(
+                          'dashboard-nav-selected-${widget.selectedIndex}',
+                        ),
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFFFE58E), TradeXColors.gold],
+                          ),
+                          border: Border.all(
+                            color: const Color(0xFFFFF1AD),
+                            width: 1.4,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: TradeXColors.goldBright.withValues(
+                                alpha: .45,
+                              ),
+                              blurRadius: 16,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          _tabItems[widget.selectedIndex].icon,
+                          color: const Color(0xFF171308),
+                          size: 25,
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      top: 15,
+                      child: Row(
+                        children: List.generate(_tabItems.length, (index) {
+                          final item = _tabItems[index];
+                          final selected = index == widget.selectedIndex;
+                          return Expanded(
+                            child: Semantics(
+                              label: item.label,
+                              selected: selected,
+                              button: true,
+                              child: InkWell(
+                                key: ValueKey('dashboard-nav-item-$index'),
+                                onTap: () => widget.onChanged(index),
+                                borderRadius: BorderRadius.circular(24),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      AnimatedOpacity(
+                                        duration: const Duration(
+                                          milliseconds: 180,
+                                        ),
+                                        opacity: selected ? 0 : 1,
+                                        child: Icon(
+                                          item.icon,
+                                          size: 21,
+                                          color: dark
+                                              ? TradeXColors.secondaryText
+                                              : theme
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                        ),
+                                      ),
+                                      SizedBox(height: selected ? 19 : 3),
+                                      ClipRect(
+                                        child: AnimatedSize(
+                                          duration: const Duration(
+                                            milliseconds: 220,
+                                          ),
+                                          curve: Curves.easeOut,
+                                          child: selected
+                                              ? Text(
+                                                  item.label,
+                                                  key: ValueKey(
+                                                    'dashboard-nav-label-$index',
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    color:
+                                                        TradeXColors.goldBright,
+                                                    fontSize: 9.5,
+                                                    fontWeight: FontWeight.w900,
+                                                  ),
+                                                )
+                                              : const SizedBox.shrink(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
                 ),
               );
-            }),
-          ),
-        ),
+            },
+          );
+        },
       ),
     );
+  }
+}
+
+class _TradeXNavNotchClipper extends CustomClipper<Path> {
+  const _TradeXNavNotchClipper({required this.notchCenter});
+
+  final double notchCenter;
+
+  @override
+  Path getClip(Size size) {
+    const radius = 34.0;
+    const depth = 25.0;
+    final start = (notchCenter - radius).clamp(0.0, size.width).toDouble();
+    final end = (notchCenter + radius).clamp(0.0, size.width).toDouble();
+    final path = Path()..lineTo(start, 0);
+    path.cubicTo(start + 10, 0, notchCenter - 19, depth, notchCenter, depth);
+    path.cubicTo(notchCenter + 19, depth, end - 10, 0, end, 0);
+    path
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant _TradeXNavNotchClipper oldClipper) {
+    return oldClipper.notchCenter != notchCenter;
   }
 }

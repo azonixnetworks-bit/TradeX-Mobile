@@ -284,61 +284,72 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           child: Scaffold(
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             body: SafeArea(
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onHorizontalDragStart: _beginHorizontalSwipe,
-                onHorizontalDragUpdate: _updateHorizontalSwipe,
-                onHorizontalDragEnd: _finishHorizontalSwipe,
-                onHorizontalDragCancel: () => _horizontalDragDistance = 0,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: _SmoothIndexedStack(
-                        key: const ValueKey('main-menu-page-view'),
-                        index: selectedTab,
-                        children: List<Widget>.generate(
-                          5,
-                          (index) => TickerMode(
-                            enabled: index == selectedTab,
-                            child: _tabPages[index] ?? const SizedBox.shrink(),
+              child: Column(
+                children: [
+                  _DashboardTopBar(
+                    onNotifications: () => _openAction('notifications'),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onHorizontalDragStart: _beginHorizontalSwipe,
+                      onHorizontalDragUpdate: _updateHorizontalSwipe,
+                      onHorizontalDragEnd: _finishHorizontalSwipe,
+                      onHorizontalDragCancel: () => _horizontalDragDistance = 0,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: _SmoothIndexedStack(
+                              key: const ValueKey('main-menu-page-view'),
+                              index: selectedTab,
+                              children: List<Widget>.generate(
+                                5,
+                                (index) => TickerMode(
+                                  enabled: index == selectedTab,
+                                  child:
+                                      _tabPages[index] ??
+                                      const SizedBox.shrink(),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                          if (selectedTab > 0)
+                            Positioned(
+                              left: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: 24,
+                              child: GestureDetector(
+                                key: const ValueKey('dashboard-swipe-previous'),
+                                behavior: HitTestBehavior.translucent,
+                                onHorizontalDragStart: _beginHorizontalSwipe,
+                                onHorizontalDragUpdate: _updateHorizontalSwipe,
+                                onHorizontalDragEnd: _finishHorizontalSwipe,
+                                onHorizontalDragCancel: () =>
+                                    _horizontalDragDistance = 0,
+                              ),
+                            ),
+                          if (selectedTab < 4)
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: 24,
+                              child: GestureDetector(
+                                key: const ValueKey('dashboard-swipe-next'),
+                                behavior: HitTestBehavior.translucent,
+                                onHorizontalDragStart: _beginHorizontalSwipe,
+                                onHorizontalDragUpdate: _updateHorizontalSwipe,
+                                onHorizontalDragEnd: _finishHorizontalSwipe,
+                                onHorizontalDragCancel: () =>
+                                    _horizontalDragDistance = 0,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                    if (selectedTab > 0)
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: 24,
-                        child: GestureDetector(
-                          key: const ValueKey('dashboard-swipe-previous'),
-                          behavior: HitTestBehavior.translucent,
-                          onHorizontalDragStart: _beginHorizontalSwipe,
-                          onHorizontalDragUpdate: _updateHorizontalSwipe,
-                          onHorizontalDragEnd: _finishHorizontalSwipe,
-                          onHorizontalDragCancel: () =>
-                              _horizontalDragDistance = 0,
-                        ),
-                      ),
-                    if (selectedTab < 4)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: 24,
-                        child: GestureDetector(
-                          key: const ValueKey('dashboard-swipe-next'),
-                          behavior: HitTestBehavior.translucent,
-                          onHorizontalDragStart: _beginHorizontalSwipe,
-                          onHorizontalDragUpdate: _updateHorizontalSwipe,
-                          onHorizontalDragEnd: _finishHorizontalSwipe,
-                          onHorizontalDragCancel: () =>
-                              _horizontalDragDistance = 0,
-                        ),
-                      ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             bottomNavigationBar: _DashboardNavBar(

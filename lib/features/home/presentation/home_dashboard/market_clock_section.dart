@@ -143,10 +143,12 @@ class _SessionClockCardState extends State<_SessionClockCard>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'World Market Sessions',
                           style: TextStyle(
-                            color: TradeXColors.primaryText,
+                            color: context.isDarkMode
+                                ? Colors.white
+                                : Colors.black,
                             fontSize: 14,
                             fontWeight: FontWeight.w900,
                           ),
@@ -327,18 +329,11 @@ class _WorldClockTile extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             borderRadius: radius,
-            border: Border.all(
-              color: const Color(0xFFDAAA45),
-              width: 1.1,
-            ),
+            border: Border.all(color: const Color(0xFFDAAA45), width: 1.1),
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFFFFFFF),
-                Color(0xFFFFFEFB),
-                Color(0xFFFBF6EE),
-              ],
+              colors: [Color(0xFFFFFFFF), Color(0xFFFFFEFB), Color(0xFFFBF6EE)],
             ),
           ),
           child: Stack(

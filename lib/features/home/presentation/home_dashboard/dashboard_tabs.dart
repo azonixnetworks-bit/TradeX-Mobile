@@ -11,8 +11,7 @@ class _LearnTab extends StatelessWidget {
   final VoidCallback onNotifications;
 
   @override
-  Widget build(BuildContext context) =>
-      LearnHomeScreen(repository: repository, onNotifications: onNotifications);
+  Widget build(BuildContext context) => LearnHomeScreen(repository: repository);
 }
 
 class _TradeIdeasTab extends StatelessWidget {
@@ -42,7 +41,6 @@ class _TradeIdeasTab extends StatelessWidget {
       activeBuilder: (_) => TradeIdeasScreen(
         repository: repository,
         warningSource: warningSource,
-        onNotifications: () => onActionTap('notifications'),
       ),
     );
   }
@@ -68,7 +66,6 @@ class _AffiliateTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return AffiliateDashboardScreen(
       repository: repository,
-      onNotifications: () => onActionTap('notifications'),
       onUpgrade: () => Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
           builder: (_) => PremiumAccessScreen(repository: learnRepository),
