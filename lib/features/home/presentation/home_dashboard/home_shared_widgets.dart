@@ -222,12 +222,23 @@ const _tabItems = [
   _TabItem('Profile', Icons.person_outline_rounded),
 ];
 
-BoxDecoration _panelDecoration(BuildContext context) => BoxDecoration(
-  color: TradeXPalette.of(context).surface,
-  borderRadius: TradeXRadii.card,
-  border: Border.all(color: TradeXPalette.of(context).border),
-  boxShadow: TradeXElevation.surface(
-    brightness: Theme.of(context).brightness,
-    palette: TradeXPalette.of(context),
-  ),
-);
+BoxDecoration _panelDecoration(BuildContext context) {
+  final palette = TradeXPalette.of(context);
+  return BoxDecoration(
+    color: palette.surface,
+    borderRadius: TradeXRadii.card,
+    border: Border.all(color: palette.gold.withValues(alpha: .72), width: 1.15),
+    image: DecorationImage(
+      image: const AssetImage(
+        'assets/home_ui/complex_png/soft_ivory_wave_footer.png',
+      ),
+      alignment: Alignment.bottomCenter,
+      fit: BoxFit.fitWidth,
+      opacity: context.isDarkMode ? .06 : .34,
+    ),
+    boxShadow: TradeXElevation.surface(
+      brightness: Theme.of(context).brightness,
+      palette: palette,
+    ),
+  );
+}

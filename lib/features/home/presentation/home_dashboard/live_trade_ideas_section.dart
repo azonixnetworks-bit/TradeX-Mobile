@@ -44,18 +44,22 @@ class _LiveTradeIdeasCarouselState extends State<_LiveTradeIdeasCarousel> {
           );
         }
 
-        return SizedBox(
-          height: 300,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(right: 16),
-            itemCount: ideas.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
-            itemBuilder: (context, index) => _LiveTradeIdeaCard(
-              idea: ideas[index],
-              position: index,
-              repository: widget.repository,
+        return LayoutBuilder(
+          builder: (context, constraints) => SizedBox(
+            height: 535,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: ideas.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (context, index) => SizedBox(
+                width: constraints.maxWidth,
+                child: _LiveTradeIdeaCard(
+                  idea: ideas[index],
+                  position: index,
+                  repository: widget.repository,
+                ),
+              ),
             ),
           ),
         );
@@ -76,7 +80,7 @@ class _NoTradeIdeasCard extends StatelessWidget {
     child: Ink(
       height: 146,
       padding: const EdgeInsets.all(18),
-      decoration: _panelDecoration(context),
+      decoration: _panelDecoration(context).copyWith(color: Colors.white),
       child: Row(
         children: [
           Icon(
@@ -116,6 +120,22 @@ class _LiveTradeIdeaCard extends StatefulWidget {
 }
 
 class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
+  late Future<Uint8List?> _chartBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _chartBytes = widget.repository.chartBytes(widget.idea);
+  }
+
+  @override
+  void didUpdateWidget(covariant _LiveTradeIdeaCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.idea.uuid != widget.idea.uuid) {
+      _chartBytes = widget.repository.chartBytes(widget.idea);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final idea = widget.idea;
@@ -132,7 +152,7 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
     };
 
     return Container(
-      width: 306,
+      width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: _panelDecoration(context),
       child: Column(
@@ -145,64 +165,131 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
               Text(
                 idea.timeframe,
                 style: TextStyle(
-                  color: palette.secondaryText,
+                  color: const Color(0xFF686868),
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _TradeChartPreview(),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+          const SizedBox(height: 10),
+          _TradeChartPreview(chartBytes: _chartBytes),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      idea.symbol,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF171717),
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (idea.instrumentName.isNotEmpty)
                       Text(
-                        idea.symbol,
+                        idea.instrumentName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: palette.primaryText,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w900,
+                        style: const TextStyle(
+                          color: Color(0xFF6E6E6E),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      Text(
-                        idea.direction,
-                        style: TextStyle(
-                          color: directionColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: .7,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      _SignalValue(label: 'Entry', value: idea.entry),
-                      _SignalValue(label: 'SL', value: idea.stopLoss),
-                      if (idea.targets.isNotEmpty)
-                        _SignalValue(
-                          label: idea.targets.first.label,
-                          value: idea.targets.first.price,
-                          valueColor: TradeXColors.success,
-                        ),
-                    ],
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: directionColor.withValues(alpha: .1),
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(
+                    color: directionColor.withValues(alpha: .55),
                   ),
+                ),
+                child: Text(
+                  idea.direction,
+                  style: TextStyle(
+                    color: directionColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: .7,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: .86),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: palette.gold.withValues(alpha: .36)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _SignalValue(label: 'Entry', value: idea.entry),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _SignalValue(label: 'SL', value: idea.stopLoss),
                 ),
               ],
             ),
           ),
+          if (idea.targets.isNotEmpty) ...[
+            const SizedBox(height: 7),
+            SizedBox(
+              height: 34,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: idea.targets.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 7),
+                itemBuilder: (context, index) {
+                  final target = idea.targets[index];
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: TradeXColors.success.withValues(alpha: .08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: TradeXColors.success.withValues(alpha: .35),
+                      ),
+                    ),
+                    child: Text(
+                      '${target.label}: ${target.price}',
+                      style: const TextStyle(
+                        color: Color(0xFF167A4A),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
           if (idea.latestUpdate != null)
             Text(
               idea.latestUpdate!.message,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: palette.secondaryText, fontSize: 10),
+              style: const TextStyle(color: Color(0xFF686868), fontSize: 10),
             ),
           const SizedBox(height: 8),
           Row(
@@ -285,20 +372,39 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
 }
 
 class _TradeChartPreview extends StatelessWidget {
-  const _TradeChartPreview();
+  const _TradeChartPreview({required this.chartBytes});
+
+  final Future<Uint8List?> chartBytes;
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: 126,
+    width: double.infinity,
+    height: 185,
     child: ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: Container(
-        color: context.palette.surfaceMuted,
-        alignment: Alignment.center,
-        child: Image.asset(
-          'assets/home_ui/complex_png/upward_green_and_red_candlestick_chart.png',
-          fit: BoxFit.contain,
-        ),
+      child: FutureBuilder<Uint8List?>(
+        future: chartBytes,
+        builder: (context, snapshot) {
+          final bytes = snapshot.data;
+          if (bytes != null && bytes.isNotEmpty) {
+            return Image.memory(
+              bytes,
+              key: const ValueKey('latest-trade-idea-laravel-chart'),
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+            );
+          }
+          return ColoredBox(
+            color: const Color(0xFFFFFCF5),
+            child: Center(
+              child: Icon(
+                Icons.candlestick_chart_rounded,
+                color: context.palette.goldText,
+                size: 44,
+              ),
+            ),
+          );
+        },
       ),
     ),
   );
@@ -308,7 +414,7 @@ class _SignalValue extends StatelessWidget {
   const _SignalValue({
     required this.label,
     required this.value,
-    this.valueColor = TradeXColors.primaryText,
+    this.valueColor = const Color(0xFF171717),
   });
 
   final String label;
@@ -324,10 +430,7 @@ class _SignalValue extends StatelessWidget {
           width: 36,
           child: Text(
             label,
-            style: const TextStyle(
-              color: TradeXColors.secondaryText,
-              fontSize: 10,
-            ),
+            style: const TextStyle(color: Color(0xFF747474), fontSize: 10),
           ),
         ),
         Expanded(

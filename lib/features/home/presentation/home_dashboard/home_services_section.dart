@@ -21,98 +21,108 @@ class _HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final homeHeadingColor = context.isDarkMode ? Colors.white : Colors.black;
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate([
-              _SectionTitle(
-                icon: Icons.apps_rounded,
-                title: 'Services',
-                action: 'View all',
-                onAction: () => onActionTap('Services'),
+    return Stack(
+      children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: context.isDarkMode ? .07 : .62,
+              child: Image.asset(
+                'assets/home_ui/complex_png/soft_ivory_wave_footer.png',
+                height: 105,
+                fit: BoxFit.fill,
               ),
-              const SizedBox(height: 10),
-              _CompactServicesGrid(apiClient: apiClient),
-              const SizedBox(height: 18),
-              _SessionClockCard(apiClient: apiClient),
-              const SizedBox(height: 18),
-              _SectionTitle(
-                key: const ValueKey('economic-news-title'),
-                icon: Icons.newspaper_rounded,
-                title: 'Economic News',
-                titleColor: homeHeadingColor,
-                action: 'View all',
-                onAction: () => onActionTap('Economic News'),
-              ),
-              const SizedBox(height: 10),
-              _MarketNewsSection(
-                repository: marketNewsRepository,
-                onOpenAll: () => onActionTap('Economic News'),
-              ),
-              const SizedBox(height: 20),
-              _SectionTitle(
-                icon: Icons.bar_chart_rounded,
-                title: 'Market Categories',
-                titleColor: homeHeadingColor,
-                action: 'View all',
-                onAction: () => onActionTap('Market categories'),
-              ),
-              const SizedBox(height: 10),
-              _CategoryGrid(onTap: onActionTap),
-              const SizedBox(height: 20),
-              _SectionTitle(
-                icon: Icons.menu_book_rounded,
-                title: 'Continue Learning',
-                titleColor: homeHeadingColor,
-                action: 'View all',
-                onAction: () => onActionTap('Learning library'),
-              ),
-              const SizedBox(height: 10),
-              _ContinueLearningSection(
-                repository: learningRepository,
-                onActionTap: onActionTap,
-              ),
-              const SizedBox(height: 20),
-              _SectionTitle(
-                icon: Icons.lightbulb_rounded,
-                title: 'Latest Trade Idea',
-                titleColor: homeHeadingColor,
-                action: 'View all',
-                onAction: () => onActionTap('Trade ideas'),
-              ),
-              const SizedBox(height: 10),
-              _LiveTradeIdeasCarousel(
-                repository: tradeIdeasRepository,
-                onActionTap: onActionTap,
-              ),
-              const SizedBox(height: 20),
-              _SectionTitle(
-                icon: Icons.article_rounded,
-                title: 'Latest from TradeX',
-                titleColor: homeHeadingColor,
-                action: 'View all',
-                onAction: () => onActionTap('TradeX content'),
-              ),
-              const SizedBox(height: 10),
-              _LatestContentCard(
-                apiClient: apiClient,
-                onActionTap: onActionTap,
-              ),
-              const SizedBox(height: 10),
-              Opacity(
-                opacity: context.isDarkMode ? .07 : .62,
-                child: Image.asset(
-                  'assets/home_ui/complex_png/soft_ivory_wave_footer.png',
-                  height: 105,
-                  width: double.infinity,
-                  fit: BoxFit.fill,
-                ),
-              ),
-            ]),
+            ),
           ),
+        ),
+        CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _SectionTitle(
+                    icon: Icons.apps_rounded,
+                    title: 'Services',
+                    action: 'View all',
+                    onAction: () => onActionTap('Services'),
+                  ),
+                  const SizedBox(height: 10),
+                  _CompactServicesGrid(apiClient: apiClient),
+                  const SizedBox(height: 18),
+                  _SessionClockCard(apiClient: apiClient),
+                  const SizedBox(height: 18),
+                  _SectionTitle(
+                    key: const ValueKey('economic-news-title'),
+                    icon: Icons.newspaper_rounded,
+                    title: 'Economic News',
+                    titleColor: homeHeadingColor,
+                    action: 'View all',
+                    onAction: () => onActionTap('Economic News'),
+                  ),
+                  const SizedBox(height: 10),
+                  _MarketNewsSection(
+                    repository: marketNewsRepository,
+                    onOpenAll: () => onActionTap('Economic News'),
+                  ),
+                  const SizedBox(height: 20),
+                  _SectionTitle(
+                    icon: Icons.bar_chart_rounded,
+                    title: 'Market Categories',
+                    titleColor: homeHeadingColor,
+                    action: 'View all',
+                    onAction: () => onActionTap('Market categories'),
+                  ),
+                  const SizedBox(height: 10),
+                  _CategoryGrid(onTap: onActionTap),
+                  const SizedBox(height: 20),
+                  _SectionTitle(
+                    icon: Icons.menu_book_rounded,
+                    title: 'Continue Learning',
+                    titleColor: homeHeadingColor,
+                    action: 'View all',
+                    onAction: () => onActionTap('Learning library'),
+                  ),
+                  const SizedBox(height: 10),
+                  _ContinueLearningSection(
+                    repository: learningRepository,
+                    onActionTap: onActionTap,
+                  ),
+                  const SizedBox(height: 20),
+                  _SectionTitle(
+                    icon: Icons.lightbulb_rounded,
+                    title: 'Latest Trade Idea',
+                    titleColor: homeHeadingColor,
+                    action: 'View all',
+                    onAction: () => onActionTap('Trade ideas'),
+                  ),
+                  const SizedBox(height: 10),
+                  _LiveTradeIdeasCarousel(
+                    repository: tradeIdeasRepository,
+                    onActionTap: onActionTap,
+                  ),
+                  const SizedBox(height: 20),
+                  _SectionTitle(
+                    icon: Icons.article_rounded,
+                    title: 'Latest from TradeX',
+                    titleColor: homeHeadingColor,
+                    action: 'View all',
+                    onAction: () => onActionTap('TradeX content'),
+                  ),
+                  const SizedBox(height: 10),
+                  _LatestContentCard(
+                    apiClient: apiClient,
+                    onActionTap: onActionTap,
+                  ),
+                  const SizedBox(height: 115),
+                ]),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -201,10 +211,21 @@ class _CompactServiceCard extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [accent.withValues(alpha: .14), palette.surfaceRaised],
+              colors: [accent.withValues(alpha: .09), palette.surfaceRaised],
+            ),
+            image: DecorationImage(
+              image: const AssetImage(
+                'assets/home_ui/complex_png/soft_ivory_wave_footer.png',
+              ),
+              alignment: Alignment.bottomCenter,
+              fit: BoxFit.fitWidth,
+              opacity: context.isDarkMode ? .06 : .34,
             ),
             borderRadius: TradeXRadii.control,
-            border: Border.all(color: accent.withValues(alpha: .34)),
+            border: Border.all(
+              color: palette.gold.withValues(alpha: .72),
+              width: 1.15,
+            ),
             boxShadow: TradeXElevation.surface(
               brightness: Theme.of(context).brightness,
               palette: palette,
@@ -254,7 +275,10 @@ class _CompactServiceCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: accent, size: 17),
+              Align(
+                alignment: Alignment.topRight,
+                child: Icon(service.icon, color: accent, size: 18),
+              ),
             ],
           ),
         ),

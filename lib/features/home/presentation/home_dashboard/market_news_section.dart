@@ -174,9 +174,12 @@ class _MarketNewsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: Ink(
           decoration: BoxDecoration(
-            color: const Color(0xFF0A0E0D),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF2B302D)),
+            border: Border.all(
+              color: TradeXColors.gold.withValues(alpha: .72),
+              width: 1.15,
+            ),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(13),
@@ -189,8 +192,8 @@ class _MarketNewsCard extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Color(0x22000000), Color(0xF2050706)],
-                      stops: [.22, .82],
+                      colors: [Color(0xBFFFFFFF), Color(0xF7FFFFFF)],
+                      stops: [.18, .78],
                     ),
                   ),
                 ),
@@ -241,7 +244,7 @@ class _MarketNewsCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: TradeXColors.primaryText,
+                          color: Color(0xFF171717),
                           fontSize: 9.5,
                           height: 1.12,
                           fontWeight: FontWeight.w900,
@@ -255,7 +258,7 @@ class _MarketNewsCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: TradeXColors.tertiaryText,
+                          color: Color(0xFF686868),
                           fontSize: 7.5,
                           fontWeight: FontWeight.w700,
                         ),
@@ -312,7 +315,7 @@ class _MarketNewsArtwork extends StatelessWidget {
             height: 46,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: TradeXColors.background.withValues(alpha: .7),
+              color: Colors.white.withValues(alpha: .92),
               border: Border.all(
                 color: TradeXColors.goldBright.withValues(alpha: .4),
               ),
@@ -402,9 +405,9 @@ class _MarketNewsReleaseValues extends StatelessWidget {
     key: ValueKey('market-news-values-${item.uuid}'),
     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
     decoration: BoxDecoration(
-      color: const Color(0xC9070A08),
+      color: const Color(0xEFFFFFFF),
       borderRadius: BorderRadius.circular(7),
-      border: Border.all(color: TradeXColors.border.withValues(alpha: .8)),
+      border: Border.all(color: TradeXColors.gold.withValues(alpha: .38)),
     ),
     child: Row(
       children: [
@@ -440,7 +443,7 @@ class _MarketNewsReleaseValue extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            color: TradeXColors.tertiaryText,
+            color: Color(0xFF747474),
             fontSize: 5.8,
             fontWeight: FontWeight.w700,
           ),
@@ -453,7 +456,7 @@ class _MarketNewsReleaseValue extends StatelessWidget {
           style: TextStyle(
             color: highlighted
                 ? TradeXColors.goldBright
-                : TradeXColors.primaryText,
+                : const Color(0xFF171717),
             fontSize: 7,
             fontWeight: FontWeight.w900,
           ),
@@ -475,8 +478,8 @@ class _MarketNewsArtworkPainter extends CustomPainter {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: variant.isEven
-            ? const [Color(0xFF152018), Color(0xFF070A08)]
-            : const [Color(0xFF261A08), Color(0xFF090806)],
+            ? const [Color(0xFFFFFEFA), Color(0xFFF8EDD5)]
+            : const [Color(0xFFFFFFFF), Color(0xFFF5E7C8)],
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, background);
 
