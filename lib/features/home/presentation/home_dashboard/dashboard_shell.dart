@@ -198,6 +198,16 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       _selectTab(2);
       return;
     }
+    if (normalized == 'economic news') {
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => EconomicNewsScreen(
+            repository: widget.dependencies.marketNewsRepository,
+          ),
+        ),
+      );
+      return;
+    }
     if (normalized == 'services') {
       ActivityTrackingScope.maybeOf(context)?.openedFeature('services');
       Navigator.of(context).push(
@@ -249,7 +259,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     final id = switch (normalized) {
       'notifications' => 'notifications',
       'market categories' => 'market-screener',
-      'economic news' => 'economic-news',
       'share referral link' => 'direct-referrals',
       'affiliate milestones' => 'qualified-sales',
       'my referrals' => 'direct-referrals',

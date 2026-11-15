@@ -218,7 +218,7 @@ class _MarketNewsCard extends StatelessWidget {
                               item.isLiveUpdate ? 'LIVE' : item.impact,
                               style: TextStyle(
                                 color: impactColor,
-                                fontSize: 7,
+                                fontSize: 8.5,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
@@ -230,7 +230,7 @@ class _MarketNewsCard extends StatelessWidget {
                               maxLines: 1,
                               style: const TextStyle(
                                 color: TradeXColors.goldBright,
-                                fontSize: 8,
+                                fontSize: 9.5,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
@@ -243,7 +243,7 @@ class _MarketNewsCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xFF171717),
-                          fontSize: 9.5,
+                          fontSize: 11.5,
                           height: 1.12,
                           fontWeight: FontWeight.w900,
                         ),
@@ -257,7 +257,7 @@ class _MarketNewsCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xFF686868),
-                          fontSize: 7.5,
+                          fontSize: 9,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -336,7 +336,7 @@ class _MarketNewsArtwork extends StatelessWidget {
           Positioned(
             right: 8,
             top: 70,
-            child: Text(country, style: const TextStyle(fontSize: 14)),
+            child: Text(country, style: const TextStyle(fontSize: 15)),
           ),
       ],
     );
@@ -442,7 +442,7 @@ class _MarketNewsReleaseValue extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Color(0xFF747474),
-            fontSize: 5.8,
+            fontSize: 7,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -455,7 +455,7 @@ class _MarketNewsReleaseValue extends StatelessWidget {
             color: highlighted
                 ? TradeXColors.goldBright
                 : const Color(0xFF171717),
-            fontSize: 7,
+            fontSize: 9,
             fontWeight: FontWeight.w900,
           ),
         ),

@@ -262,16 +262,15 @@ class _FilterBar extends StatelessWidget {
             onSelected: (_) => onSelected(filter),
             label: Text(filter.label),
             labelStyle: TextStyle(
-              color: active
-                  ? const Color(0xFF171308)
-                  : TradeXColors.primaryText,
-              fontSize: 11,
+              color: const Color(0xFF171308),
+              fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
             selectedColor: context.palette.gold,
-            backgroundColor: context.palette.surfaceRaised,
+            backgroundColor: Colors.white,
             side: BorderSide(
-              color: active ? context.palette.gold : context.palette.border,
+              color: context.palette.gold,
+              width: active ? 1.4 : 1.1,
             ),
           );
         },
@@ -296,14 +295,20 @@ class _EconomicNewsCards extends StatelessWidget {
     return Scrollbar(
       controller: verticalController,
       thumbVisibility: true,
-      child: ListView.separated(
+      child: SingleChildScrollView(
         key: const ValueKey('economic-news-card-list'),
         controller: verticalController,
         padding: const EdgeInsets.fromLTRB(12, 0, 16, 16),
-        itemCount: items.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (context, index) =>
-            _EconomicNewsCard(item: items[index], now: now),
+        child: Column(
+          children: List<Widget>.generate(items.length, (index) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index == items.length - 1 ? 0 : 12,
+              ),
+              child: _EconomicNewsCard(item: items[index], now: now),
+            );
+          }),
+        ),
       ),
     );
   }
@@ -345,9 +350,20 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
           key: ValueKey('economic-news-card-${item.uuid}'),
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: palette.surfaceRaised,
+            color: Colors.white,
             borderRadius: TradeXRadii.card,
-            border: Border.all(color: impactColor.withValues(alpha: .42)),
+            border: Border.all(
+              color: palette.gold.withValues(alpha: .76),
+              width: 1.15,
+            ),
+            image: const DecorationImage(
+              image: AssetImage(
+                'assets/home_ui/complex_png/soft_ivory_wave_footer.png',
+              ),
+              alignment: Alignment.bottomCenter,
+              fit: BoxFit.fitWidth,
+              opacity: .3,
+            ),
             boxShadow: _pressed
                 ? const <BoxShadow>[]
                 : TradeXElevation.surface(
@@ -393,8 +409,8 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: palette.primaryText,
-                        fontSize: 16,
+                        color: const Color(0xFF171717),
+                        fontSize: 18,
                         height: 1.15,
                         fontWeight: FontWeight.w900,
                       ),
@@ -408,8 +424,8 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
                       children: [
                         Icon(
                           Icons.public_rounded,
-                          color: palette.secondaryText,
-                          size: 13,
+                          color: const Color(0xFF5F6870),
+                          size: 15,
                         ),
                         const SizedBox(width: 5),
                         Expanded(
@@ -418,8 +434,8 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: palette.secondaryText,
-                              fontSize: 10,
+                              color: const Color(0xFF5F6870),
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -427,7 +443,10 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    Divider(height: 1, color: palette.border),
+                    Divider(
+                      height: 1,
+                      color: palette.gold.withValues(alpha: .28),
+                    ),
                     const SizedBox(height: 12),
                     _ReleaseValues(item: item),
                     const SizedBox(height: 14),
@@ -473,8 +492,8 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
                     const Text(
                       'Affected Pairs',
                       style: TextStyle(
-                        color: TradeXColors.secondaryText,
-                        fontSize: 10,
+                        color: Color(0xFF5F6870),
+                        fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -482,7 +501,7 @@ class _EconomicNewsCardState extends State<_EconomicNewsCard> {
                     if (pairs.isEmpty)
                       const Text(
                         '—',
-                        style: TextStyle(color: TradeXColors.secondaryText),
+                        style: TextStyle(color: Color(0xFF5F6870)),
                       )
                     else
                       Wrap(
@@ -515,9 +534,12 @@ class _ReleaseValues extends StatelessWidget {
     key: ValueKey('economic-news-values-${item.uuid}'),
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
     decoration: BoxDecoration(
-      color: TradeXColors.background.withValues(alpha: .58),
+      color: Colors.white,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: TradeXColors.border),
+      border: Border.all(
+        color: TradeXColors.gold.withValues(alpha: .58),
+        width: 1.1,
+      ),
     ),
     child: Row(
       children: [
@@ -561,8 +583,8 @@ class _ReleaseValue extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(
-          color: TradeXColors.secondaryText,
-          fontSize: 9,
+          color: Color(0xFF5F6870),
+          fontSize: 10,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -574,8 +596,8 @@ class _ReleaseValue extends StatelessWidget {
         style: TextStyle(
           color: highlighted
               ? TradeXColors.goldBright
-              : TradeXColors.primaryText,
-          fontSize: 13,
+              : const Color(0xFF171717),
+          fontSize: 14,
           fontWeight: FontWeight.w900,
         ),
       ),
@@ -591,7 +613,7 @@ class _ReleaseValueDivider extends StatelessWidget {
     width: 1,
     height: 30,
     margin: const EdgeInsets.symmetric(horizontal: 7),
-    color: TradeXColors.border,
+    color: TradeXColors.gold.withValues(alpha: .42),
   );
 }
 
@@ -606,9 +628,9 @@ class _CountryFlagBadge extends StatelessWidget {
     height: 29,
     alignment: Alignment.center,
     decoration: BoxDecoration(
-      color: TradeXColors.background.withValues(alpha: .6),
+      color: Colors.white,
       borderRadius: BorderRadius.circular(9),
-      border: Border.all(color: TradeXColors.border),
+      border: Border.all(color: TradeXColors.gold.withValues(alpha: .55)),
     ),
     child: Text(flag, style: const TextStyle(fontSize: 17, height: 1)),
   );
@@ -684,7 +706,7 @@ class _EventDetail extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
-    this.valueColor = TradeXColors.primaryText,
+    this.valueColor = const Color(0xFF171717),
   });
 
   final double width;
@@ -707,8 +729,8 @@ class _EventDetail extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
-                  color: TradeXColors.secondaryText,
-                  fontSize: 9,
+                  color: Color(0xFF5F6870),
+                  fontSize: 10,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -719,7 +741,7 @@ class _EventDetail extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: valueColor,
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -740,15 +762,15 @@ class _PairChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
     decoration: BoxDecoration(
-      color: TradeXColors.background.withValues(alpha: .55),
+      color: Colors.white,
       borderRadius: BorderRadius.circular(99),
-      border: Border.all(color: TradeXColors.border),
+      border: Border.all(color: TradeXColors.gold.withValues(alpha: .55)),
     ),
     child: Text(
       label,
       style: const TextStyle(
-        color: TradeXColors.primaryText,
-        fontSize: 9,
+        color: Color(0xFF171717),
+        fontSize: 10,
         fontWeight: FontWeight.w800,
       ),
     ),
