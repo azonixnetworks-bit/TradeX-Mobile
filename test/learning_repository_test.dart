@@ -43,6 +43,21 @@ void main() {
       expect(learning.continueItem, isNull);
       expect(learning.defaultPremiumItem?.lessonUuid, 'first-premium');
     });
+
+    test('accepts Laravel premium flags and top-level course UUIDs', () {
+      final learning = homeLearningDataFromJson({
+        'is_premium': 1,
+        'continue_learning': {
+          'course_uuid': 'premium-course',
+          'course': {'title': 'Professional Trading'},
+          'module': {'title': 'Market Structure'},
+          'lesson': {'uuid': 'premium-lesson', 'title': 'Liquidity'},
+        },
+      });
+
+      expect(learning.isPremium, isTrue);
+      expect(learning.continueItem?.courseUuid, 'premium-course');
+    });
   });
 }
 

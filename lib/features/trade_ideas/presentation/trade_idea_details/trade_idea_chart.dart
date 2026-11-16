@@ -18,6 +18,7 @@ class _ChartPanelState extends State<_ChartPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final idea = widget.detail.summary;
     final symbol = const TradeIdeaTradingViewSymbolResolver().resolve(
       category: idea.category,
@@ -27,9 +28,13 @@ class _ChartPanelState extends State<_ChartPanel> {
     final interval = tradeIdeaTradingViewInterval(idea.timeframe);
     return Container(
       decoration: BoxDecoration(
-        color: TradeXColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: TradeXColors.borderStrong),
+        color: palette.surface,
+        borderRadius: TradeXRadii.card,
+        border: Border.all(color: palette.borderStrong),
+        boxShadow: TradeXElevation.surface(
+          brightness: Theme.of(context).brightness,
+          palette: palette,
+        ),
       ),
       child: Column(
         children: [
@@ -117,9 +122,8 @@ class _AnalysisChart extends StatelessWidget {
   final TradeIdeaDetailsState state;
   @override
   Widget build(BuildContext context) => switch (state.analysisStatus) {
-    TradeIdeaAnalysisStatus.loading ||
-    TradeIdeaAnalysisStatus.idle => const Center(
-      child: CircularProgressIndicator(color: TradeXColors.goldBright),
+    TradeIdeaAnalysisStatus.loading || TradeIdeaAnalysisStatus.idle => Center(
+      child: CircularProgressIndicator(color: context.palette.gold),
     ),
     TradeIdeaAnalysisStatus.empty => const _ChartMessage(
       icon: Icons.image_not_supported_outlined,
@@ -237,22 +241,24 @@ class _TabButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,
-    borderRadius: BorderRadius.circular(12),
+    borderRadius: TradeXRadii.control,
     child: AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       padding: const EdgeInsets.symmetric(vertical: 11),
       decoration: BoxDecoration(
-        color: selected ? TradeXColors.goldBright : TradeXColors.surfaceRaised,
-        borderRadius: BorderRadius.circular(12),
+        color: selected ? context.palette.gold : context.palette.surfaceRaised,
+        borderRadius: TradeXRadii.control,
         border: Border.all(
-          color: selected ? TradeXColors.goldBright : TradeXColors.borderStrong,
+          color: selected ? context.palette.gold : context.palette.borderStrong,
         ),
       ),
       child: Text(
         label,
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: selected ? Colors.black : TradeXColors.primaryText,
+          color: selected
+              ? context.palette.primaryButtonText
+              : context.palette.primaryText,
           fontWeight: FontWeight.w800,
         ),
       ),

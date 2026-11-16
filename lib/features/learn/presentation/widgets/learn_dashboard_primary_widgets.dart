@@ -9,52 +9,28 @@ class LearnDashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Row(
-        children: [
-          Image.asset(
-            'assets/branding/trade_x_final_logo.png',
-            width: 58,
-            height: 58,
-            fit: BoxFit.contain,
-          ),
-          const Spacer(),
-          if (onNotifications != null)
-            IconButton(
-              key: const ValueKey('learn-notifications-button'),
-              onPressed: onNotifications,
-              tooltip: 'Notifications',
-              icon: SvgPicture.asset(
-                'assets/learning_ui/icons_svg/bell_notification.svg',
-                width: 23,
-                height: 23,
-                colorFilter: const ColorFilter.mode(learnGold, BlendMode.srcIn),
-              ),
-            ),
-        ],
-      ),
-      const SizedBox(height: 6),
-      const Text.rich(
+      Text.rich(
         TextSpan(
           children: [
-            TextSpan(text: 'Learn'),
+            const TextSpan(text: 'Learn'),
             TextSpan(
               text: '.',
-              style: TextStyle(color: learnGold),
+              style: TextStyle(color: context.palette.gold),
             ),
           ],
         ),
         style: TextStyle(
-          color: learnText,
+          color: context.palette.primaryText,
           fontSize: 30,
           height: 1,
           fontWeight: FontWeight.w900,
         ),
       ),
       const SizedBox(height: 8),
-      const Text(
+      Text(
         'Your Trading Learning Hub',
         style: TextStyle(
-          color: learnMuted,
+          color: context.palette.secondaryText,
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
@@ -142,8 +118,8 @@ class LearningSectionHeader extends StatelessWidget {
       Expanded(
         child: Text(
           title,
-          style: const TextStyle(
-            color: learnText,
+          style: TextStyle(
+            color: context.palette.primaryText,
             fontSize: 18,
             fontWeight: FontWeight.w900,
           ),
@@ -182,37 +158,30 @@ class PremiumLearningCard extends StatelessWidget {
   final double radius;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(radius),
-      child: Ink(
-        padding: padding,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              TradeXColors.surfaceRaised,
-              TradeXColors.surface,
-              TradeXColors.backgroundSoft,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(radius),
-          border: Border.all(color: accent.withValues(alpha: .78)),
-          boxShadow: [
-            BoxShadow(
-              color: accent.withValues(alpha: .09),
-              blurRadius: 20,
-              spreadRadius: -7,
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final cardRadius = BorderRadius.circular(radius);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: cardRadius,
+        child: Ink(
+          padding: padding,
+          decoration: BoxDecoration(
+            color: palette.surfaceRaised,
+            borderRadius: cardRadius,
+            border: Border.all(color: palette.gold.withValues(alpha: .72)),
+            boxShadow: TradeXElevation.surface(
+              brightness: Theme.of(context).brightness,
+              palette: palette,
             ),
-          ],
+          ),
+          child: child,
         ),
-        child: child,
       ),
-    ),
-  );
+    );
+  }
 }
 
 class LessonProgressIndicator extends StatelessWidget {
@@ -245,8 +214,8 @@ class LessonProgressIndicator extends StatelessWidget {
           const SizedBox(width: 11),
           Text(
             '$safe%',
-            style: const TextStyle(
-              color: learnText,
+            style: TextStyle(
+              color: context.palette.primaryText,
               fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
@@ -333,8 +302,8 @@ class ContinueLearningCard extends StatelessWidget {
                   title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: learnText,
+                  style: TextStyle(
+                    color: context.palette.primaryText,
                     fontSize: 18,
                     height: 1.16,
                     fontWeight: FontWeight.w900,
@@ -349,7 +318,10 @@ class ContinueLearningCard extends StatelessWidget {
                     ].where((value) => value.isNotEmpty).join(' · '),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: learnMuted, fontSize: 11.5),
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
+                      fontSize: 11.5,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 14),
@@ -455,9 +427,9 @@ class LearningShortcutCard extends StatelessWidget {
                 child: Icon(data.icon, color: data.accent, size: 25),
               ),
               const Spacer(),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
-                color: learnText,
+                color: context.palette.primaryText,
                 size: 22,
               ),
             ],
@@ -465,8 +437,8 @@ class LearningShortcutCard extends StatelessWidget {
           const SizedBox(height: 13),
           Text(
             data.title,
-            style: const TextStyle(
-              color: learnText,
+            style: TextStyle(
+              color: context.palette.primaryText,
               fontSize: 15,
               fontWeight: FontWeight.w900,
             ),
@@ -476,7 +448,10 @@ class LearningShortcutCard extends StatelessWidget {
             data.subtitle,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: learnMuted, fontSize: 10.5),
+            style: TextStyle(
+              color: context.palette.secondaryText,
+              fontSize: 10.5,
+            ),
           ),
         ],
       ),

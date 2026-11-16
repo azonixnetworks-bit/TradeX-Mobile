@@ -60,8 +60,8 @@ class _TradeIdeaDetailsView extends StatelessWidget {
         builder: (context, state) {
           if (state.status == TradeIdeaLoadStatus.loading ||
               state.status == TradeIdeaLoadStatus.initial) {
-            return const Center(
-              child: CircularProgressIndicator(color: TradeXColors.goldBright),
+            return Center(
+              child: CircularProgressIndicator(color: context.palette.gold),
             );
           }
           if (state.status == TradeIdeaLoadStatus.failure ||
@@ -78,7 +78,12 @@ class _TradeIdeaDetailsView extends StatelessWidget {
                 child: _Header(detail: detail, repository: repository),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                padding: const EdgeInsets.fromLTRB(
+                  TradeXSpacing.md,
+                  TradeXSpacing.sm,
+                  TradeXSpacing.md,
+                  TradeXSpacing.xl,
+                ),
                 sliver: SliverList.list(
                   children: [
                     _ChartPanel(detail: detail, state: state),
@@ -91,8 +96,8 @@ class _TradeIdeaDetailsView extends StatelessWidget {
                         icon: Icons.article_outlined,
                         child: Text(
                           detail.analysis,
-                          style: const TextStyle(
-                            color: TradeXColors.primaryText,
+                          style: TextStyle(
+                            color: context.palette.primaryText,
                             height: 1.45,
                           ),
                         ),
@@ -114,8 +119,8 @@ class _TradeIdeaDetailsView extends StatelessWidget {
                     Text(
                       detail.riskNotice,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: TradeXColors.secondaryText,
+                      style: TextStyle(
+                        color: context.palette.secondaryText,
                         fontSize: 11,
                         height: 1.4,
                       ),

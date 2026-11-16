@@ -25,7 +25,7 @@ HomeLearningData homeLearningDataFromJson(Map<String, dynamic> json) {
       : null;
 
   return HomeLearningData(
-    isPremium: json['is_premium'] == true,
+    isPremium: _flag(json['is_premium']),
     continueItem: parseItem(json['continue_learning']),
     defaultPremiumItem: parseItem(json['default_premium_lesson']),
     freeLessons: (json['free_lessons'] as List? ?? const [])
@@ -47,7 +47,8 @@ LearningItem _learningItemFromJson(Map<String, dynamic> json) {
       : const <String, dynamic>{};
   final watchedAt = json['last_activity_at']?.toString();
   return LearningItem(
-    courseUuid: course['uuid']?.toString() ?? '',
+    courseUuid:
+        course['uuid']?.toString() ?? json['course_uuid']?.toString() ?? '',
     courseTitle: course['title']?.toString() ?? 'TradeX Learning',
     moduleTitle: module['title']?.toString() ?? 'Learning module',
     lessonTitle: lesson['title']?.toString() ?? 'Start your next lesson',
@@ -55,6 +56,17 @@ LearningItem _learningItemFromJson(Map<String, dynamic> json) {
     progressPercent: (json['progress_percent'] as num?)?.toInt() ?? 0,
     lastPositionSeconds: (json['last_position_seconds'] as num?)?.toInt() ?? 0,
     lastWatchedAt: watchedAt == null ? null : DateTime.tryParse(watchedAt),
-    isFree: course['is_free'] == true,
+    isFree: _flag(course['is_free'] ?? json['is_free']),
   );
+}
+
+bool _flag(Object? value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  return const {
+    '1',
+    'true',
+    'yes',
+    'premium',
+  }.contains(value?.toString().trim().toLowerCase());
 }

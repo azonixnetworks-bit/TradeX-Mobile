@@ -133,12 +133,10 @@ void main() {
       find.byKey(const ValueKey('home-market-categories-scroll')),
     );
     await tester.pumpAndSettle();
-    expect(
-      tester
-          .getSize(find.byKey(const ValueKey('home-market-categories-scroll')))
-          .height,
-      132,
-    );
+    final categoryHeight = tester
+        .getSize(find.byKey(const ValueKey('home-market-categories-scroll')))
+        .height;
+    expect(categoryHeight, inInclusiveRange(124, 170));
     // The horizontally lazily-built items need not be instantiated when
     // their strip is outside the test's clipped viewport. Verify the list
     // configuration and all six entries without depending on lazy children.

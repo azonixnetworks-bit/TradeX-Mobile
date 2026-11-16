@@ -22,6 +22,7 @@ class _CategoryGridState extends State<_CategoryGrid>
   ];
   final Map<String, int> _unread = {};
   final Map<String, List<DashboardTradeIdea>> _loadedIdeas = {};
+  final Map<String, DashboardTradeIdeaCategory> _metadata = {};
   Timer? _refreshTimer;
 
   @override
@@ -48,6 +49,7 @@ class _CategoryGridState extends State<_CategoryGrid>
   }
 
   Future<void> _refreshBadges() async {
+    final metadata = await widget.repository.categories();
     final preferences = await SharedPreferences.getInstance();
     final results = await Future.wait(
       _categoryLabels.map((label) async {
@@ -74,6 +76,9 @@ class _CategoryGridState extends State<_CategoryGrid>
     );
     if (!mounted) return;
     setState(() {
+      for (final item in metadata) {
+        _metadata[item.slug] = item;
+      }
       for (final result in results) {
         _loadedIdeas[result.label] = result.ideas;
         _unread[result.label] = result.unread;
@@ -116,6 +121,7 @@ class _CategoryGridState extends State<_CategoryGrid>
   Widget build(BuildContext context) {
     final categories = [
       (
+        slug: 'FOREX',
         label: 'Forex',
         ideas: '30+ Ideas',
         accent: Color(0xFF45D6A8),
@@ -123,6 +129,7 @@ class _CategoryGridState extends State<_CategoryGrid>
         iconAsset: 'assets/home_ui/simple_svg/market_forex.svg',
       ),
       (
+        slug: 'COMMODITIES',
         label: 'Commodity',
         ideas: '15+ Ideas',
         accent: Color(0xFFFFA928),
@@ -131,6 +138,7 @@ class _CategoryGridState extends State<_CategoryGrid>
         iconAsset: 'assets/home_ui/simple_svg/market_commodities.svg',
       ),
       (
+        slug: 'CRYPTO',
         label: 'Crypto',
         ideas: '20+ Ideas',
         accent: Color(0xFFFF5A54),
@@ -138,6 +146,7 @@ class _CategoryGridState extends State<_CategoryGrid>
         iconAsset: 'assets/home_ui/simple_svg/market_crypto.svg',
       ),
       (
+        slug: 'STOCKS',
         label: 'Stocks',
         ideas: '50+ Ideas',
         accent: Color(0xFF39B9FF),
@@ -145,6 +154,7 @@ class _CategoryGridState extends State<_CategoryGrid>
         iconAsset: 'assets/home_ui/simple_svg/market_indices.svg',
       ),
       (
+        slug: 'DERIV',
         label: 'Deriv',
         ideas: '20+ Ideas',
         accent: Color(0xFF9B6BFF),
@@ -152,6 +162,7 @@ class _CategoryGridState extends State<_CategoryGrid>
         iconAsset: 'assets/home_ui/simple_svg/market_forex.svg',
       ),
       (
+        slug: 'INDICES',
         label: 'Indices',
         ideas: '50+ Ideas',
         accent: Color(0xFF2E8BFF),
@@ -171,33 +182,43 @@ class _CategoryGridState extends State<_CategoryGrid>
       if (rightActivity == null) return -1;
       return rightActivity.compareTo(leftActivity);
     });
-    return SizedBox(
-      key: const ValueKey('home-market-categories-scroll'),
-      height: 132,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: categories.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final category = categories[index];
-          return SizedBox(
-            key: ValueKey(
-              'home-market-category-${category.label.toLowerCase()}',
-            ),
-            width: 184,
-            child: _CategoryTile(
-              label: category.label,
-              ideas: category.ideas,
-              accent: category.accent,
-              imageAsset: category.imageAsset,
-              iconAsset: category.iconAsset,
-              unreadCount: _unread[category.label] ?? 0,
-              onTap: () => unawaited(_openCategory(category.label)),
-            ),
-          );
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = (constraints.maxWidth * .48).clamp(168.0, 240.0);
+        final cardHeight = (cardWidth * .72).clamp(124.0, 170.0);
+        return SizedBox(
+          key: const ValueKey('home-market-categories-scroll'),
+          height: cardHeight,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: categories.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final category = categories[index];
+              final metadata = _metadata[category.slug];
+              return SizedBox(
+                key: ValueKey(
+                  'home-market-category-${category.label.toLowerCase()}',
+                ),
+                width: cardWidth,
+                child: _CategoryTile(
+                  label: metadata?.label ?? category.label,
+                  ideas: metadata == null
+                      ? '${_loadedIdeas[category.label]?.length ?? 0} Ideas'
+                      : '${metadata.ideasCount} ${metadata.ideasCount == 1 ? 'Idea' : 'Ideas'}',
+                  accent: category.accent,
+                  imageAsset: category.imageAsset,
+                  iconAsset: category.iconAsset,
+                  unreadCount:
+                      metadata?.unreadCount ?? _unread[category.label] ?? 0,
+                  onTap: () => unawaited(_openCategory(category.label)),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

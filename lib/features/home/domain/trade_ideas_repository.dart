@@ -10,8 +10,73 @@ abstract interface class DashboardTradeIdeasRepository {
     String category, {
     int limit = 50,
   });
+  Future<List<DashboardTradeIdeaCategory>> categories();
+  Future<void> markCategoryViewed(String slug);
   Future<Uint8List?> chartBytes(DashboardTradeIdea idea);
   Future<Map<String, dynamic>> react(DashboardTradeIdea idea, String? reaction);
+}
+
+class DashboardTradeIdeaCategory {
+  const DashboardTradeIdeaCategory({
+    required this.slug,
+    required this.label,
+    required this.ideasCount,
+    required this.unreadCount,
+    required this.latestActivityAt,
+    required this.iconUrl,
+    required this.artworkUrl,
+    required this.regions,
+  });
+
+  factory DashboardTradeIdeaCategory.fromJson(Map<String, dynamic> json) {
+    final regions = json['regions'];
+    return DashboardTradeIdeaCategory(
+      slug: (json['slug'] ?? json['code'] ?? json['category'] ?? '')
+          .toString()
+          .toUpperCase(),
+      label: (json['label'] ?? json['name'] ?? json['slug'] ?? '').toString(),
+      ideasCount: (json['ideas_count'] as num?)?.toInt() ?? 0,
+      unreadCount: (json['unread_count'] as num?)?.toInt() ?? 0,
+      latestActivityAt: DateTime.tryParse(
+        json['latest_activity_at']?.toString() ?? '',
+      ),
+      iconUrl: json['icon_url']?.toString(),
+      artworkUrl: json['artwork_url']?.toString(),
+      regions: regions is List
+          ? regions
+                .whereType<Map>()
+                .map(
+                  (item) => DashboardTradeIdeaRegion.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .where((item) => item.slug.isNotEmpty)
+                .toList(growable: false)
+          : const [],
+    );
+  }
+
+  final String slug;
+  final String label;
+  final int ideasCount;
+  final int unreadCount;
+  final DateTime? latestActivityAt;
+  final String? iconUrl;
+  final String? artworkUrl;
+  final List<DashboardTradeIdeaRegion> regions;
+}
+
+class DashboardTradeIdeaRegion {
+  const DashboardTradeIdeaRegion({required this.slug, required this.label});
+
+  factory DashboardTradeIdeaRegion.fromJson(Map<String, dynamic> json) =>
+      DashboardTradeIdeaRegion(
+        slug: (json['slug'] ?? json['code'] ?? '').toString().toUpperCase(),
+        label: (json['label'] ?? json['name'] ?? json['slug'] ?? '').toString(),
+      );
+
+  final String slug;
+  final String label;
 }
 
 class DashboardTradeIdea {

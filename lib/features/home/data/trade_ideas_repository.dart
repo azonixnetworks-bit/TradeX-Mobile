@@ -34,6 +34,90 @@ class TradeIdeasRepository implements DashboardTradeIdeasRepository {
     category: category.toUpperCase(),
   );
 
+  @override
+  Future<List<DashboardTradeIdeaCategory>> categories() async {
+    try {
+      final response = await _apiClient.getJson(
+        '/api/v1/trade-ideas/categories',
+      );
+      final data = response['data'];
+      final raw = data is Map ? data['categories'] ?? data['items'] : data;
+      if (raw is List) {
+        final categories = raw
+            .whereType<Map>()
+            .map(
+              (item) => DashboardTradeIdeaCategory.fromJson(
+                Map<String, dynamic>.from(item),
+              ),
+            )
+            .where((item) => item.slug.isNotEmpty && item.label.isNotEmpty)
+            .toList(growable: false);
+        if (categories.isNotEmpty) return categories;
+      }
+    } on ApiException {
+      // The legacy fallback remains available during backend rollout.
+    }
+    return _fallbackCategories();
+  }
+
+  Future<List<DashboardTradeIdeaCategory>> _fallbackCategories() async {
+    const defaults = <(String, String)>[
+      ('FOREX', 'Forex'),
+      ('COMMODITIES', 'Commodity'),
+      ('CRYPTO', 'Crypto'),
+      ('STOCKS', 'Stocks'),
+      ('DERIV', 'Deriv'),
+      ('INDICES', 'Indices'),
+    ];
+    return Future.wait(
+      defaults.map((item) async {
+        try {
+          final ideas = await latestByCategory(item.$1);
+          return DashboardTradeIdeaCategory(
+            slug: item.$1,
+            label: item.$2,
+            ideasCount: ideas.length,
+            unreadCount: 0,
+            latestActivityAt: ideas
+                .map((idea) => idea.lastActivityAt ?? idea.publishedAt)
+                .whereType<DateTime>()
+                .fold<DateTime?>(
+                  null,
+                  (latest, value) =>
+                      latest == null || value.isAfter(latest) ? value : latest,
+                ),
+            iconUrl: null,
+            artworkUrl: null,
+            regions: const [],
+          );
+        } catch (_) {
+          return DashboardTradeIdeaCategory(
+            slug: item.$1,
+            label: item.$2,
+            ideasCount: 0,
+            unreadCount: 0,
+            latestActivityAt: null,
+            iconUrl: null,
+            artworkUrl: null,
+            regions: const [],
+          );
+        }
+      }),
+    );
+  }
+
+  @override
+  Future<void> markCategoryViewed(String slug) async {
+    try {
+      await _apiClient.postJson(
+        '/api/v1/trade-ideas/categories/${Uri.encodeComponent(slug)}/mark-viewed',
+        const {},
+      );
+    } on ApiException {
+      // Local seen-state remains the fallback until the endpoint is deployed.
+    }
+  }
+
   Future<List<DashboardTradeIdea>> _latest({
     required int perPage,
     String? category,

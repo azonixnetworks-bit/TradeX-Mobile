@@ -15,15 +15,15 @@ class _TradeSetup extends StatelessWidget {
           _DetailRow(
             label: 'Stop Loss',
             value: idea.stopLoss.display,
-            color: TradeXColors.error,
+            color: context.palette.error,
           ),
           for (final target in detail.targets)
             _DetailRow(
               label: target.label,
               value: target.price,
               color: target.isHit
-                  ? TradeXColors.goldBright
-                  : TradeXColors.success,
+                  ? context.palette.goldText
+                  : context.palette.success,
               suffix: target.isHit ? 'HIT' : null,
             ),
         ],
@@ -51,8 +51,8 @@ class _Timeline extends StatelessWidget {
                   width: 12,
                   height: 12,
                   margin: const EdgeInsets.only(top: 4),
-                  decoration: const BoxDecoration(
-                    color: TradeXColors.success,
+                  decoration: BoxDecoration(
+                    color: context.palette.success,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -63,16 +63,16 @@ class _Timeline extends StatelessWidget {
                     children: [
                       Text(
                         item.type.replaceAll('_', ' '),
-                        style: const TextStyle(
-                          color: TradeXColors.primaryText,
+                        style: TextStyle(
+                          color: context.palette.primaryText,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                       const SizedBox(height: 3),
                       Text(
                         item.message,
-                        style: const TextStyle(
-                          color: TradeXColors.secondaryText,
+                        style: TextStyle(
+                          color: context.palette.secondaryText,
                           height: 1.35,
                         ),
                       ),
@@ -82,8 +82,8 @@ class _Timeline extends StatelessWidget {
                 if (item.createdAt != null)
                   Text(
                     _date(item.createdAt!),
-                    style: const TextStyle(
-                      color: TradeXColors.secondaryText,
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
                       fontSize: 10,
                     ),
                   ),
@@ -111,8 +111,8 @@ class _ClosePanel extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               close.note!,
-              style: const TextStyle(
-                color: TradeXColors.secondaryText,
+              style: TextStyle(
+                color: context.palette.secondaryText,
                 height: 1.4,
               ),
             ),
@@ -177,10 +177,10 @@ class _SocialButton extends StatelessWidget {
     onPressed: onTap,
     style: OutlinedButton.styleFrom(
       foregroundColor: selected
-          ? TradeXColors.goldBright
-          : TradeXColors.primaryText,
+          ? context.palette.goldText
+          : context.palette.primaryText,
       side: BorderSide(
-        color: selected ? TradeXColors.goldBright : TradeXColors.borderStrong,
+        color: selected ? context.palette.gold : context.palette.borderStrong,
       ),
       padding: const EdgeInsets.symmetric(vertical: 12),
     ),
@@ -222,8 +222,8 @@ class _PrimaryActions extends StatelessWidget {
                     ),
                   ),
             style: FilledButton.styleFrom(
-              backgroundColor: TradeXColors.goldBright,
-              foregroundColor: Colors.black,
+              backgroundColor: context.palette.gold,
+              foregroundColor: context.palette.primaryButtonText,
               padding: const EdgeInsets.symmetric(vertical: 15),
             ),
             icon: const Icon(Icons.candlestick_chart_rounded),
@@ -240,7 +240,7 @@ class _PrimaryActions extends StatelessWidget {
             onPressed: () => _share(context, repository, detail),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 15),
-              side: const BorderSide(color: TradeXColors.borderStrong),
+              side: BorderSide(color: context.palette.borderStrong),
             ),
             icon: const Icon(Icons.ios_share_rounded),
             label: const Text('Share'),
@@ -257,49 +257,56 @@ class _Panel extends StatelessWidget {
   final IconData icon;
   final Widget child;
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [TradeXColors.surfaceRaised, TradeXColors.surface],
-      ),
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: TradeXColors.gold.withValues(alpha: .62)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: TradeXColors.goldBright),
-            const SizedBox(width: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                color: TradeXColors.primaryText,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Container(
+      padding: const EdgeInsets.all(TradeXSpacing.md),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [palette.surfaceRaised, palette.surface],
         ),
-        const SizedBox(height: 14),
-        child,
-      ],
-    ),
-  );
+        borderRadius: TradeXRadii.card,
+        border: Border.all(color: palette.gold.withValues(alpha: .62)),
+        boxShadow: TradeXElevation.surface(
+          brightness: Theme.of(context).brightness,
+          palette: palette,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: palette.goldText),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: TextStyle(
+                  color: palette.primaryText,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
 }
 
 class _DetailRow extends StatelessWidget {
   const _DetailRow({
     required this.label,
     required this.value,
-    this.color = TradeXColors.primaryText,
+    this.color,
     this.suffix,
   });
   final String label;
   final String value;
-  final Color color;
+  final Color? color;
   final String? suffix;
   @override
   Widget build(BuildContext context) => Padding(
@@ -309,19 +316,22 @@ class _DetailRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(color: TradeXColors.secondaryText),
+            style: TextStyle(color: context.palette.secondaryText),
           ),
         ),
         Text(
           value,
-          style: TextStyle(color: color, fontWeight: FontWeight.w900),
+          style: TextStyle(
+            color: color ?? context.palette.primaryText,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         if (suffix != null) ...[
           const SizedBox(width: 7),
           Text(
             suffix!,
-            style: const TextStyle(
-              color: TradeXColors.goldBright,
+            style: TextStyle(
+              color: context.palette.goldText,
               fontSize: 10,
               fontWeight: FontWeight.w900,
             ),
@@ -343,19 +353,19 @@ class _ChartMessage extends StatelessWidget {
   final VoidCallback? onRetry;
   @override
   Widget build(BuildContext context) => ColoredBox(
-    color: TradeXColors.backgroundSoft,
+    color: context.palette.surfaceMuted,
     child: Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: TradeXColors.secondaryText, size: 30),
+            Icon(icon, color: context.palette.secondaryText, size: 30),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: TradeXColors.secondaryText),
+              style: TextStyle(color: context.palette.secondaryText),
             ),
             if (onRetry != null)
               TextButton.icon(
@@ -378,10 +388,10 @@ class _LoadFailure extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      const Icon(
+      Icon(
         Icons.lock_outline_rounded,
         size: 42,
-        color: TradeXColors.secondaryText,
+        color: context.palette.secondaryText,
       ),
       const SizedBox(height: 12),
       Padding(
@@ -389,7 +399,7 @@ class _LoadFailure extends StatelessWidget {
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: TradeXColors.secondaryText),
+          style: TextStyle(color: context.palette.secondaryText),
         ),
       ),
       TextButton.icon(
@@ -412,7 +422,7 @@ Future<void> _share(
 ) async {
   final channel = await showModalBottomSheet<String>(
     context: context,
-    backgroundColor: TradeXColors.surfaceRaised,
+    backgroundColor: context.palette.surfaceRaised,
     builder: (context) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -420,10 +430,10 @@ Future<void> _share(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Share Trade Idea',
               style: TextStyle(
-                color: TradeXColors.primaryText,
+                color: context.palette.primaryText,
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
               ),

@@ -8,7 +8,8 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final idea = detail.summary;
     final buy = idea.direction == 'BUY';
-    final accent = buy ? TradeXColors.success : TradeXColors.error;
+    final palette = context.palette;
+    final accent = buy ? palette.success : palette.error;
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 6, 14, 8),
       child: Column(
@@ -19,12 +20,12 @@ class _Header extends StatelessWidget {
                 onPressed: () => Navigator.of(context).maybePop(),
                 icon: const Icon(Icons.arrow_back_ios_new_rounded),
               ),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Trade Idea Details',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: TradeXColors.primaryText,
+                    color: palette.primaryText,
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
                   ),
@@ -51,8 +52,8 @@ class _Header extends StatelessWidget {
                   children: [
                     Text(
                       '${_displayCategory(idea.category)}  •  ${idea.timeframe}',
-                      style: const TextStyle(
-                        color: TradeXColors.secondaryText,
+                      style: TextStyle(
+                        color: palette.secondaryText,
                         fontSize: 12,
                       ),
                     ),
@@ -61,8 +62,8 @@ class _Header extends StatelessWidget {
                       idea.symbol,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: TradeXColors.primaryText,
+                      style: TextStyle(
+                        color: palette.primaryText,
                         fontSize: 27,
                         fontWeight: FontWeight.w900,
                       ),
@@ -71,7 +72,7 @@ class _Header extends StatelessWidget {
                       idea.instrumentName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: TradeXColors.secondaryText),
+                      style: TextStyle(color: palette.secondaryText),
                     ),
                   ],
                 ),
@@ -83,7 +84,7 @@ class _Header extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: .12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: TradeXRadii.control,
                   border: Border.all(color: accent),
                 ),
                 child: Text(

@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/config/tradex_api_config.dart';
 import '../../../core/theme/tradex_colors.dart';
+import '../../../core/theme/tradex_design_system.dart';
 import '../domain/repositories/learn_repository.dart';
 
 part 'widgets/learn_dashboard_primary_widgets.dart';
