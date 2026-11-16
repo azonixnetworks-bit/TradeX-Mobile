@@ -63,7 +63,7 @@ class TradeIdeasRepository implements DashboardTradeIdeasRepository {
   Future<List<DashboardTradeIdeaCategory>> _fallbackCategories() async {
     const defaults = <(String, String)>[
       ('FOREX', 'Forex'),
-      ('COMMODITIES', 'Commodity'),
+      ('COMMODITY', 'Commodity'),
       ('CRYPTO', 'Crypto'),
       ('STOCKS', 'Stocks'),
       ('DERIV', 'Deriv'),

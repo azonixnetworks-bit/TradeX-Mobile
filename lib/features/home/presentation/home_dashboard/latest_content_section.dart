@@ -129,7 +129,7 @@ class _CategoryGridState extends State<_CategoryGrid>
         iconAsset: 'assets/home_ui/simple_svg/market_forex.svg',
       ),
       (
-        slug: 'COMMODITIES',
+        slug: 'COMMODITY',
         label: 'Commodity',
         ideas: '15+ Ideas',
         accent: Color(0xFFFFA928),
@@ -444,7 +444,7 @@ class _CategoryTile extends StatelessWidget {
 }
 
 String _marketApiCategory(String label) => switch (label.toLowerCase()) {
-  'commodity' => 'COMMODITIES',
+  'commodity' => 'COMMODITY',
   _ => label.toUpperCase(),
 };
 

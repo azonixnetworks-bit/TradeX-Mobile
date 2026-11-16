@@ -45,23 +45,30 @@ class _LiveTradeIdeasCarouselState extends State<_LiveTradeIdeasCarousel> {
         }
 
         return LayoutBuilder(
-          builder: (context, constraints) => SizedBox(
-            height: 535,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: ideas.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (context, index) => SizedBox(
-                width: constraints.maxWidth,
-                child: _LiveTradeIdeaCard(
-                  idea: ideas[index],
-                  position: index,
-                  repository: widget.repository,
+          builder: (context, constraints) {
+            final hasTargets = ideas.any((idea) => idea.targets.isNotEmpty);
+            final hasUpdate = ideas.any((idea) => idea.latestUpdate != null);
+            final compactHeight =
+                424.0 + (hasTargets ? 41.0 : 0) + (hasUpdate ? 18.0 : 0);
+
+            return SizedBox(
+              height: compactHeight,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: ideas.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, index) => SizedBox(
+                  width: constraints.maxWidth,
+                  child: _LiveTradeIdeaCard(
+                    idea: ideas[index],
+                    position: index,
+                    repository: widget.repository,
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -316,29 +323,36 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
             const SizedBox(height: 4),
             InkWell(
               onTap: () => _openAnalysis(idea),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               child: Ink(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
-                  border: Border.all(color: palette.gold.withValues(alpha: .7)),
-                  borderRadius: BorderRadius.circular(10),
+                  color: palette.gold,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: palette.gold.withValues(alpha: .24),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.insights_rounded,
-                      size: 15,
-                      color: palette.goldText,
+                      size: 17,
+                      color: const Color(0xFF111820),
                     ),
                     const SizedBox(width: 6),
-                    Text(
+                    const Text(
                       'View Analysis',
                       style: TextStyle(
-                        color: palette.goldText,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF111820),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                   ],

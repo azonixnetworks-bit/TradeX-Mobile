@@ -4,7 +4,7 @@ enum _TradeIdeaMode { longTerm, daily }
 
 enum _TradeIdeaAge { today, thisWeek, oldTrades }
 
-enum _StockMarketRegion { cse, sriLanka, india, international }
+enum _StockMarketRegion { cse, india, international }
 
 class _MarketCategoryTradeIdeasScreen extends StatefulWidget {
   const _MarketCategoryTradeIdeasScreen({
@@ -114,65 +114,62 @@ class _MarketCategoryTradeIdeasScreenState
                     ],
                   ),
                   const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _CategoryFilterChip(
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CategoryFilterChip(
                           label: 'Today',
                           selected: _age == _TradeIdeaAge.today,
                           onTap: () =>
                               setState(() => _age = _TradeIdeaAge.today),
                         ),
-                        const SizedBox(width: 8),
-                        _CategoryFilterChip(
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _CategoryFilterChip(
                           label: 'This Week',
                           selected: _age == _TradeIdeaAge.thisWeek,
                           onTap: () =>
                               setState(() => _age = _TradeIdeaAge.thisWeek),
                         ),
-                        const SizedBox(width: 8),
-                        _CategoryFilterChip(
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _CategoryFilterChip(
                           label: 'Old Trades',
                           selected: _age == _TradeIdeaAge.oldTrades,
                           onTap: () =>
                               setState(() => _age = _TradeIdeaAge.oldTrades),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   if (widget.category.toUpperCase() == 'STOCKS') ...[
                     const SizedBox(height: 10),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _CategoryFilterChip(
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _CategoryFilterChip(
                             label: 'CSE',
                             selected: _stockRegion == _StockMarketRegion.cse,
                             onTap: () => setState(
                               () => _stockRegion = _StockMarketRegion.cse,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          _CategoryFilterChip(
-                            label: 'Sri Lanka',
-                            selected:
-                                _stockRegion == _StockMarketRegion.sriLanka,
-                            onTap: () => setState(
-                              () => _stockRegion = _StockMarketRegion.sriLanka,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _CategoryFilterChip(
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _CategoryFilterChip(
                             label: 'India',
                             selected: _stockRegion == _StockMarketRegion.india,
                             onTap: () => setState(
                               () => _stockRegion = _StockMarketRegion.india,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          _CategoryFilterChip(
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _CategoryFilterChip(
                             label: 'International',
                             selected:
                                 _stockRegion ==
@@ -182,8 +179,8 @@ class _MarketCategoryTradeIdeasScreenState
                                   _StockMarketRegion.international,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ],
@@ -252,8 +249,7 @@ bool _matchesStockRegion(String rawRegion, _StockMarketRegion selected) {
   final isIndia =
       region == 'INDIA' || region == 'IN' || region == 'NSE' || region == 'BSE';
   return switch (selected) {
-    _StockMarketRegion.cse => isCse,
-    _StockMarketRegion.sriLanka => isSriLanka,
+    _StockMarketRegion.cse => isCse || isSriLanka,
     _StockMarketRegion.india => isIndia,
     _StockMarketRegion.international => !isCse && !isSriLanka && !isIndia,
   };
