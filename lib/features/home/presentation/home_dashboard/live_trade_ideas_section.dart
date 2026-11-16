@@ -151,204 +151,213 @@ class _LiveTradeIdeaCardState extends State<_LiveTradeIdeaCard> {
       _ => 'PREVIOUS',
     };
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: _panelDecoration(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _SmallPill(label: label, color: TradeXColors.goldBright),
-              const Spacer(),
-              Text(
-                idea.timeframe,
-                style: TextStyle(
-                  color: const Color(0xFF686868),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _TradeChartPreview(chartBytes: _chartBytes),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      idea.symbol,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF171717),
-                        fontSize: 21,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    if (idea.instrumentName.isNotEmpty)
-                      Text(
-                        idea.instrumentName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF6E6E6E),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: directionColor.withValues(alpha: .1),
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(
-                    color: directionColor.withValues(alpha: .55),
-                  ),
-                ),
-                child: Text(
-                  idea.direction,
-                  style: TextStyle(
-                    color: directionColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: .7,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .86),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: palette.gold.withValues(alpha: .36)),
-            ),
-            child: Row(
+    return GestureDetector(
+      key: ValueKey('latest-trade-idea-card-${idea.uuid}'),
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openAnalysis(idea),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: _panelDecoration(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Expanded(
-                  child: _SignalValue(label: 'Entry', value: idea.entry),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _SignalValue(label: 'SL', value: idea.stopLoss),
+                _SmallPill(label: label, color: TradeXColors.goldBright),
+                const Spacer(),
+                Text(
+                  idea.timeframe,
+                  style: TextStyle(
+                    color: const Color(0xFF686868),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),
-          ),
-          if (idea.targets.isNotEmpty) ...[
-            const SizedBox(height: 7),
-            SizedBox(
-              height: 34,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: idea.targets.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 7),
-                itemBuilder: (context, index) {
-                  final target = idea.targets[index];
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: TradeXColors.success.withValues(alpha: .08),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: TradeXColors.success.withValues(alpha: .35),
+            const SizedBox(height: 10),
+            _TradeChartPreview(chartBytes: _chartBytes),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        idea.symbol,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF171717),
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      '${target.label}: ${target.price}',
-                      style: const TextStyle(
-                        color: Color(0xFF167A4A),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-          if (idea.latestUpdate != null)
-            Text(
-              idea.latestUpdate!.message,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFF686868), fontSize: 10),
-            ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              _ReactionButton(
-                icon: Icons.thumb_up_alt_outlined,
-                count: idea.likesCount,
-                selected: idea.viewerReaction == 'LIKE',
-                onTap: () => _react(idea, 'LIKE'),
-              ),
-              const SizedBox(width: 10),
-              _ReactionButton(
-                icon: Icons.thumb_down_alt_outlined,
-                count: idea.dislikesCount,
-                selected: idea.viewerReaction == 'DISLIKE',
-                onTap: () => _react(idea, 'DISLIKE'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          InkWell(
-            onTap: () => Navigator.of(context).push<void>(
-              MaterialPageRoute<void>(
-                builder: (_) => TradeIdeaDetailsScreen(
-                  repository: widget.repository.detailsRepository,
-                  uuid: idea.uuid,
+                      if (idea.instrumentName.isNotEmpty)
+                        Text(
+                          idea.instrumentName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF6E6E6E),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: directionColor.withValues(alpha: .1),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(
+                      color: directionColor.withValues(alpha: .55),
+                    ),
+                  ),
+                  child: Text(
+                    idea.direction,
+                    style: TextStyle(
+                      color: directionColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: .7,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            borderRadius: BorderRadius.circular(10),
-            child: Ink(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 8),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                border: Border.all(color: palette.gold.withValues(alpha: .7)),
-                borderRadius: BorderRadius.circular(10),
+                color: Colors.white.withValues(alpha: .86),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: palette.gold.withValues(alpha: .36)),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.insights_rounded,
-                    size: 15,
-                    color: palette.goldText,
+                  Expanded(
+                    child: _SignalValue(label: 'Entry', value: idea.entry),
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'View Analysis',
-                    style: TextStyle(
-                      color: palette.goldText,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _SignalValue(label: 'SL', value: idea.stopLoss),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            if (idea.targets.isNotEmpty) ...[
+              const SizedBox(height: 7),
+              SizedBox(
+                height: 34,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: idea.targets.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 7),
+                  itemBuilder: (context, index) {
+                    final target = idea.targets[index];
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: TradeXColors.success.withValues(alpha: .08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: TradeXColors.success.withValues(alpha: .35),
+                        ),
+                      ),
+                      child: Text(
+                        '${target.label}: ${target.price}',
+                        style: const TextStyle(
+                          color: Color(0xFF167A4A),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+            if (idea.latestUpdate != null)
+              Text(
+                idea.latestUpdate!.message,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Color(0xFF686868), fontSize: 10),
+              ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _ReactionButton(
+                  icon: Icons.thumb_up_alt_outlined,
+                  count: idea.likesCount,
+                  selected: idea.viewerReaction == 'LIKE',
+                  onTap: () => _react(idea, 'LIKE'),
+                ),
+                const SizedBox(width: 10),
+                _ReactionButton(
+                  icon: Icons.thumb_down_alt_outlined,
+                  count: idea.dislikesCount,
+                  selected: idea.viewerReaction == 'DISLIKE',
+                  onTap: () => _react(idea, 'DISLIKE'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            InkWell(
+              onTap: () => _openAnalysis(idea),
+              borderRadius: BorderRadius.circular(10),
+              child: Ink(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: palette.gold.withValues(alpha: .7)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.insights_rounded,
+                      size: 15,
+                      color: palette.goldText,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'View Analysis',
+                      style: TextStyle(
+                        color: palette.goldText,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openAnalysis(DashboardTradeIdea idea) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => TradeIdeaDetailsScreen(
+          repository: widget.repository.detailsRepository,
+          uuid: idea.uuid,
+        ),
       ),
     );
   }

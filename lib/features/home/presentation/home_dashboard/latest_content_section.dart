@@ -14,9 +14,11 @@ class _CategoryGridState extends State<_CategoryGrid>
     with WidgetsBindingObserver {
   static const _categoryLabels = <String>[
     'Forex',
-    'Commodities',
-    'Indices',
+    'Commodity',
     'Crypto',
+    'Stocks',
+    'Deriv',
+    'Indices',
   ];
   final Map<String, int> _unread = {};
   final Map<String, List<DashboardTradeIdea>> _loadedIdeas = {};
@@ -99,9 +101,20 @@ class _CategoryGridState extends State<_CategoryGrid>
     widget.onTap('$label trade ideas');
   }
 
+  DateTime? _latestCategoryActivity(String label) {
+    DateTime? latest;
+    for (final idea in _loadedIdeas[label] ?? const <DashboardTradeIdea>[]) {
+      final activity = idea.lastActivityAt ?? idea.publishedAt;
+      if (activity != null && (latest == null || activity.isAfter(latest))) {
+        latest = activity;
+      }
+    }
+    return latest;
+  }
+
   @override
   Widget build(BuildContext context) {
-    const categories = [
+    final categories = [
       (
         label: 'Forex',
         ideas: '30+ Ideas',
@@ -110,19 +123,12 @@ class _CategoryGridState extends State<_CategoryGrid>
         iconAsset: 'assets/home_ui/simple_svg/market_forex.svg',
       ),
       (
-        label: 'Commodities',
+        label: 'Commodity',
         ideas: '15+ Ideas',
         accent: Color(0xFFFFA928),
         imageAsset:
             'assets/home_ui/complex_png/polished_gold_bullion_stack.png',
         iconAsset: 'assets/home_ui/simple_svg/market_commodities.svg',
-      ),
-      (
-        label: 'Indices',
-        ideas: '50+ Ideas',
-        accent: Color(0xFF39B9FF),
-        imageAsset: 'assets/branding/market_stocks.png',
-        iconAsset: 'assets/home_ui/simple_svg/market_indices.svg',
       ),
       (
         label: 'Crypto',
@@ -131,7 +137,40 @@ class _CategoryGridState extends State<_CategoryGrid>
         imageAsset: 'assets/branding/market_crypto.png',
         iconAsset: 'assets/home_ui/simple_svg/market_crypto.svg',
       ),
+      (
+        label: 'Stocks',
+        ideas: '50+ Ideas',
+        accent: Color(0xFF39B9FF),
+        imageAsset: 'assets/branding/market_stocks.png',
+        iconAsset: 'assets/home_ui/simple_svg/market_indices.svg',
+      ),
+      (
+        label: 'Deriv',
+        ideas: '20+ Ideas',
+        accent: Color(0xFF9B6BFF),
+        imageAsset: 'assets/branding/market_deriv.png',
+        iconAsset: 'assets/home_ui/simple_svg/market_forex.svg',
+      ),
+      (
+        label: 'Indices',
+        ideas: '50+ Ideas',
+        accent: Color(0xFF2E8BFF),
+        imageAsset: 'assets/branding/market_stocks.png',
+        iconAsset: 'assets/home_ui/simple_svg/market_indices.svg',
+      ),
     ];
+    categories.sort((left, right) {
+      final leftActivity = _latestCategoryActivity(left.label);
+      final rightActivity = _latestCategoryActivity(right.label);
+      if (leftActivity == null && rightActivity == null) {
+        return _categoryLabels
+            .indexOf(left.label)
+            .compareTo(_categoryLabels.indexOf(right.label));
+      }
+      if (leftActivity == null) return 1;
+      if (rightActivity == null) return -1;
+      return rightActivity.compareTo(leftActivity);
+    });
     return SizedBox(
       key: const ValueKey('home-market-categories-scroll'),
       height: 132,
@@ -384,8 +423,7 @@ class _CategoryTile extends StatelessWidget {
 }
 
 String _marketApiCategory(String label) => switch (label.toLowerCase()) {
-  'commodities' => 'DERIV',
-  'indices' => 'STOCKS',
+  'commodity' => 'COMMODITIES',
   _ => label.toUpperCase(),
 };
 

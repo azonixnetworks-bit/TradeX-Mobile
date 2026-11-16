@@ -47,6 +47,7 @@ LearningItem _learningItemFromJson(Map<String, dynamic> json) {
       : const <String, dynamic>{};
   final watchedAt = json['last_activity_at']?.toString();
   return LearningItem(
+    courseUuid: course['uuid']?.toString() ?? '',
     courseTitle: course['title']?.toString() ?? 'TradeX Learning',
     moduleTitle: module['title']?.toString() ?? 'Learning module',
     lessonTitle: lesson['title']?.toString() ?? 'Start your next lesson',

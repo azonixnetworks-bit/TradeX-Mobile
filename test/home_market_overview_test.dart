@@ -65,7 +65,9 @@ void main() {
     expect(find.byKey(const ValueKey('market-session-scroll')), findsOneWidget);
     // Session cards are compact but retain the original horizontal scroller.
     expect(
-      tester.getSize(find.byKey(const ValueKey('market-session-scroll'))).height,
+      tester
+          .getSize(find.byKey(const ValueKey('market-session-scroll')))
+          .height,
       132,
     );
     expect(
@@ -132,14 +134,14 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(
-      tester.getSize(
-        find.byKey(const ValueKey('home-market-categories-scroll')),
-      ).height,
+      tester
+          .getSize(find.byKey(const ValueKey('home-market-categories-scroll')))
+          .height,
       132,
     );
     // The horizontally lazily-built items need not be instantiated when
     // their strip is outside the test's clipped viewport. Verify the list
-    // configuration and all four entries without depending on lazy children.
+    // configuration and all six entries without depending on lazy children.
     final categoryList = tester.widget<ListView>(
       find.descendant(
         of: find.byKey(const ValueKey('home-market-categories-scroll')),
@@ -148,7 +150,7 @@ void main() {
     );
     expect(categoryList.scrollDirection, Axis.horizontal);
     expect(categoryList.physics, isA<BouncingScrollPhysics>());
-    expect(categoryList.childrenDelegate.estimatedChildCount, 7);
+    expect(categoryList.childrenDelegate.estimatedChildCount, 11);
     expect(tester.takeException(), isNull);
   });
 

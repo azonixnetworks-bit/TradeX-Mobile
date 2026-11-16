@@ -4,6 +4,8 @@ enum _TradeIdeaMode { longTerm, daily }
 
 enum _TradeIdeaAge { today, thisWeek, oldTrades }
 
+enum _StockMarketRegion { cse, sriLanka, india, international }
+
 class _MarketCategoryTradeIdeasScreen extends StatefulWidget {
   const _MarketCategoryTradeIdeasScreen({
     required this.category,
@@ -23,6 +25,7 @@ class _MarketCategoryTradeIdeasScreenState
   late Future<List<DashboardTradeIdea>> _ideas = _load();
   _TradeIdeaMode _mode = _TradeIdeaMode.daily;
   _TradeIdeaAge _age = _TradeIdeaAge.today;
+  _StockMarketRegion _stockRegion = _StockMarketRegion.cse;
 
   Future<List<DashboardTradeIdea>> _load() =>
       widget.repository.latestByCategory(_marketApiCategory(widget.category));
@@ -46,6 +49,11 @@ class _MarketCategoryTradeIdeasScreenState
               timeframe.contains('MN') ||
               timeframe.contains('MONTH');
           if (_mode == _TradeIdeaMode.longTerm ? !longTerm : longTerm) {
+            return false;
+          }
+
+          if (widget.category.toUpperCase() == 'STOCKS' &&
+              !_matchesStockRegion(idea.marketRegion, _stockRegion)) {
             return false;
           }
 
@@ -133,6 +141,51 @@ class _MarketCategoryTradeIdeasScreenState
                       ],
                     ),
                   ),
+                  if (widget.category.toUpperCase() == 'STOCKS') ...[
+                    const SizedBox(height: 10),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _CategoryFilterChip(
+                            label: 'CSE',
+                            selected: _stockRegion == _StockMarketRegion.cse,
+                            onTap: () => setState(
+                              () => _stockRegion = _StockMarketRegion.cse,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _CategoryFilterChip(
+                            label: 'Sri Lanka',
+                            selected:
+                                _stockRegion == _StockMarketRegion.sriLanka,
+                            onTap: () => setState(
+                              () => _stockRegion = _StockMarketRegion.sriLanka,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _CategoryFilterChip(
+                            label: 'India',
+                            selected: _stockRegion == _StockMarketRegion.india,
+                            onTap: () => setState(
+                              () => _stockRegion = _StockMarketRegion.india,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _CategoryFilterChip(
+                            label: 'International',
+                            selected:
+                                _stockRegion ==
+                                _StockMarketRegion.international,
+                            onTap: () => setState(
+                              () => _stockRegion =
+                                  _StockMarketRegion.international,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -189,6 +242,21 @@ class _MarketCategoryTradeIdeasScreenState
       ),
     );
   }
+}
+
+bool _matchesStockRegion(String rawRegion, _StockMarketRegion selected) {
+  final region = rawRegion.trim().toUpperCase().replaceAll('-', '_');
+  final isCse = region == 'CSE' || region == 'COLOMBO_STOCK_EXCHANGE';
+  final isSriLanka =
+      region == 'SRI_LANKA' || region == 'SRI LANKA' || region == 'LK';
+  final isIndia =
+      region == 'INDIA' || region == 'IN' || region == 'NSE' || region == 'BSE';
+  return switch (selected) {
+    _StockMarketRegion.cse => isCse,
+    _StockMarketRegion.sriLanka => isSriLanka,
+    _StockMarketRegion.india => isIndia,
+    _StockMarketRegion.international => !isCse && !isSriLanka && !isIndia,
+  };
 }
 
 class _CategoryFilterChip extends StatelessWidget {

@@ -151,6 +151,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       marketNewsRepository: widget.dependencies.marketNewsRepository,
       tradeIdeasRepository: widget.dependencies.dashboardTradeIdeasRepository,
       learningRepository: widget.dependencies.dashboardLearningRepository,
+      courseRepository: widget.dependencies.learnRepository,
     ),
     1 => _LearnTab(
       key: const PageStorageKey('learn-tab'),
@@ -200,9 +201,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     }
     const marketCategories = <String>{
       'forex',
-      'commodities',
-      'indices',
+      'commodity',
       'crypto',
+      'stocks',
+      'deriv',
+      'indices',
     };
     if (normalized.endsWith(' trade ideas')) {
       final category = normalized.substring(

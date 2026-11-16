@@ -3,10 +3,12 @@ part of '../home_dashboard_screen.dart';
 class _ContinueLearningSection extends StatefulWidget {
   const _ContinueLearningSection({
     required this.repository,
+    required this.courseRepository,
     required this.onActionTap,
   });
 
   final DashboardLearningRepository repository;
+  final LearnRepository courseRepository;
   final ValueChanged<String> onActionTap;
 
   @override
@@ -46,10 +48,8 @@ class _ContinueLearningSectionState extends State<_ContinueLearningSection> {
       if (learning.isPremium) {
         return _PremiumContinueLearningCard(
           item: learning.continueItem ?? learning.defaultPremiumItem,
-          onTap: () => widget.onActionTap(
-            learning.continueItem == null
-                ? 'Start learning'
-                : 'Continue learning',
+          onTap: () => _openCourseDetails(
+            learning.continueItem ?? learning.defaultPremiumItem,
           ),
         );
       }
@@ -81,6 +81,21 @@ class _ContinueLearningSectionState extends State<_ContinueLearningSection> {
       );
     },
   );
+
+  void _openCourseDetails(LearningItem? item) {
+    if (item == null || item.courseUuid.isEmpty) {
+      widget.onActionTap('Learning library');
+      return;
+    }
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => SubjectDetailsScreen(
+          repository: widget.courseRepository,
+          courseUuid: item.courseUuid,
+        ),
+      ),
+    );
+  }
 }
 
 class _PremiumLockedLearningCard extends StatelessWidget {
@@ -103,6 +118,7 @@ class _PremiumLockedLearningCard extends StatelessWidget {
               child: IgnorePointer(
                 child: _PremiumContinueLearningCard(
                   item: const LearningItem(
+                    courseUuid: '',
                     courseTitle: 'Premium Market Mastery',
                     moduleTitle: 'Advanced Market Structure',
                     lessonTitle: 'Institutional Trading Framework',

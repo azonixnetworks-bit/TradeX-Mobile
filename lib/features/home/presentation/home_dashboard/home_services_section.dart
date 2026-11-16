@@ -8,6 +8,7 @@ class _HomeContent extends StatelessWidget {
     required this.apiClient,
     required this.tradeIdeasRepository,
     required this.learningRepository,
+    required this.courseRepository,
     required this.marketNewsRepository,
   });
 
@@ -16,6 +17,7 @@ class _HomeContent extends StatelessWidget {
   final ApiGateway apiClient;
   final DashboardTradeIdeasRepository tradeIdeasRepository;
   final DashboardLearningRepository learningRepository;
+  final LearnRepository courseRepository;
   final MarketNewsRepositoryContract marketNewsRepository;
 
   @override
@@ -93,6 +95,7 @@ class _HomeContent extends StatelessWidget {
                   const SizedBox(height: 10),
                   _ContinueLearningSection(
                     repository: learningRepository,
+                    courseRepository: courseRepository,
                     onActionTap: onActionTap,
                   ),
                   const SizedBox(height: 20),

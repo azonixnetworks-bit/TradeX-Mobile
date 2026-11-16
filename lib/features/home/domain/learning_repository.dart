@@ -14,6 +14,7 @@ class HomeLearningData {
 
 class LearningItem {
   const LearningItem({
+    required this.courseUuid,
     required this.courseTitle,
     required this.moduleTitle,
     required this.lessonTitle,
@@ -24,6 +25,7 @@ class LearningItem {
     required this.isFree,
   });
 
+  final String courseUuid;
   final String courseTitle;
   final String moduleTitle;
   final String lessonTitle;

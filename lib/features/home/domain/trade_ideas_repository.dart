@@ -20,6 +20,7 @@ class DashboardTradeIdea {
     required this.category,
     required this.symbol,
     required this.instrumentName,
+    required this.marketRegion,
     required this.direction,
     required this.timeframe,
     required this.entry,
@@ -32,6 +33,7 @@ class DashboardTradeIdea {
     required this.dislikesCount,
     required this.viewerReaction,
     required this.publishedAt,
+    required this.lastActivityAt,
   });
 
   factory DashboardTradeIdea.fromJson(Map<String, dynamic> json) {
@@ -45,6 +47,7 @@ class DashboardTradeIdea {
       category: json['category']?.toString().toUpperCase() ?? '',
       symbol: json['symbol']?.toString() ?? 'MARKET',
       instrumentName: json['instrument_name']?.toString() ?? '',
+      marketRegion: json['market_region']?.toString().toUpperCase() ?? '',
       direction: json['direction']?.toString() ?? '—',
       timeframe: json['timeframe']?.toString() ?? '—',
       entry: _rangeText(entry),
@@ -85,6 +88,7 @@ class DashboardTradeIdea {
           ? reactions['viewer_reaction']?.toString()
           : null,
       publishedAt: DateTime.tryParse(json['published_at']?.toString() ?? ''),
+      lastActivityAt: _latestTradeIdeaActivity(json, timeline),
     );
   }
 
@@ -92,6 +96,7 @@ class DashboardTradeIdea {
   final String category;
   final String symbol;
   final String instrumentName;
+  final String marketRegion;
   final String direction;
   final String timeframe;
   final String entry;
@@ -104,6 +109,7 @@ class DashboardTradeIdea {
   int dislikesCount;
   String? viewerReaction;
   final DateTime? publishedAt;
+  final DateTime? lastActivityAt;
 
   void applyReaction(String? next) {
     if (viewerReaction == next) return;
@@ -119,6 +125,28 @@ class DashboardTradeIdea {
     dislikesCount = (json['dislikes_count'] as num?)?.toInt() ?? dislikesCount;
     viewerReaction = json['viewer_reaction']?.toString();
   }
+}
+
+DateTime? _latestTradeIdeaActivity(
+  Map<String, dynamic> json,
+  Object? timeline,
+) {
+  final candidates = <Object?>[
+    json['updated_at'],
+    json['published_at'],
+    if (timeline is List && timeline.isNotEmpty && timeline.first is Map) ...[
+      (timeline.first as Map)['updated_at'],
+      (timeline.first as Map)['created_at'],
+      (timeline.first as Map)['occurred_at'],
+      (timeline.first as Map)['published_at'],
+      (timeline.first as Map)['timestamp'],
+    ],
+  ];
+  for (final candidate in candidates) {
+    final parsed = DateTime.tryParse(candidate?.toString() ?? '');
+    if (parsed != null) return parsed;
+  }
+  return null;
 }
 
 class DashboardTradeTarget {
