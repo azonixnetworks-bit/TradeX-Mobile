@@ -181,10 +181,15 @@ class _SessionClockCardState extends State<_SessionClockCard>
                       child: RepaintBoundary(
                         child: CustomPaint(
                           key: const ValueKey('market-24h-clock'),
-                          painter: _MarketClockDialPainter(
-                            sessions: dialSessions,
-                            now: now,
-                          ),
+                          painter: context.isDarkMode
+                              ? _MarketClockDialPainter(
+                                  sessions: dialSessions,
+                                  now: now,
+                                )
+                              : _LightMarketClockDialPainter(
+                                  sessions: dialSessions,
+                                  now: now,
+                                ),
                         ),
                       ),
                     ),
@@ -565,8 +570,10 @@ class _LegendItem extends StatelessWidget {
       const SizedBox(width: 5),
       Text(
         label,
-        style: const TextStyle(
-          color: TradeXColors.secondaryText,
+        style: TextStyle(
+          color: context.isDarkMode
+              ? TradeXColors.secondaryText
+              : const Color(0xFF182436),
           fontSize: 9,
           fontWeight: FontWeight.w600,
         ),
