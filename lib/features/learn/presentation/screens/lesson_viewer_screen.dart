@@ -21,12 +21,24 @@ class _UniversalLessonViewerScreenState
   @override
   void initState() {
     super.initState();
-    widget.repository.updateProgress(widget.lessonUuid, status: 'IN_PROGRESS');
+    _markLessonStarted();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ActivityTrackingScope.maybeOf(context)
           ?.track('learning', 'lesson_viewed', subjectId: widget.lessonUuid);
     });
+  }
+
+  Future<void> _markLessonStarted() async {
+    try {
+      await widget.repository.updateProgress(
+        widget.lessonUuid,
+        status: 'IN_PROGRESS',
+      );
+    } catch (_) {
+      // Progress sync must never prevent the protected lesson content from
+      // opening. The viewer's read request remains the source of truth.
+    }
   }
 
   @override

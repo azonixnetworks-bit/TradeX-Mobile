@@ -19,5 +19,5 @@ const learnGreen = TradeXColors.goldBright;
 const learnBlue = TradeXColors.goldBright;
 const learnPurple = TradeXColors.goldBright;
 const learnCyan = TradeXColors.goldBright;
-const learnText = TradeXColors.primaryText;
-const learnMuted = TradeXColors.secondaryText;
+const learnText = Color(0xFF171717);
+const learnMuted = Color(0xFF171717);

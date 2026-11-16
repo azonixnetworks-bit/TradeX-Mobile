@@ -93,12 +93,24 @@ class _LearningList extends StatelessWidget {
             item: item,
             onTap: () {
               final lesson = LearnRepository.map(item['lesson']);
+              final lessonUuid = LearnRepository.text(
+                lesson['uuid'],
+                LearnRepository.text(item['lesson_uuid']),
+              );
+              if (lessonUuid.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('This saved lesson is unavailable.'),
+                  ),
+                );
+                return;
+              }
               Navigator.push(
                 context,
                 MaterialPageRoute<void>(
                   builder: (_) => UniversalLessonViewerScreen(
                     repository: repository,
-                    lessonUuid: LearnRepository.text(lesson['uuid']),
+                    lessonUuid: lessonUuid,
                   ),
                 ),
               );

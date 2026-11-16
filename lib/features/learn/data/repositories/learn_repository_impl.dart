@@ -70,7 +70,6 @@ class LearnRepositoryImpl implements LearnRepository {
   Future<JsonMap> courses({String search = '', String access = ''}) async {
     final params = <String, String>{
       if (access.isNotEmpty) 'access_level': access,
-      'language_code': courseLanguage,
       'per_page': '50',
     };
     final payload = await _data(
@@ -92,22 +91,8 @@ class LearnRepositoryImpl implements LearnRepository {
   }
 
   @override
-  Future<JsonMap> course(String uuid) async {
-    final path = '/api/v1/education/courses/$uuid';
-    final localizedPath = Uri(
-      path: path,
-      queryParameters: {'language_code': courseLanguage},
-    ).toString();
-    try {
-      return await _data(localizedPath);
-    } on ApiException catch (error) {
-      // Some deployed education API versions do not accept language_code on
-      // the course-detail route. Retry the canonical route only for a server
-      // failure; auth, access and not-found responses must keep their meaning.
-      if ((error.statusCode ?? 0) < 500) rethrow;
-      return _data(path);
-    }
-  }
+  Future<JsonMap> course(String uuid) =>
+      _data('/api/v1/education/courses/$uuid');
 
   @override
   Future<JsonMap> module(String uuid) =>
