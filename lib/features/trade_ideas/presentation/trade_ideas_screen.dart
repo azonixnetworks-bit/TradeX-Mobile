@@ -21,11 +21,13 @@ class TradeIdeasScreen extends StatefulWidget {
     required this.repository,
     required this.warningSource,
     this.onNotifications,
+    this.onRiskCalculator,
   });
 
   final TradeIdeaRepositoryContract repository;
   final NoTradeWarningSource warningSource;
   final VoidCallback? onNotifications;
+  final VoidCallback? onRiskCalculator;
 
   @override
   State<TradeIdeasScreen> createState() => _TradeIdeasScreenState();
@@ -165,6 +167,30 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                           ),
                         ),
                       ),
+                      if (widget.onRiskCalculator != null) ...[
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          key: const ValueKey(
+                            'trade-ideas-risk-calculator-button',
+                          ),
+                          onPressed: widget.onRiskCalculator,
+                          icon: const Icon(Icons.calculate_outlined, size: 17),
+                          label: const Text('Risk Calculator'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: context.palette.goldText,
+                            side: BorderSide(color: context.palette.gold),
+                            shape: const StadiumBorder(),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 11,
+                              vertical: 9,
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
                       if (widget.onNotifications != null)
                         IconButton(
                           key: const ValueKey(

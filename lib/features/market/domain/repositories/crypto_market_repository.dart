@@ -1,5 +1,6 @@
 import '../entities/crypto_market_entities.dart';
 import '../../../home/domain/trade_ideas_repository.dart';
+import 'market_screener_repository.dart';
 
 abstract interface class CryptoMarketRepositoryContract {
   Future<CryptoMarketSnapshot> load({
@@ -49,4 +50,5 @@ abstract interface class MarketFeatureDependencies {
   CryptoWatchlistRepository get watchlistRepository;
   BinanceLiveTickerSource get liveTickerSource;
   DashboardTradeIdeasRepository get tradeIdeasRepository;
+  MarketScreenerRepositoryContract get screenerRepository;
 }

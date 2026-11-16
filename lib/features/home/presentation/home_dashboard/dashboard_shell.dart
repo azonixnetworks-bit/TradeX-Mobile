@@ -286,6 +286,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     final id = switch (normalized) {
       'notifications' => 'notifications',
       'market categories' => 'market-screener',
+      'risk calculator' => 'risk-reward-calculator',
       'share referral link' => 'direct-referrals',
       'affiliate milestones' => 'qualified-sales',
       'my referrals' => 'direct-referrals',

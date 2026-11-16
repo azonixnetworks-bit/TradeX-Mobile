@@ -41,6 +41,7 @@ class _TradeIdeasTab extends StatelessWidget {
       activeBuilder: (_) => TradeIdeasScreen(
         repository: repository,
         warningSource: warningSource,
+        onRiskCalculator: () => onActionTap('risk calculator'),
       ),
     );
   }
