@@ -22,7 +22,15 @@ class TradeIdeaRepository implements TradeIdeaDataSource {
     };
     final normalizedCategory = category?.trim().toUpperCase() ?? '';
     final normalizedSymbol = symbol?.trim().toUpperCase() ?? '';
-    if (normalizedCategory.isNotEmpty && normalizedCategory != 'ALL') {
+    const serverCategories = {
+      'FOREX',
+      'CRYPTO',
+      'COMMODITY',
+      'INDICES',
+      'DERIV',
+      'STOCKS',
+    };
+    if (serverCategories.contains(normalizedCategory)) {
       parameters['category'] = normalizedCategory;
     }
     if (normalizedSymbol.isNotEmpty) parameters['symbol'] = normalizedSymbol;

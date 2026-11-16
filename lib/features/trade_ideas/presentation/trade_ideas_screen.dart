@@ -11,6 +11,8 @@ import '../domain/entities/trade_idea_entities.dart';
 import '../domain/repositories/trade_idea_repository.dart';
 import 'trade_idea_details_screen.dart';
 
+enum _TradeIdeaStockRegion { sriLanka, india, international }
+
 class TradeIdeasScreen extends StatefulWidget {
   const TradeIdeasScreen({
     super.key,
@@ -28,12 +30,20 @@ class TradeIdeasScreen extends StatefulWidget {
 }
 
 class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
-  static const _filters = ['ALL', 'FOREX', 'CRYPTO', 'DERIV', 'STOCKS'];
+  static const _filters = [
+    'FOREX',
+    'CRYPTO',
+    'COMMODITY',
+    'INDICES',
+    'DERIV',
+    'STOCKS',
+  ];
   final _search = TextEditingController();
   final _scroll = ScrollController();
   final List<TradeIdeaSummary> _items = [];
   Timer? _debounce;
-  String _category = 'ALL';
+  String _category = 'FOREX';
+  _TradeIdeaStockRegion _stockRegion = _TradeIdeaStockRegion.sriLanka;
   int _page = 1;
   bool _hasMore = false;
   bool _loading = true;
@@ -51,6 +61,18 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
     if (_scroll.position.extentAfter < 360 && _hasMore && !_loadingMore) {
       _load();
     }
+  }
+
+  List<TradeIdeaSummary> get _visibleItems {
+    final categoryItems = _items.where(
+      (idea) => _matchesTradeIdeaCategory(idea.category, _category),
+    );
+    if (_category != 'STOCKS') {
+      return categoryItems.toList(growable: false);
+    }
+    return categoryItems
+        .where((idea) => _matchesTradeIdeaStockRegion(idea, _stockRegion))
+        .toList(growable: false);
   }
 
   Future<void> _load({bool reset = false}) async {
@@ -159,7 +181,6 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                     ),
                   ),
                   if (_category == 'FOREX') ...[
-                    const SizedBox(height: 14),
                     NoTradeZoneWarningBanner(
                       source: widget.warningSource,
                       applicableSymbolsOrCurrencies: _items
@@ -203,6 +224,48 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                       },
                     ),
                   ),
+                  if (_category == 'STOCKS') ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _StockRegionButton(
+                            label: 'Sri Lanka (CSE)',
+                            selected:
+                                _stockRegion == _TradeIdeaStockRegion.sriLanka,
+                            onTap: () => setState(
+                              () =>
+                                  _stockRegion = _TradeIdeaStockRegion.sriLanka,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _StockRegionButton(
+                            label: 'India',
+                            selected:
+                                _stockRegion == _TradeIdeaStockRegion.india,
+                            onTap: () => setState(
+                              () => _stockRegion = _TradeIdeaStockRegion.india,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _StockRegionButton(
+                            label: 'International',
+                            selected:
+                                _stockRegion ==
+                                _TradeIdeaStockRegion.international,
+                            onTap: () => setState(
+                              () => _stockRegion =
+                                  _TradeIdeaStockRegion.international,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   TextField(
                     controller: _search,
@@ -256,9 +319,9 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                           ),
                         ),
                       ),
-                      if (_items.isNotEmpty)
+                      if (_visibleItems.isNotEmpty)
                         Text(
-                          '${_items.length} loaded',
+                          '${_visibleItems.length} loaded',
                           style: const TextStyle(
                             color: TradeXColors.secondaryText,
                             fontSize: 12,
@@ -288,7 +351,7 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                   onRetry: () => _load(reset: true),
                 ),
               )
-            else if (_items.isEmpty)
+            else if (_visibleItems.isEmpty)
               const SliverFillRemaining(
                 hasScrollBody: false,
                 child: _Message(
@@ -300,10 +363,10 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 120),
                 sliver: SliverList.separated(
-                  itemCount: _items.length + (_loadingMore ? 1 : 0),
+                  itemCount: _visibleItems.length + (_loadingMore ? 1 : 0),
                   separatorBuilder: (_, _) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    if (index == _items.length) {
+                    if (index == _visibleItems.length) {
                       return const Padding(
                         padding: EdgeInsets.all(16),
                         child: Center(
@@ -313,13 +376,14 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                         ),
                       );
                     }
+                    final idea = _visibleItems[index];
                     return _TradeIdeaCard(
-                      idea: _items[index],
+                      idea: idea,
                       onTap: () => Navigator.of(context).push<void>(
                         MaterialPageRoute<void>(
                           builder: (_) => TradeIdeaDetailsScreen(
                             repository: widget.repository,
-                            uuid: _items[index].uuid,
+                            uuid: idea.uuid,
                           ),
                         ),
                       ),
@@ -609,10 +673,72 @@ class _Message extends StatelessWidget {
   );
 }
 
+class _StockRegionButton extends StatelessWidget {
+  const _StockRegionButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => OutlinedButton(
+    onPressed: onTap,
+    style: OutlinedButton.styleFrom(
+      foregroundColor: selected ? Colors.black : context.palette.primaryText,
+      backgroundColor: selected
+          ? context.palette.gold
+          : context.palette.surfaceRaised,
+      side: BorderSide(
+        color: selected
+            ? TradeXColors.goldBright
+            : context.palette.borderStrong,
+      ),
+      shape: const StadiumBorder(),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
+      textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+    ),
+    child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+  );
+}
+
+bool _matchesTradeIdeaStockRegion(
+  TradeIdeaSummary idea,
+  _TradeIdeaStockRegion selected,
+) {
+  final region = idea.marketRegion.trim().toUpperCase().replaceAll('-', '_');
+  final sriLanka =
+      region == 'SRI_LANKA' ||
+      region == 'SRI LANKA' ||
+      region == 'LK' ||
+      region == 'CSE' ||
+      region == 'COLOMBO_STOCK_EXCHANGE';
+  final india =
+      region == 'INDIA' || region == 'IN' || region == 'NSE' || region == 'BSE';
+  return switch (selected) {
+    _TradeIdeaStockRegion.sriLanka => sriLanka,
+    _TradeIdeaStockRegion.india => india,
+    _TradeIdeaStockRegion.international => !sriLanka && !india,
+  };
+}
+
+bool _matchesTradeIdeaCategory(String rawCategory, String selectedCategory) {
+  final category = rawCategory.trim().toUpperCase();
+  return switch (selectedCategory) {
+    'COMMODITY' => category == 'COMMODITY' || category == 'COMMODITIES',
+    'INDICES' => category == 'INDICES' || category == 'INDEX',
+    _ => category == selectedCategory,
+  };
+}
+
 String _label(String raw) => switch (raw.toUpperCase()) {
-  'ALL' => 'All',
   'FOREX' => 'Forex',
   'CRYPTO' => 'Crypto',
+  'COMMODITY' => 'Commodity',
+  'INDICES' => 'Indices',
   'DERIV' => 'Deriv',
   'STOCKS' => 'Stocks',
   _ => raw,
