@@ -365,33 +365,33 @@ class _MenuTile extends StatelessWidget {
 
 const _sectionTitle = TextStyle(fontSize: 18, fontWeight: FontWeight.w900);
 
-BoxDecoration _fieldDecoration() => BoxDecoration(
-  color: const Color(0xFF121A19),
+BoxDecoration _fieldDecoration(BuildContext context) => BoxDecoration(
+  color: context.palette.surfaceMuted,
   borderRadius: BorderRadius.circular(12),
-  border: Border.all(color: TradeXColors.border),
+  border: Border.all(color: context.palette.border),
 );
 
-BoxDecoration _dashboardCardDecoration({bool goldAccent = false}) =>
-    BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: goldAccent
-            ? const [Color(0xFF101615), Color(0xFF07100E), Color(0xFF291F08)]
-            : const [Color(0xFF101718), Color(0xFF07110F), Color(0xFF171407)],
-      ),
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(
-        color: goldAccent ? const Color(0xFFD6A800) : const Color(0xFF49606A),
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: const Color(0xFFFFC83D)
-              .withValues(alpha: goldAccent ? .12 : .06),
-          blurRadius: 18,
-        ),
-      ],
-    );
+BoxDecoration _dashboardCardDecoration(
+  BuildContext context, {
+  bool goldAccent = false,
+}) => BoxDecoration(
+  color: context.palette.surface,
+  gradient: context.isDarkMode
+      ? LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [context.palette.surfaceRaised, context.palette.surface],
+        )
+      : null,
+  borderRadius: BorderRadius.circular(18),
+  border: Border.all(
+    color: goldAccent ? context.palette.gold : context.palette.border,
+  ),
+  boxShadow: TradeXElevation.surface(
+    brightness: Theme.of(context).brightness,
+    palette: context.palette,
+  ),
+);
 
 String _date(Object? value) {
   final parsed = DateTime.tryParse(value?.toString() ?? '')?.toLocal();
@@ -512,11 +512,24 @@ Future<void> _shareAffiliateIncomeCard(
   }
 }
 
-Future<void> _showQr(BuildContext context, String url) async {
+Future<void> _showQr(
+  BuildContext context,
+  String url, {
+  required String cacheKey,
+  required ReferralQrCache cache,
+}) async {
   if (url.isEmpty) {
     _snack(context, 'Referral link is unavailable.');
     return;
   }
+  final normalizedKey = cacheKey.trim().isEmpty ? 'current' : cacheKey.trim();
+  String qrPayload = url;
+  try {
+    qrPayload = await cache.resolve(key: normalizedKey, payload: url);
+  } catch (_) {
+    // Secure-storage availability must never prevent referral sharing.
+  }
+  if (!context.mounted) return;
   await showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
@@ -525,7 +538,7 @@ Future<void> _showQr(BuildContext context, String url) async {
       content: Container(
         color: Colors.white,
         padding: const EdgeInsets.all(12),
-        child: QrImageView(data: url, size: 220),
+        child: QrImageView(data: qrPayload, size: 220),
       ),
       actions: [
         TextButton(

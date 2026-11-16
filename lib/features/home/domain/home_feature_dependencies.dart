@@ -3,6 +3,7 @@ import '../../../core/domain/dashboard_tab_preferences.dart';
 import '../../../core/domain/profile_photo_store.dart';
 import '../../profile/domain/repositories/withdrawal_draft_store.dart';
 import '../../affiliate/domain/repositories/affiliate_repository.dart';
+import '../../affiliate/domain/repositories/referral_qr_cache.dart';
 import '../../auth/domain/repositories/auth_repositories.dart';
 import '../../learn/domain/repositories/learn_repository.dart';
 import '../../market/domain/repositories/crypto_market_repository.dart';
@@ -21,6 +22,7 @@ abstract interface class HomeFeatureDependencies {
   LearnRepository get learnRepository;
   TradeIdeaRepositoryContract get tradeIdeasRepository;
   AffiliateRepository get affiliateRepository;
+  ReferralQrCache get referralQrCache;
   MarketFeatureDependencies get marketDependencies;
   DashboardTabPreferences get dashboardPreferences;
   ProfilePhotoStore get profilePhotoStore;

@@ -215,7 +215,10 @@ class PayoutsContent extends StatelessWidget {
       requestedAmount,
     );
     if (!context.mounted) return;
-    _snack(context, error ?? 'Withdrawal request submitted.');
+    _snack(
+      context,
+      error ?? 'Withdrawal requested. Normal processing time is 3 to 5 business days.',
+    );
   }
 
   @override
@@ -274,6 +277,28 @@ class PayoutsContent extends StatelessWidget {
                     ? null
                     : () => _request(context, summary, methods),
                 compact: true,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        SectionCard(
+          padding: const EdgeInsets.all(12),
+          borderColor: context.palette.gold,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.schedule_rounded, color: context.palette.goldText),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Withdrawal requests are normally completed within 3 to 5 business days. You will be notified at every stage.',
+                  style: TextStyle(
+                    color: context.palette.secondaryText,
+                    fontSize: 12.5,
+                    height: 1.4,
+                  ),
+                ),
               ),
             ],
           ),
@@ -481,47 +506,134 @@ class PayoutHistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = AffiliateRepository.text(data['status']);
+    final status = AffiliateRepository.text(
+      data['display_status'] ?? data['status'],
+    );
     final color = switch (status) {
-      'PAID' => TradeXColors.success,
+      'PAID' || 'COMPLETED' => TradeXColors.success,
       'REJECTED' || 'FAILED' || 'CANCELLED' => TradeXColors.error,
       _ => TradeXColors.warning,
     };
+    final timeline = AffiliateRepository.listOf(data['timeline']);
     return Padding(
       padding: const EdgeInsets.all(14),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _GoldIcon(
-            status == 'PAID' ? Icons.check_rounded : Icons.north_east_rounded,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${_methodName(AffiliateRepository.text(data['method'], ''))} withdrawal',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                Text(
-                  _date(data['requested_at']),
-                  style: const TextStyle(color: _muted, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
             children: [
-              Text(
-                AffiliateRepository.moneyText(data['amount']),
-                style: const TextStyle(fontWeight: FontWeight.w800),
+              _GoldIcon(
+                status == 'COMPLETED'
+                    ? Icons.check_rounded
+                    : Icons.north_east_rounded,
               ),
-              Text(status, style: TextStyle(color: color, fontSize: 11)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_methodName(AffiliateRepository.text(data['method'], ''))} withdrawal',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      _date(data['requested_at']),
+                      style: const TextStyle(color: _muted, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    AffiliateRepository.moneyText(data['amount']),
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    status.replaceAll('_', ' '),
+                    style: TextStyle(color: color, fontSize: 11),
+                  ),
+                ],
+              ),
             ],
           ),
+          if (timeline.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _PayoutTimeline(steps: timeline),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _PayoutTimeline extends StatelessWidget {
+  const _PayoutTimeline({required this.steps});
+
+  final List<JsonMap> steps;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      for (var index = 0; index < steps.length; index++) ...[
+        Expanded(child: _TimelineStep(data: steps[index])),
+        if (index != steps.length - 1)
+          Container(
+            width: 12,
+            height: 2,
+            color: AffiliateRepository.text(steps[index]['state']) == 'COMPLETE'
+                ? context.palette.gold
+                : context.palette.border,
+          ),
+      ],
+    ],
+  );
+}
+
+class _TimelineStep extends StatelessWidget {
+  const _TimelineStep({required this.data});
+
+  final JsonMap data;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = AffiliateRepository.text(data['state']);
+    final active = state == 'CURRENT' || state == 'COMPLETE';
+    return Column(
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: active ? context.palette.gold : context.palette.surfaceMuted,
+            border: Border.all(
+              color: active ? context.palette.gold : context.palette.border,
+            ),
+          ),
+          child: Icon(
+            state == 'COMPLETE' ? Icons.check_rounded : Icons.circle,
+            size: state == 'COMPLETE' ? 14 : 7,
+            color: active
+                ? context.palette.primaryButtonText
+                : context.palette.tertiaryText,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          AffiliateRepository.text(data['label']),
+          maxLines: 2,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: active
+                ? context.palette.primaryText
+                : context.palette.tertiaryText,
+            fontSize: 9,
+            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }

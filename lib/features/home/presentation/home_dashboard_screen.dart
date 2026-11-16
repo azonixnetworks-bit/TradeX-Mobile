@@ -29,6 +29,7 @@ import '../../learn/domain/repositories/learn_repository.dart';
 import '../../trade_ideas/domain/repositories/trade_idea_repository.dart';
 import '../../affiliate/domain/repositories/affiliate_repository.dart'
     hide JsonMap;
+import '../../affiliate/domain/repositories/referral_qr_cache.dart';
 import '../domain/no_trade_zone_warning.dart';
 import '../../learn/presentation/learn_module.dart';
 import '../../market/presentation/crypto_market_screen.dart';
@@ -49,6 +50,7 @@ import 'economic_news_screen.dart';
 part 'home_dashboard/dashboard_shell.dart';
 part 'home_dashboard/home_services_section.dart';
 part 'home_dashboard/market_clock_section.dart';
+part 'home_dashboard/market_screener_section.dart';
 part 'home_dashboard/market_news_section.dart';
 part 'home_dashboard/home_learning_section.dart';
 part 'home_dashboard/live_trade_ideas_section.dart';

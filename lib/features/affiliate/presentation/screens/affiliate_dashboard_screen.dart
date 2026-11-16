@@ -4,12 +4,14 @@ class AffiliateDashboardScreen extends StatelessWidget {
   const AffiliateDashboardScreen({
     super.key,
     required this.repository,
+    required this.referralQrCache,
     required this.onUpgrade,
     required this.onConfigurePayoutMethod,
     this.onNotifications,
   });
 
   final AffiliateRepository repository;
+  final ReferralQrCache referralQrCache;
   final VoidCallback onUpgrade;
   final ValueChanged<String> onConfigurePayoutMethod;
   final VoidCallback? onNotifications;
@@ -20,6 +22,7 @@ class AffiliateDashboardScreen extends StatelessWidget {
       create: (_) => AffiliateLoadCubit(repository.overview)..load(),
       child: _DashboardBody(
         repository: repository,
+        referralQrCache: referralQrCache,
         onUpgrade: onUpgrade,
         onConfigurePayoutMethod: onConfigurePayoutMethod,
         onNotifications: onNotifications,
@@ -31,12 +34,14 @@ class AffiliateDashboardScreen extends StatelessWidget {
 class _DashboardBody extends StatelessWidget {
   const _DashboardBody({
     required this.repository,
+    required this.referralQrCache,
     required this.onUpgrade,
     required this.onConfigurePayoutMethod,
     this.onNotifications,
   });
 
   final AffiliateRepository repository;
+  final ReferralQrCache referralQrCache;
   final VoidCallback onUpgrade;
   final ValueChanged<String> onConfigurePayoutMethod;
   final VoidCallback? onNotifications;
@@ -139,6 +144,7 @@ class _DashboardBody extends StatelessWidget {
           builder: (data) => _DashboardContent(
             data: data,
             repository: repository,
+            referralQrCache: referralQrCache,
             openReferrals: () => _open(
               context,
               AffiliateReferralsScreen(
@@ -176,10 +182,11 @@ class _DashboardBody extends StatelessWidget {
   }
 }
 
-class _DashboardContent extends StatelessWidget {
+class _DashboardContent extends StatefulWidget {
   const _DashboardContent({
     required this.data,
     required this.repository,
+    required this.referralQrCache,
     required this.openReferrals,
     required this.openEarnings,
     required this.openLevels,
@@ -188,14 +195,36 @@ class _DashboardContent extends StatelessWidget {
 
   final JsonMap data;
   final AffiliateRepository repository;
+  final ReferralQrCache referralQrCache;
   final VoidCallback openReferrals;
   final VoidCallback openEarnings;
   final VoidCallback openLevels;
   final VoidCallback openPayouts;
 
+  @override
+  State<_DashboardContent> createState() => _DashboardContentState();
+}
+
+class _DashboardContentState extends State<_DashboardContent> {
+  late Future<JsonMap> _payoutSummary;
+
+  @override
+  void initState() {
+    super.initState();
+    _payoutSummary = widget.repository.payoutSummary();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DashboardContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.data, widget.data)) {
+      _payoutSummary = widget.repository.payoutSummary();
+    }
+  }
+
   Future<void> _shareExternal(BuildContext context, String channel) async {
     try {
-      final result = await repository.shareAction(channel);
+      final result = await widget.repository.shareAction(channel);
       final url = Uri.tryParse(
         AffiliateRepository.text(result['external_share_url'], ''),
       );
@@ -212,11 +241,11 @@ class _DashboardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final affiliate = AffiliateRepository.mapOf(data['affiliate']);
-    final referral = AffiliateRepository.mapOf(data['referral']);
-    final financials = AffiliateRepository.mapOf(data['financials']);
-    final stage = AffiliateRepository.mapOf(data['current_stage']);
-    final commission = AffiliateRepository.mapOf(data['commission']);
+    final affiliate = AffiliateRepository.mapOf(widget.data['affiliate']);
+    final referral = AffiliateRepository.mapOf(widget.data['referral']);
+    final financials = AffiliateRepository.mapOf(widget.data['financials']);
+    final stage = AffiliateRepository.mapOf(widget.data['current_stage']);
+    final commission = AffiliateRepository.mapOf(widget.data['commission']);
     final url = AffiliateRepository.text(referral['url'], '');
     final code = AffiliateRepository.text(referral['code'], '');
     final rate = AffiliateRepository.text(
@@ -226,7 +255,9 @@ class _DashboardContent extends StatelessWidget {
     final direct = AffiliateRepository.integer(
       referral['direct_referrals_count'],
     );
-    final sales = AffiliateRepository.integer(data['qualified_sales_count']);
+    final sales = AffiliateRepository.integer(
+      widget.data['qualified_sales_count'],
+    );
     final lifetimeEarnings = financials['lifetime_commission_earned'];
     final averageEarnings =
         AffiliateRepository.mapOf(
@@ -240,6 +271,21 @@ class _DashboardContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        FutureBuilder<JsonMap>(
+          future: _payoutSummary,
+          builder: (context, snapshot) {
+            final summary = AffiliateRepository.mapOf(
+              snapshot.data?['summary'],
+            );
+            return _DashboardBalanceCard(
+              balance: snapshot.connectionState == ConnectionState.waiting
+                  ? null
+                  : AffiliateRepository.moneyText(summary['available']),
+              onWithdraw: widget.openPayouts,
+            );
+          },
+        ),
+        const SizedBox(height: 16),
         AffiliateHero(
           commissionRate: rate,
           onInvite: () => _nativeShare(context, url),
@@ -258,30 +304,30 @@ class _DashboardContent extends StatelessWidget {
                   value: AffiliateRepository.moneyText(
                     financials['lifetime_commission_earned'],
                   ),
-                  assetPath: _AffiliateAssets.dashboardEarnings,
-                  onTap: openEarnings,
+                  icon: Icons.account_balance_wallet_rounded,
+                  onTap: widget.openEarnings,
                 ),
                 _DashboardMetricCard(
                   width: width,
                   label: 'Qualified Sales',
                   value: '$sales',
-                  assetPath: _AffiliateAssets.dashboardSales,
-                  onTap: openEarnings,
+                  icon: Icons.shopping_bag_rounded,
+                  onTap: widget.openEarnings,
                 ),
                 _DashboardMetricCard(
                   width: width,
                   label: 'Total Referrals',
                   value: '$direct',
-                  assetPath: _AffiliateAssets.dashboardReferrals,
-                  onTap: openReferrals,
+                  icon: Icons.groups_rounded,
+                  onTap: widget.openReferrals,
                 ),
                 _DashboardMetricCard(
                   width: width,
                   label: 'Current Level',
                   value: AffiliateRepository.text(stage['name']),
                   subtitle: '$rate% commission',
-                  assetPath: _AffiliateAssets.dashboardLevel,
-                  onTap: openLevels,
+                  icon: Icons.workspace_premium_rounded,
+                  onTap: widget.openLevels,
                 ),
               ],
             );
@@ -311,11 +357,74 @@ class _DashboardContent extends StatelessWidget {
             commissionRate: rate,
             currentLevel: AffiliateRepository.text(stage['name'], 'Affiliate'),
           ),
-          onQr: () => _showQr(context, url),
+          onQr: () => _showQr(
+            context,
+            url,
+            cacheKey: code,
+            cache: widget.referralQrCache,
+          ),
         ),
         const SizedBox(height: 16),
-        _CommissionRewardBanner(commissionRate: rate, onTap: openPayouts),
+        _CommissionRewardBanner(
+          commissionRate: rate,
+          onTap: widget.openPayouts,
+        ),
       ],
     );
   }
+}
+
+class _DashboardBalanceCard extends StatelessWidget {
+  const _DashboardBalanceCard({
+    required this.balance,
+    required this.onWithdraw,
+  });
+
+  final String? balance;
+  final VoidCallback onWithdraw;
+
+  @override
+  Widget build(BuildContext context) => SectionCard(
+    borderColor: context.palette.gold,
+    child: Row(
+      children: [
+        const _GoldIcon(Icons.account_balance_wallet_rounded),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Available Balance',
+                style: TextStyle(
+                  color: context.palette.secondaryText,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 3),
+              if (balance == null)
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Text(
+                  balance!,
+                  style: const TextStyle(
+                    fontSize: 25,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        GoldActionButton(
+          label: 'Withdraw',
+          onPressed: onWithdraw,
+          compact: true,
+        ),
+      ],
+    ),
+  );
 }

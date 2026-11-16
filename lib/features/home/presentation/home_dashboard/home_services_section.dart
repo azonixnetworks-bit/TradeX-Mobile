@@ -58,6 +58,8 @@ class _HomeContent extends StatelessWidget {
                   const SizedBox(height: 18),
                   _SessionClockCard(apiClient: apiClient),
                   const SizedBox(height: 18),
+                  _HomeMarketScreener(apiClient: apiClient),
+                  const SizedBox(height: 18),
                   _SectionTitle(
                     key: const ValueKey('economic-news-title'),
                     icon: Icons.newspaper_rounded,

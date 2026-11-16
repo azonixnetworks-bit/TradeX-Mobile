@@ -9,6 +9,7 @@ import '../profile/domain/repositories/withdrawal_draft_store.dart';
 import '../profile/data/repositories/withdrawal_draft_store_impl.dart';
 import '../affiliate/affiliate_dependencies.dart';
 import '../affiliate/domain/repositories/affiliate_repository.dart';
+import '../affiliate/domain/repositories/referral_qr_cache.dart';
 import '../auth/domain/repositories/auth_repositories.dart';
 import '../learn/domain/repositories/learn_repository.dart';
 import '../learn/learn_dependencies.dart';
@@ -39,8 +40,7 @@ final class HomeDependencies implements HomeFeatureDependencies {
        learnRepository = LearnDependencies(apiGateway as dynamic).repository,
        tradeIdeasRepository = TradeIdeasDependencies(apiGateway as dynamic)
            .repository,
-       affiliateRepository = AffiliateDependencies(apiGateway as dynamic)
-           .repository,
+       affiliateDependencies = AffiliateDependencies(apiGateway as dynamic),
        marketDependencies = MarketDependencies(
          apiGateway as dynamic,
          tradeIdeasRepository: TradeIdeasRepository(
@@ -64,8 +64,12 @@ final class HomeDependencies implements HomeFeatureDependencies {
   final LearnRepository learnRepository;
   @override
   final TradeIdeaRepositoryContract tradeIdeasRepository;
+  final AffiliateDependencies affiliateDependencies;
   @override
-  final AffiliateRepository affiliateRepository;
+  AffiliateRepository get affiliateRepository =>
+      affiliateDependencies.repository;
+  @override
+  ReferralQrCache get referralQrCache => affiliateDependencies.referralQrCache;
   @override
   final MarketFeatureDependencies marketDependencies;
   @override

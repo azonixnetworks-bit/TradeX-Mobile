@@ -171,105 +171,71 @@ class AffiliateHero extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final compact = constraints.maxWidth < 350;
-      final height = compact ? 244.0 : 256.0;
+      final palette = context.palette;
+      final height = compact ? 218.0 : 228.0;
       return Container(
         margin: EdgeInsets.symmetric(horizontal: compact ? 4 : 8),
         height: height,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF13150F), Color(0xFF050A09), Color(0xFF231A05)],
-          ),
+          color: palette.surface,
+          gradient: context.isDarkMode
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [palette.surfaceRaised, palette.surface],
+                )
+              : null,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: const Color(0xFFE7B820), width: 1.2),
-          boxShadow: const [
-            BoxShadow(color: Color(0x35FFC83D), blurRadius: 24),
-          ],
+          border: Border.all(color: palette.gold, width: 1.2),
+          boxShadow: TradeXElevation.surface(
+            brightness: Theme.of(context).brightness,
+            palette: palette,
+          ),
         ),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Image.asset(
-                  _AffiliateAssets.dashboardSparkles,
-                  fit: BoxFit.cover,
-                  opacity: const AlwaysStoppedAnimation(.55),
+            Positioned(
+              right: -32,
+              bottom: -42,
+              child: Container(
+                width: compact ? 150 : 170,
+                height: compact ? 150 : 170,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: palette.goldSoft.withValues(alpha: .7),
                 ),
               ),
             ),
             Positioned(
-              right: compact ? -58 : -44,
-              bottom: -34,
-              child: IgnorePointer(
-                child: Image.asset(
-                  _AffiliateAssets.dashboardGlobe,
-                  width: compact ? 218 : 232,
-                  height: compact ? 218 : 232,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            Positioned(
-              right: compact ? -2 : 8,
-              bottom: 6,
-              child: IgnorePointer(
-                child: Image.asset(
-                  _AffiliateAssets.dashboardGift,
-                  width: compact ? 92 : 104,
-                  height: compact ? 92 : 104,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            Positioned(
-              right: compact ? -10 : 0,
-              top: 2,
-              child: IgnorePointer(
-                child: Image.asset(
-                  _AffiliateAssets.dashboardGrowthArrow,
-                  width: compact ? 74 : 84,
-                  height: compact ? 74 : 84,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            Positioned(
-              right: compact ? 66 : 78,
-              bottom: 4,
-              child: IgnorePointer(
-                child: Image.asset(
-                  _AffiliateAssets.dashboardDollarCoin,
-                  width: 42,
-                  height: 42,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Color(0xF2050A09),
-                      Color(0x9A050A09),
-                      Colors.transparent,
-                    ],
-                    stops: [0, .48, .78],
+              right: compact ? 18 : 24,
+              top: 22,
+              child: Container(
+                width: compact ? 66 : 74,
+                height: compact ? 66 : 74,
+                decoration: BoxDecoration(
+                  color: palette.goldSoft,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: palette.gold.withValues(alpha: .55),
                   ),
+                ),
+                child: Icon(
+                  Icons.group_add_rounded,
+                  color: palette.goldText,
+                  size: compact ? 34 : 38,
                 ),
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, compact ? 88 : 102, 14),
+              padding: EdgeInsets.fromLTRB(18, 18, compact ? 92 : 112, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'TURN',
                     style: TextStyle(
-                      color: _gold,
+                      color: palette.goldText,
                       fontSize: 20,
                       fontWeight: FontWeight.w900,
                       height: 1,
@@ -281,7 +247,7 @@ class AffiliateHero extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: palette.primaryText,
                       fontSize: compact ? 18 : 21,
                       fontWeight: FontWeight.w900,
                       height: 1.05,
@@ -293,7 +259,7 @@ class AffiliateHero extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: _gold,
+                      color: palette.goldText,
                       fontSize: compact ? 18 : 21,
                       fontWeight: FontWeight.w900,
                       height: 1.05,
@@ -305,7 +271,7 @@ class AffiliateHero extends StatelessWidget {
                     maxLines: 4,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: const Color(0xFFC5D0E2),
+                      color: palette.secondaryText,
                       fontSize: compact ? 11.5 : 12.5,
                       height: 1.35,
                     ),
@@ -331,7 +297,7 @@ class _DashboardMetricCard extends StatelessWidget {
     required this.width,
     required this.label,
     required this.value,
-    required this.assetPath,
+    required this.icon,
     required this.onTap,
     this.subtitle,
   });
@@ -339,7 +305,7 @@ class _DashboardMetricCard extends StatelessWidget {
   final double width;
   final String label;
   final String value;
-  final String assetPath;
+  final IconData icon;
   final VoidCallback onTap;
   final String? subtitle;
 
@@ -352,18 +318,20 @@ class _DashboardMetricCard extends StatelessWidget {
       child: Container(
         height: 122,
         padding: const EdgeInsets.fromLTRB(15, 14, 12, 14),
-        decoration: _dashboardCardDecoration(),
+        decoration: _dashboardCardDecoration(context),
         child: Stack(
           children: [
             Positioned(
               right: -3,
               top: -4,
-              child: Image.asset(
-                assetPath,
-                width: 55,
-                height: 55,
-                fit: BoxFit.contain,
-                semanticLabel: '$label icon',
+              child: Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: context.palette.goldSoft,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: context.palette.goldText, size: 25),
               ),
             ),
             Column(
@@ -375,8 +343,8 @@ class _DashboardMetricCard extends StatelessWidget {
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFFB8C6DC),
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -387,8 +355,8 @@ class _DashboardMetricCard extends StatelessWidget {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.palette.primaryText,
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
                   ),
@@ -399,8 +367,8 @@ class _DashboardMetricCard extends StatelessWidget {
                     subtitle!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFFC6D0E0),
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
                       fontSize: 11,
                     ),
                   ),
@@ -430,23 +398,21 @@ class _CommissionRewardBanner extends StatelessWidget {
     child: Container(
       height: 92,
       padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [Color(0xFF321405), Color(0xFF0A110F), Color(0xFF2A2107)],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE5AD00)),
-        boxShadow: const [BoxShadow(color: Color(0x2AFFC83D), blurRadius: 18)],
-      ),
+      decoration: _dashboardCardDecoration(context, goldAccent: true),
       child: Row(
         children: [
-          Image.asset(
-            _AffiliateAssets.dashboardGift,
-            width: 66,
-            height: 66,
-            fit: BoxFit.contain,
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: context.palette.goldSoft,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              Icons.card_giftcard_rounded,
+              color: context.palette.goldText,
+              size: 30,
+            ),
           ),
           const SizedBox(width: 6),
           Expanded(
@@ -458,28 +424,26 @@ class _CommissionRewardBanner extends StatelessWidget {
                   'Earn up to $commissionRate% Commission',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.palette.primaryText,
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'And unlock milestone rewards',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Color(0xFFB9C6D9), fontSize: 11.5),
+                  style: TextStyle(
+                    color: context.palette.secondaryText,
+                    fontSize: 11.5,
+                  ),
                 ),
               ],
             ),
           ),
-          Image.asset(
-            _AffiliateAssets.dashboardSmallArrow,
-            width: 38,
-            height: 38,
-            fit: BoxFit.contain,
-          ),
+          Icon(Icons.chevron_right_rounded, color: context.palette.goldText),
         ],
       ),
     ),
@@ -569,7 +533,7 @@ class ReferralLinkPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(13),
-    decoration: _dashboardCardDecoration(goldAccent: true),
+    decoration: _dashboardCardDecoration(context, goldAccent: true),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -577,7 +541,7 @@ class ReferralLinkPanel extends StatelessWidget {
         const SizedBox(height: 9),
         Container(
           padding: const EdgeInsets.only(left: 14),
-          decoration: _fieldDecoration(),
+          decoration: _fieldDecoration(context),
           child: Row(
             children: [
               Expanded(
@@ -585,8 +549,8 @@ class ReferralLinkPanel extends StatelessWidget {
                   code.isEmpty ? 'Referral code unavailable' : code,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.palette.primaryText,
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.2,
@@ -611,7 +575,7 @@ class ReferralLinkPanel extends StatelessWidget {
                 Icons.chat_rounded,
                 const Color(0xFF25D366),
                 onWhatsApp,
-                assetPath: _AffiliateAssets.dashboardWhatsApp,
+                assetPath: _AffiliateAssets.whatsapp,
               ),
             ),
             const SizedBox(width: 8),
@@ -621,7 +585,6 @@ class ReferralLinkPanel extends StatelessWidget {
                 Icons.send_rounded,
                 const Color(0xFF229ED9),
                 onTelegram,
-                assetPath: _AffiliateAssets.dashboardTelegram,
               ),
             ),
             const SizedBox(width: 8),
@@ -631,7 +594,6 @@ class ReferralLinkPanel extends StatelessWidget {
                 Icons.share_rounded,
                 _muted,
                 onShare,
-                assetPath: _AffiliateAssets.dashboardShare,
               ),
             ),
             const SizedBox(width: 8),
@@ -641,7 +603,6 @@ class ReferralLinkPanel extends StatelessWidget {
                 Icons.qr_code_2_rounded,
                 _gold,
                 onQr,
-                assetPath: _AffiliateAssets.dashboardQr,
               ),
             ),
           ],
@@ -669,35 +630,26 @@ class _ShareButton extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     button: true,
     label: label,
+    excludeSemantics: true,
     child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
-      child: assetPath?.endsWith('.png') ?? false
-          ? SizedBox(
-              height: 56,
-              child: Image.asset(
-                assetPath!,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.high,
-                excludeFromSemantics: true,
-              ),
-            )
-          : Container(
-              constraints: const BoxConstraints(minHeight: 68),
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-              decoration: _fieldDecoration(),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (assetPath == null)
-                    Icon(icon, color: color)
-                  else
-                    SvgPicture.asset(assetPath!, width: 24, height: 24),
-                  const SizedBox(height: 5),
-                  Text(label, style: const TextStyle(fontSize: 10)),
-                ],
-              ),
-            ),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 68),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        decoration: _fieldDecoration(context),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (assetPath == null)
+              Icon(icon, color: color)
+            else
+              SvgPicture.asset(assetPath!, width: 24, height: 24),
+            const SizedBox(height: 5),
+            Text(label, style: const TextStyle(fontSize: 10)),
+          ],
+        ),
+      ),
     ),
   );
 }

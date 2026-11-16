@@ -13,6 +13,8 @@ import 'trade_idea_details_screen.dart';
 
 enum _TradeIdeaStockRegion { sriLanka, india, international }
 
+enum _TradeIdeaPeriod { today, thisWeek, thisMonth }
+
 class TradeIdeasScreen extends StatefulWidget {
   const TradeIdeasScreen({
     super.key,
@@ -44,6 +46,7 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
   Timer? _debounce;
   String _category = 'FOREX';
   _TradeIdeaStockRegion _stockRegion = _TradeIdeaStockRegion.sriLanka;
+  _TradeIdeaPeriod _period = _TradeIdeaPeriod.today;
   int _page = 1;
   bool _hasMore = false;
   bool _loading = true;
@@ -64,14 +67,16 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
   }
 
   List<TradeIdeaSummary> get _visibleItems {
-    final categoryItems = _items.where(
+    Iterable<TradeIdeaSummary> visible = _items.where(
       (idea) => _matchesTradeIdeaCategory(idea.category, _category),
     );
-    if (_category != 'STOCKS') {
-      return categoryItems.toList(growable: false);
+    if (_category == 'STOCKS') {
+      visible = visible.where(
+        (idea) => _matchesTradeIdeaStockRegion(idea, _stockRegion),
+      );
     }
-    return categoryItems
-        .where((idea) => _matchesTradeIdeaStockRegion(idea, _stockRegion))
+    return visible
+        .where((idea) => _matchesTradeIdeaPeriod(idea.publishedAt, _period))
         .toList(growable: false);
   }
 
@@ -267,6 +272,42 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                     ),
                   ],
                   const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _PeriodButton(
+                          key: const ValueKey('trade-ideas-period-today'),
+                          label: 'Today',
+                          selected: _period == _TradeIdeaPeriod.today,
+                          onTap: () =>
+                              setState(() => _period = _TradeIdeaPeriod.today),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _PeriodButton(
+                          key: const ValueKey('trade-ideas-period-week'),
+                          label: 'This Week',
+                          selected: _period == _TradeIdeaPeriod.thisWeek,
+                          onTap: () => setState(
+                            () => _period = _TradeIdeaPeriod.thisWeek,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _PeriodButton(
+                          key: const ValueKey('trade-ideas-period-month'),
+                          label: 'This Month',
+                          selected: _period == _TradeIdeaPeriod.thisMonth,
+                          onTap: () => setState(
+                            () => _period = _TradeIdeaPeriod.thisMonth,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _search,
                     textCapitalization: TextCapitalization.characters,
@@ -393,6 +434,46 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
               ),
           ],
         ),
+      ),
+    ),
+  );
+}
+
+class _PeriodButton extends StatelessWidget {
+  const _PeriodButton({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: 42,
+    child: OutlinedButton(
+      onPressed: selected ? null : onTap,
+      style: OutlinedButton.styleFrom(
+        disabledBackgroundColor: context.palette.gold,
+        backgroundColor: context.palette.surfaceRaised,
+        foregroundColor: context.palette.primaryText,
+        disabledForegroundColor: Colors.black,
+        side: BorderSide(
+          color: selected
+              ? TradeXColors.goldBright
+              : context.palette.borderStrong,
+        ),
+        shape: const StadiumBorder(),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
       ),
     ),
   );
@@ -732,6 +813,23 @@ bool _matchesTradeIdeaCategory(String rawCategory, String selectedCategory) {
     'INDICES' => category == 'INDICES' || category == 'INDEX',
     _ => category == selectedCategory,
   };
+}
+
+bool _matchesTradeIdeaPeriod(DateTime? publishedAt, _TradeIdeaPeriod selected) {
+  // Keep legacy ideas that predate the mandatory publication timestamp.
+  if (publishedAt == null) return true;
+  final now = DateTime.now();
+  final localPublishedAt = publishedAt.toLocal();
+  final start = switch (selected) {
+    _TradeIdeaPeriod.today => DateTime(now.year, now.month, now.day),
+    _TradeIdeaPeriod.thisWeek => DateTime(
+      now.year,
+      now.month,
+      now.day - (now.weekday - DateTime.monday),
+    ),
+    _TradeIdeaPeriod.thisMonth => DateTime(now.year, now.month),
+  };
+  return !localPublishedAt.isBefore(start);
 }
 
 String _label(String raw) => switch (raw.toUpperCase()) {

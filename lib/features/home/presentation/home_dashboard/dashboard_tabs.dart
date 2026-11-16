@@ -52,6 +52,7 @@ class _AffiliateTab extends StatelessWidget {
     required this.onActionTap,
     required this.apiClient,
     required this.repository,
+    required this.referralQrCache,
     required this.learnRepository,
     required this.withdrawalDraftStore,
   });
@@ -59,6 +60,7 @@ class _AffiliateTab extends StatelessWidget {
   final ValueChanged<String> onActionTap;
   final ApiGateway apiClient;
   final AffiliateRepository repository;
+  final ReferralQrCache referralQrCache;
   final LearnRepository learnRepository;
   final WithdrawalDraftStore withdrawalDraftStore;
 
@@ -66,6 +68,7 @@ class _AffiliateTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return AffiliateDashboardScreen(
       repository: repository,
+      referralQrCache: referralQrCache,
       onUpgrade: () => Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
           builder: (_) => PremiumAccessScreen(repository: learnRepository),

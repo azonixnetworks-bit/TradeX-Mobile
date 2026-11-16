@@ -171,6 +171,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       onActionTap: _openAction,
       apiClient: widget.dependencies.apiGateway,
       repository: widget.dependencies.affiliateRepository,
+      referralQrCache: widget.dependencies.referralQrCache,
       learnRepository: widget.dependencies.learnRepository,
       withdrawalDraftStore: widget.dependencies.withdrawalDraftStore,
     ),
