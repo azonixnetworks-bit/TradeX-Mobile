@@ -74,7 +74,7 @@ class SupportHomeScreen extends StatelessWidget {
                     label: 'Open Tickets',
                   ),
                 ),
-                _divider(),
+                _divider(context),
                 const Expanded(
                   child: _SupportMetric(
                     icon: 'clock.svg',
@@ -82,7 +82,7 @@ class SupportHomeScreen extends StatelessWidget {
                     label: 'In Progress',
                   ),
                 ),
-                _divider(),
+                _divider(context),
                 const Expanded(
                   child: _SupportMetric(
                     icon: 'check_circle.svg',

@@ -66,6 +66,24 @@ void main() {
     });
   }
 
+  testWidgets('support cards use readable global light-theme typography', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.light,
+        home: SupportHomeScreen(useCases: useCases),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final liveChat = tester.widget<Text>(find.text('Live Chat'));
+    final ticket = tester.widget<Text>(find.text('My Support Tickets'));
+    expect(liveChat.style?.color, const Color(0xFF101828));
+    expect(ticket.style?.color, const Color(0xFF101828));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('all eight support screens render honest backend states', (
     tester,
   ) async {

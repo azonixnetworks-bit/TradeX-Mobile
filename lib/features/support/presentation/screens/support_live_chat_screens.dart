@@ -155,7 +155,7 @@ class _LiveChatWaitingScreenState extends State<LiveChatWaitingScreen> {
                   label: 'Queue position',
                 ),
               ),
-              _divider(),
+              _divider(context),
               Expanded(
                 child: _QueueMetric(
                   value: _session?.etaMinutes == null
@@ -164,7 +164,7 @@ class _LiveChatWaitingScreenState extends State<LiveChatWaitingScreen> {
                   label: 'Estimated wait',
                 ),
               ),
-              _divider(),
+              _divider(context),
               Expanded(
                 child: _QueueMetric(
                   value: _session?.agentsOnline.toString() ?? '—',

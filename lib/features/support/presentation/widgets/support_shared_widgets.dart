@@ -122,35 +122,38 @@ class _SupportActionCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => _SupportPanel(
-    padding: const EdgeInsets.all(14),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _IconTile(icon),
-        const SizedBox(height: 12),
-        Text(
-          title,
-          style: const TextStyle(
-            color: TradeXColors.primaryText,
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return _SupportPanel(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _IconTile(icon),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: TextStyle(
+              color: palette.primaryText,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          body,
-          style: const TextStyle(
-            color: TradeXColors.secondaryText,
-            height: 1.35,
-            fontSize: 12,
+          const SizedBox(height: 6),
+          Text(
+            body,
+            style: TextStyle(
+              color: palette.secondaryText,
+              height: 1.35,
+              fontSize: 12,
+            ),
           ),
-        ),
-        const SizedBox(height: 14),
-        _GoldButton(label: action, onPressed: onTap, compact: true),
-      ],
-    ),
-  );
+          const SizedBox(height: 14),
+          _GoldButton(label: action, onPressed: onTap, compact: true),
+        ],
+      ),
+    );
+  }
 }
 
 class _SupportPanel extends StatelessWidget {
@@ -177,7 +180,7 @@ class _SupportPanel extends StatelessWidget {
                 colors: [palette.surfaceRaised, palette.surface],
               )
             : null,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: TradeXRadii.card,
         border: Border.all(color: palette.border),
         boxShadow: TradeXElevation.surface(
           brightness: Theme.of(context).brightness,
@@ -214,7 +217,7 @@ class _SupportUnavailableBanner extends StatelessWidget {
           child: Text(
             SupportPolicy.unavailableMessage,
             style: TextStyle(
-              color: TradeXColors.secondaryText,
+              color: context.palette.secondaryText,
               fontSize: compact ? 11 : 12,
               height: 1.4,
             ),
@@ -249,16 +252,16 @@ class _SupportUnavailableField extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: TradeXColors.primaryText,
+                style: TextStyle(
+                  color: context.palette.primaryText,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                 helper,
-                style: const TextStyle(
-                  color: TradeXColors.secondaryText,
+                style: TextStyle(
+                  color: context.palette.secondaryText,
                   fontSize: 11,
                 ),
               ),
@@ -294,8 +297,8 @@ class _UnavailableContent extends StatelessWidget {
         Text(
           title,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: TradeXColors.primaryText,
+          style: TextStyle(
+            color: context.palette.primaryText,
             fontSize: 18,
             fontWeight: FontWeight.w900,
           ),
@@ -304,10 +307,7 @@ class _UnavailableContent extends StatelessWidget {
         Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: TradeXColors.secondaryText,
-            height: 1.4,
-          ),
+          style: TextStyle(color: context.palette.secondaryText, height: 1.4),
         ),
         if (action != null && onTap != null) ...[
           const SizedBox(height: 14),
@@ -353,15 +353,15 @@ class _SupportListTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: TradeXColors.primaryText,
+                    style: TextStyle(
+                      color: context.palette.primaryText,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      color: TradeXColors.secondaryText,
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
                       fontSize: 11,
                     ),
                   ),
@@ -394,8 +394,8 @@ class _SupportMetric extends StatelessWidget {
       const SizedBox(height: 7),
       Text(
         value,
-        style: const TextStyle(
-          color: TradeXColors.primaryText,
+        style: TextStyle(
+          color: context.palette.primaryText,
           fontSize: 19,
           fontWeight: FontWeight.w900,
         ),
@@ -403,7 +403,7 @@ class _SupportMetric extends StatelessWidget {
       Text(
         label,
         textAlign: TextAlign.center,
-        style: const TextStyle(color: TradeXColors.secondaryText, fontSize: 10),
+        style: TextStyle(color: context.palette.secondaryText, fontSize: 10),
       ),
     ],
   );
@@ -418,8 +418,8 @@ class _QueueMetric extends StatelessWidget {
     children: [
       Text(
         value,
-        style: const TextStyle(
-          color: TradeXColors.primaryText,
+        style: TextStyle(
+          color: context.palette.primaryText,
           fontSize: 24,
           fontWeight: FontWeight.w900,
         ),
@@ -428,7 +428,7 @@ class _QueueMetric extends StatelessWidget {
       Text(
         label,
         textAlign: TextAlign.center,
-        style: const TextStyle(color: TradeXColors.secondaryText, fontSize: 10),
+        style: TextStyle(color: context.palette.secondaryText, fontSize: 10),
       ),
     ],
   );
@@ -536,7 +536,7 @@ class _SelectedAttachment extends StatelessWidget {
             name,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: TradeXColors.primaryText),
+            style: TextStyle(color: context.palette.primaryText),
           ),
         ),
         IconButton(
@@ -563,10 +563,8 @@ class _GoldButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [Color(0xFFFFD97C), TradeXColors.goldBright, TradeXColors.gold],
-      ),
-      borderRadius: BorderRadius.circular(15),
+      gradient: TradeXGradients.primaryGold,
+      borderRadius: TradeXRadii.control,
       boxShadow: [
         BoxShadow(
           color: TradeXColors.goldBright.withValues(alpha: .18),
@@ -675,8 +673,8 @@ class _SectionHeading extends StatelessWidget {
       Expanded(
         child: Text(
           title,
-          style: const TextStyle(
-            color: TradeXColors.primaryText,
+          style: TextStyle(
+            color: context.palette.primaryText,
             fontSize: 19,
             fontWeight: FontWeight.w900,
           ),
@@ -697,21 +695,22 @@ class _FilterChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => ChoiceChip(
-    selected: selected,
-    onSelected: (_) => onTap(),
-    showCheckmark: false,
-    label: Text(label),
-    selectedColor: TradeXColors.goldBright,
-    backgroundColor: TradeXColors.surfaceRaised,
-    side: BorderSide(
-      color: selected ? TradeXColors.goldBright : TradeXColors.borderStrong,
-    ),
-    labelStyle: TextStyle(
-      color: selected ? Colors.black : TradeXColors.primaryText,
-      fontWeight: FontWeight.w700,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return ChoiceChip(
+      selected: selected,
+      onSelected: (_) => onTap(),
+      showCheckmark: false,
+      label: Text(label),
+      selectedColor: palette.gold,
+      backgroundColor: palette.surfaceRaised,
+      side: BorderSide(color: selected ? palette.gold : palette.borderStrong),
+      labelStyle: TextStyle(
+        color: selected ? palette.primaryButtonText : palette.primaryText,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
 }
 
 class _TabButton extends StatelessWidget {
@@ -724,36 +723,35 @@ class _TabButton extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(12),
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 5),
-      decoration: BoxDecoration(
-        color: selected
-            ? TradeXColors.goldDeep.withValues(alpha: .3)
-            : TradeXColors.surfaceRaised,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: selected ? TradeXColors.gold : TradeXColors.borderStrong,
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 5),
+        decoration: BoxDecoration(
+          color: selected ? palette.goldSoft : palette.surfaceRaised,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? palette.gold : palette.borderStrong,
+          ),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: selected ? palette.goldText : palette.secondaryText,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
-      child: Text(
-        label,
-        textAlign: TextAlign.center,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: selected
-              ? TradeXColors.goldBright
-              : TradeXColors.secondaryText,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    ),
-  );
+    );
+  }
 }
 
 class _DisabledComposer extends StatelessWidget {
@@ -772,17 +770,17 @@ class _DisabledComposer extends StatelessWidget {
         child: SupportSvgIcon('send.svg', size: 20),
       ),
       filled: true,
-      fillColor: TradeXColors.surfaceRaised,
+      fillColor: context.palette.surfaceRaised,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
     ),
   );
 }
 
-Widget _divider() => Container(
+Widget _divider(BuildContext context) => Container(
   width: 1,
   height: 62,
   margin: const EdgeInsets.symmetric(horizontal: 8),
-  color: TradeXColors.borderStrong,
+  color: context.palette.borderStrong,
 );
 
 Future<void> _push(BuildContext context, Widget screen) =>
