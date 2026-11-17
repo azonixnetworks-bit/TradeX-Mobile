@@ -17,6 +17,7 @@ class _SessionClockCardState extends State<_SessionClockCard>
   String _timezone = 'UTC';
   Timer? _refreshTimer;
   Timer? _clockTimer;
+  Timer? _dialHoldTimer;
   DateTime _now = DateTime.now();
   late final Future<String> _deviceTimezone;
 
@@ -67,6 +68,7 @@ class _SessionClockCardState extends State<_SessionClockCard>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _dialHoldTimer?.cancel();
     _stopTimers();
     super.dispose();
   }
@@ -176,14 +178,28 @@ class _SessionClockCardState extends State<_SessionClockCard>
                 builder: (context, constraints) {
                   final dialSize = math.min(450.0, constraints.maxWidth);
                   return Center(
-                    child: SizedBox.square(
-                      dimension: dialSize,
-                      child: RepaintBoundary(
-                        child: CustomPaint(
-                          key: const ValueKey('market-24h-clock'),
-                          painter: _MarketClockDialPainter(
-                            sessions: dialSessions,
-                            now: now,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onLongPressStart: (_) {
+                        _dialHoldTimer?.cancel();
+                        _dialHoldTimer = Timer(
+                          const Duration(milliseconds: 3500),
+                          () => _showClockPopup(dialSessions),
+                        );
+                      },
+                      onLongPressEnd: (_) {
+                        _dialHoldTimer?.cancel();
+                        _dialHoldTimer = null;
+                      },
+                      child: SizedBox.square(
+                        dimension: dialSize,
+                        child: RepaintBoundary(
+                          child: CustomPaint(
+                            key: const ValueKey('market-24h-clock'),
+                            painter: _MarketClockDialPainter(
+                              sessions: dialSessions,
+                              now: now,
+                            ),
                           ),
                         ),
                       ),
@@ -210,6 +226,69 @@ class _SessionClockCardState extends State<_SessionClockCard>
   ];
 
   String _twoDigits(int value) => value.toString().padLeft(2, '0');
+
+  void _showClockPopup(List<_MarketSession> sessions) {
+    if (!mounted) return;
+    _dialHoldTimer = null;
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: .72),
+      builder: (_) => _MarketClockPopup(sessions: sessions),
+    );
+  }
+}
+
+class _MarketClockPopup extends StatefulWidget {
+  const _MarketClockPopup({required this.sessions});
+  final List<_MarketSession> sessions;
+  @override
+  State<_MarketClockPopup> createState() => _MarketClockPopupState();
+}
+
+class _MarketClockPopupState extends State<_MarketClockPopup> {
+  Timer? _timer;
+  DateTime _now = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+    key: const ValueKey('market-clock-popup'),
+    elevation: 0,
+    backgroundColor: Colors.transparent,
+    insetPadding: const EdgeInsets.all(18),
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final size = math.min(520.0, constraints.maxWidth);
+        return Center(
+          child: SizedBox.square(
+            dimension: size,
+            child: RepaintBoundary(
+              child: CustomPaint(
+                key: const ValueKey('market-24h-clock-popup-dial'),
+                painter: _MarketClockDialPainter(
+                  sessions: widget.sessions,
+                  now: _now,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    ),
+  );
 }
 
 class _WorldClockGrid extends StatelessWidget {
