@@ -273,6 +273,43 @@ void main() {
     expect(find.byType(PremiumAccessScreen), findsOneWidget);
   });
 
+  testWidgets('completed lesson refreshes progress and opens next lesson', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final api = _LessonCompletionApiClient();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.light,
+        home: UniversalLessonViewerScreen(
+          repository: LearnRepository(api),
+          lessonUuid: 'lesson-one',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final completeButton = find.byKey(const ValueKey('mark-complete-button'));
+    await tester.ensureVisible(completeButton);
+    await tester.tap(completeButton);
+    await tester.pumpAndSettle();
+
+    expect(api.progressStatuses, contains('COMPLETED'));
+    final nextButton = find.byKey(const ValueKey('next-lesson-button'));
+    expect(nextButton, findsOneWidget);
+    expect(find.text('Next Lesson'), findsOneWidget);
+
+    await tester.tap(nextButton);
+    await tester.pumpAndSettle();
+    final viewer = tester.widget<UniversalLessonViewerScreen>(
+      find.byType(UniversalLessonViewerScreen),
+    );
+    expect(viewer.lessonUuid, 'lesson-two');
+  });
+
   testWidgets('learn dashboard falls back when overview service returns 500', (
     tester,
   ) async {
@@ -680,6 +717,60 @@ class _LessonDetailFailureLearnApiClient extends _LearnApiClient {
       throw const ApiException(message: 'Server Error', statusCode: 500);
     }
     return super.getJson(path);
+  }
+}
+
+class _LessonCompletionApiClient extends _LearnApiClient {
+  final progressStatuses = <String>[];
+
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async {
+    if (path == '/api/v1/education/lessons/lesson-one') {
+      final completed = progressStatuses.contains('COMPLETED');
+      return {
+        'data': {
+          'lesson': {'uuid': 'lesson-one', 'title': 'First Lesson'},
+          'course': {'uuid': 'course-one', 'title': 'Trading Course'},
+          'module': {'uuid': 'module-one', 'title': 'Introduction'},
+          'videos': const <dynamic>[],
+          'progress': {
+            'status': completed ? 'COMPLETED' : 'IN_PROGRESS',
+            'percent': completed ? 100 : 25,
+          },
+          if (completed)
+            'next_lesson': {
+              'uuid': 'lesson-two',
+              'title': 'Second Lesson',
+              'is_locked': false,
+            },
+        },
+      };
+    }
+    if (path == '/api/v1/education/lessons/lesson-two') {
+      return {
+        'data': {
+          'lesson': {'uuid': 'lesson-two', 'title': 'Second Lesson'},
+          'videos': const <dynamic>[],
+          'progress': {'status': 'IN_PROGRESS', 'percent': 0},
+        },
+      };
+    }
+    return super.getJson(path);
+  }
+
+  @override
+  Future<Map<String, dynamic>> patchJson(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    if (path == '/api/v1/education/lessons/lesson-one/progress') {
+      progressStatuses.add(body['status'] as String);
+      return const {'data': <String, dynamic>{}};
+    }
+    if (path == '/api/v1/education/lessons/lesson-two/progress') {
+      return const {'data': <String, dynamic>{}};
+    }
+    return super.patchJson(path, body);
   }
 }
 

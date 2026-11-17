@@ -16,6 +16,9 @@ class UniversalLessonViewerScreen extends StatefulWidget {
 class _UniversalLessonViewerScreenState
     extends State<UniversalLessonViewerScreen> {
   bool bookmarked = false;
+  bool _completing = false;
+  bool _completed = false;
+  JsonMap _nextLesson = const <String, dynamic>{};
   late Future<JsonMap> future = widget.repository.lesson(widget.lessonUuid);
 
   @override
@@ -63,6 +66,10 @@ class _UniversalLessonViewerScreenState
         final lesson = LearnRepository.map(data['lesson']);
         final videos = LearnRepository.list(data['videos']);
         final progress = LearnRepository.map(data['progress']);
+        final completed =
+            _completed ||
+            LearnRepository.text(progress['status']).toUpperCase() ==
+                'COMPLETED';
         final course = LearnRepository.map(data['course'] ?? lesson['course']);
         final module = LearnRepository.map(data['module'] ?? lesson['module']);
         final firstVideo = videos.isEmpty
@@ -187,23 +194,28 @@ class _UniversalLessonViewerScreenState
                 const SizedBox(width: 10),
                 Expanded(
                   child: FilledButton(
-                    onPressed: () async {
-                      await widget.repository.updateProgress(
-                        widget.lessonUuid,
-                        status: 'COMPLETED',
-                      );
-                      if (context.mounted) {
-                        ActivityTrackingScope.maybeOf(context)?.track(
-                          'learning',
-                          'lesson_completed',
-                          subjectId: widget.lessonUuid,
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Lesson completed')),
-                        );
-                      }
-                    },
-                    child: const Text('Mark Complete'),
+                    key: ValueKey(
+                      completed ? 'next-lesson-button' : 'mark-complete-button',
+                    ),
+                    onPressed: _completing
+                        ? null
+                        : completed && _nextLesson.isNotEmpty
+                        ? () => _openNextLesson(_nextLesson)
+                        : completed
+                        ? null
+                        : () => _completeLesson(data),
+                    child: _completing
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            completed
+                                ? _nextLesson.isNotEmpty
+                                      ? 'Next Lesson'
+                                      : 'Completed'
+                                : 'Mark as Complete',
+                          ),
                   ),
                 ),
               ],
@@ -213,6 +225,114 @@ class _UniversalLessonViewerScreenState
       },
     ),
   );
+
+  Future<void> _completeLesson(JsonMap currentData) async {
+    setState(() => _completing = true);
+    try {
+      await widget.repository.updateProgress(
+        widget.lessonUuid,
+        status: 'COMPLETED',
+      );
+      final refreshed = await widget.repository.lesson(widget.lessonUuid);
+      var nextLesson = _nextLessonFromPayload(refreshed, widget.lessonUuid);
+      if (nextLesson.isEmpty) {
+        final course = LearnRepository.map(
+          refreshed['course'] ??
+              LearnRepository.map(refreshed['lesson'])['course'] ??
+              currentData['course'] ??
+              LearnRepository.map(currentData['lesson'])['course'],
+        );
+        final courseUuid = LearnRepository.text(course['uuid']);
+        if (courseUuid.isNotEmpty) {
+          final courseData = await widget.repository.course(courseUuid);
+          nextLesson = _nextLessonFromModules(
+            LearnRepository.list(courseData['modules']),
+            widget.lessonUuid,
+          );
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _completed = true;
+        _nextLesson = nextLesson;
+        _completing = false;
+        future = Future<JsonMap>.value(refreshed);
+      });
+      ActivityTrackingScope.maybeOf(context)
+          ?.track('learning', 'lesson_completed', subjectId: widget.lessonUuid);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Lesson completed')));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _completing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not update lesson progress. Please retry.'),
+        ),
+      );
+    }
+  }
+
+  void _openNextLesson(JsonMap lesson) {
+    if (LearnRepository.flag(lesson['is_locked'])) {
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => PremiumAccessScreen(repository: widget.repository),
+        ),
+      );
+      return;
+    }
+    final uuid = LearnRepository.text(lesson['uuid']);
+    if (uuid.isEmpty) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => UniversalLessonViewerScreen(
+          repository: widget.repository,
+          lessonUuid: uuid,
+        ),
+      ),
+    );
+  }
+}
+
+JsonMap _nextLessonFromPayload(JsonMap payload, String currentUuid) {
+  for (final candidate in <dynamic>[
+    payload['next_lesson'],
+    LearnRepository.map(payload['navigation'])['next_lesson'],
+    LearnRepository.map(payload['navigation'])['next'],
+    LearnRepository.map(payload['lesson'])['next_lesson'],
+  ]) {
+    final lesson = LearnRepository.map(candidate);
+    if (LearnRepository.text(lesson['uuid']).isNotEmpty) return lesson;
+  }
+  final module = LearnRepository.map(
+    payload['module'] ?? LearnRepository.map(payload['lesson'])['module'],
+  );
+  final fromModule = _nextLessonFromModules(<dynamic>[module], currentUuid);
+  if (fromModule.isNotEmpty) return fromModule;
+  return _nextLessonFromModules(
+    LearnRepository.list(payload['modules']),
+    currentUuid,
+  );
+}
+
+JsonMap _nextLessonFromModules(List<dynamic> modules, String currentUuid) {
+  final orderedLessons = <JsonMap>[];
+  for (final rawModule in modules) {
+    final module = LearnRepository.map(rawModule);
+    orderedLessons.addAll(
+      LearnRepository.list(module['lessons']).map(LearnRepository.map),
+    );
+  }
+  final currentIndex = orderedLessons.indexWhere(
+    (lesson) => LearnRepository.text(lesson['uuid']) == currentUuid,
+  );
+  if (currentIndex < 0 || currentIndex + 1 >= orderedLessons.length) {
+    return const <String, dynamic>{};
+  }
+  return orderedLessons[currentIndex + 1];
 }
 
 class _LessonViewerProgress extends StatelessWidget {
