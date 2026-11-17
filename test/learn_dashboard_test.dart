@@ -27,6 +27,40 @@ void main() {
     await AppPreferences.instance.load();
   });
 
+  test('player exposes only backend-provided video qualities', () {
+    final sources = playbackSources(const <String, dynamic>{
+      'playback_url': 'https://video.test/master.m3u8',
+      'renditions': [
+        {'height': 360, 'url': 'https://video.test/360.m3u8'},
+        {'label': '720p', 'url': 'https://video.test/720.m3u8'},
+      ],
+    });
+    expect(sources.keys, ['Auto', '360p', '720p']);
+    expect(
+      playbackSources(const <String, dynamic>{
+        'playback_url': 'https://video.test/single.mp4',
+      }).keys,
+      ['Auto'],
+    );
+  });
+
+  test('player seek boundaries stay inside the video duration', () {
+    expect(
+      boundedVideoPosition(
+        const Duration(seconds: -10),
+        const Duration(minutes: 2),
+      ),
+      Duration.zero,
+    );
+    expect(
+      boundedVideoPosition(
+        const Duration(minutes: 3),
+        const Duration(minutes: 2),
+      ),
+      const Duration(minutes: 2),
+    );
+  });
+
   testWidgets('premium learn dashboard renders authenticated API data', (
     tester,
   ) async {
@@ -176,7 +210,8 @@ void main() {
     await tester.tap(
       find.byKey(const ValueKey('curriculum-lesson-lesson-last')),
     );
-    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
     expect(find.byType(UniversalLessonViewerScreen), findsOneWidget);
   });
 
@@ -292,6 +327,15 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.text('Lesson Notes'), findsOneWidget);
+    expect(find.byKey(const ValueKey('lesson-notes-toggle')), findsOneWidget);
+    await tester.tap(find.text('Assignment'));
+    await tester.pumpAndSettle();
+    expect(find.text('Practice Assignment'), findsOneWidget);
+    await tester.tap(find.text('Resources'));
+    await tester.pumpAndSettle();
+    expect(find.text('Lesson Workbook'), findsOneWidget);
+
     final completeButton = find.byKey(const ValueKey('mark-complete-button'));
     await tester.ensureVisible(completeButton);
     await tester.tap(completeButton);
@@ -350,7 +394,7 @@ void main() {
     await tester.ensureVisible(continueButton);
     await tester.tap(continueButton);
     await tester.pump();
-    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(seconds: 1));
 
     expect(
       api.postedPaths,
@@ -382,7 +426,8 @@ void main() {
     );
     await tester.ensureVisible(continueButton);
     await tester.tap(continueButton);
-    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
     expect(api.lessonDetailRequests, 0);
     expect(
@@ -729,10 +774,20 @@ class _LessonCompletionApiClient extends _LearnApiClient {
       final completed = progressStatuses.contains('COMPLETED');
       return {
         'data': {
-          'lesson': {'uuid': 'lesson-one', 'title': 'First Lesson'},
+          'lesson': {
+            'uuid': 'lesson-one',
+            'title': 'First Lesson',
+            'notes': List.filled(12, 'Backend lesson note.').join(' '),
+          },
           'course': {'uuid': 'course-one', 'title': 'Trading Course'},
           'module': {'uuid': 'module-one', 'title': 'Introduction'},
           'videos': const <dynamic>[],
+          'assignments': const [
+            {'uuid': 'assignment-one', 'title': 'Practice Assignment'},
+          ],
+          'resources': const [
+            {'uuid': 'resource-one', 'title': 'Lesson Workbook'},
+          ],
           'progress': {
             'status': completed ? 'COMPLETED' : 'IN_PROGRESS',
             'percent': completed ? 100 : 25,

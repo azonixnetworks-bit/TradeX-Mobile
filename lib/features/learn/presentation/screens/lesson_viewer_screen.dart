@@ -18,6 +18,7 @@ class _UniversalLessonViewerScreenState
   bool bookmarked = false;
   bool _completing = false;
   bool _completed = false;
+  int _selectedTab = 0;
   JsonMap _nextLesson = const <String, dynamic>{};
   late Future<JsonMap> future = widget.repository.lesson(widget.lessonUuid);
 
@@ -75,58 +76,37 @@ class _UniversalLessonViewerScreenState
         final firstVideo = videos.isEmpty
             ? <String, dynamic>{}
             : LearnRepository.map(videos.first);
-        final thumbnail = _thumbnailValue(lesson);
+        final thumbnail = _videoThumbnail(firstVideo, lesson);
+        final assignments = LearnRepository.list(
+          data['assignments'] ?? lesson['assignments'],
+        );
+        final resources = LearnRepository.list(
+          data['resources'] ?? lesson['resources'] ?? lesson['attachments'],
+        );
         return ListView(
+          padding: const EdgeInsets.only(bottom: 18),
           children: [
-            Text(
-              'Course Lesson',
-              style: Theme.of(context).textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Learn step by step with expert-led video lessons.',
-              style: TextStyle(color: context.palette.secondaryText),
-            ),
-            const SizedBox(height: 16),
-            if (thumbnail.isNotEmpty) ...[
-              CourseThumbnail(
-                thumbnailPath: thumbnail,
-                height: 190,
-                showPlay: videos.isNotEmpty,
-                durationSeconds: LearnRepository.number(
-                  firstVideo['duration_seconds'],
+            _CompactLessonCourseInfo(course: course, module: module),
+            const SizedBox(height: 12),
+            if (firstVideo.isNotEmpty)
+              _LessonVideoSection(
+                repository: widget.repository,
+                lessonUuid: widget.lessonUuid,
+                video: firstVideo,
+                thumbnail: thumbnail,
+                resumeSeconds: LearnRepository.number(
+                  progress['last_position_seconds'],
                 ),
-              ),
-              const SizedBox(height: 16),
-            ] else ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  height: 190,
-                  color: context.palette.goldSoft,
-                  child: Image.asset(
-                    'assets/recovery_course_ui/course_video_placeholder_art.png',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (module.isNotEmpty)
-              Text(
-                LearnRepository.text(module['title']),
-                style: TextStyle(
-                  color: context.palette.goldText,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            if (module.isNotEmpty) const SizedBox(height: 5),
+              )
+            else
+              _LessonVideoEmpty(thumbnail: thumbnail),
+            const SizedBox(height: 14),
             Text(
               LearnRepository.text(lesson['title'], 'TradeX Lesson'),
-              style: Theme.of(context).textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: context.palette.primaryText,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             if (course.isNotEmpty || firstVideo.isNotEmpty) ...[
               const SizedBox(height: 7),
@@ -155,24 +135,29 @@ class _UniversalLessonViewerScreenState
                 ],
               ),
             ],
-            const SizedBox(height: 8),
-            Text(
-              LearnRepository.text(lesson['heading']),
-              style: const TextStyle(color: TradeXColors.secondaryText),
-            ),
-            const SizedBox(height: 18),
-            if (progress.isNotEmpty) ...[
-              _LessonViewerProgress(progress: progress),
-              const SizedBox(height: 16),
+            if (LearnRepository.text(lesson['heading']).isNotEmpty) ...[
+              const SizedBox(height: 7),
+              Text(
+                LearnRepository.text(lesson['heading']),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: context.palette.secondaryText),
+              ),
             ],
-            LessonContentRenderer(
-              lesson: lesson,
-              videos: videos,
-              repository: widget.repository,
-              lessonUuid: widget.lessonUuid,
-              progress: progress,
+            const SizedBox(height: 14),
+            _LessonTabs(
+              selected: _selectedTab,
+              onSelected: (value) => setState(() => _selectedTab = value),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+            _LessonTabBody(
+              selected: _selectedTab,
+              lesson: lesson,
+              assignments: assignments,
+              resources: resources,
+              repository: widget.repository,
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -297,6 +282,364 @@ class _UniversalLessonViewerScreenState
   }
 }
 
+class _CompactLessonCourseInfo extends StatelessWidget {
+  const _CompactLessonCourseInfo({required this.course, required this.module});
+  final JsonMap course, module;
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: context.palette.goldSoft,
+          borderRadius: BorderRadius.circular(11),
+        ),
+        child: Icon(Icons.school_outlined, color: context.palette.goldText),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              LearnRepository.text(course['title'], 'TradeX Course'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: context.palette.primaryText,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            if (LearnRepository.text(module['title']).isNotEmpty)
+              Text(
+                LearnRepository.text(module['title']),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: context.palette.secondaryText),
+              ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+class _LessonVideoSection extends StatefulWidget {
+  const _LessonVideoSection({
+    required this.repository,
+    required this.lessonUuid,
+    required this.video,
+    required this.thumbnail,
+    required this.resumeSeconds,
+  });
+  final LearnRepository repository;
+  final String lessonUuid, thumbnail;
+  final JsonMap video;
+  final int resumeSeconds;
+  @override
+  State<_LessonVideoSection> createState() => _LessonVideoSectionState();
+}
+
+class _LessonVideoSectionState extends State<_LessonVideoSection> {
+  late Future<JsonMap> token = widget.repository.playbackToken(
+    LearnRepository.text(widget.video['uuid']),
+  );
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<JsonMap>(
+    future: token,
+    builder: (context, snapshot) {
+      if (snapshot.hasError) {
+        return AspectRatio(
+          aspectRatio: 16 / 9,
+          child: PlayerError(
+            onRetry: () => setState(
+              () => token = widget.repository.playbackToken(
+                LearnRepository.text(widget.video['uuid']),
+              ),
+            ),
+          ),
+        );
+      }
+      if (!snapshot.hasData) {
+        return _LessonVideoLoading(thumbnail: widget.thumbnail);
+      }
+      final sources = playbackSources(snapshot.data!);
+      if (sources.isEmpty) {
+        return _LessonVideoEmpty(thumbnail: widget.thumbnail);
+      }
+      return TradeXVideoPlayer(
+        repository: widget.repository,
+        lessonUuid: widget.lessonUuid,
+        videoUuid: LearnRepository.text(widget.video['uuid']),
+        sources: sources,
+        thumbnailPath: widget.thumbnail,
+        resumeSeconds: widget.resumeSeconds,
+        onFullscreen: () => Navigator.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => CourseVideoPlayerScreen(
+              repository: widget.repository,
+              lessonUuid: widget.lessonUuid,
+              videoUuid: LearnRepository.text(widget.video['uuid']),
+              title: LearnRepository.text(
+                widget.video['title'],
+                'Course video',
+              ),
+              playbackUrl: sources.values.first,
+              sources: sources,
+              thumbnailPath: widget.thumbnail,
+              resumeSeconds: widget.resumeSeconds,
+              startFullscreen: true,
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _LessonVideoLoading extends StatelessWidget {
+  const _LessonVideoLoading({required this.thumbnail});
+  final String thumbnail;
+  @override
+  Widget build(BuildContext context) => AspectRatio(
+    aspectRatio: 16 / 9,
+    child: Stack(
+      fit: StackFit.expand,
+      children: [
+        if (thumbnail.isNotEmpty)
+          CourseThumbnail(thumbnailPath: thumbnail, height: double.infinity)
+        else
+          ColoredBox(color: context.palette.goldSoft),
+        const Center(
+          child: CircularProgressIndicator(color: TradeXColors.goldBright),
+        ),
+      ],
+    ),
+  );
+}
+
+class _LessonVideoEmpty extends StatelessWidget {
+  const _LessonVideoEmpty({required this.thumbnail});
+  final String thumbnail;
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: TradeXRadii.card,
+    child: AspectRatio(
+      aspectRatio: 16 / 9,
+      child: thumbnail.isNotEmpty
+          ? CourseThumbnail(thumbnailPath: thumbnail, height: double.infinity)
+          : ColoredBox(
+              color: context.palette.goldSoft,
+              child: Icon(
+                Icons.video_library_outlined,
+                color: context.palette.goldText,
+                size: 44,
+              ),
+            ),
+    ),
+  );
+}
+
+class _LessonTabs extends StatelessWidget {
+  const _LessonTabs({required this.selected, required this.onSelected});
+  final int selected;
+  final ValueChanged<int> onSelected;
+  @override
+  Widget build(BuildContext context) => SegmentedButton<int>(
+    segments: const [
+      ButtonSegment(value: 0, label: Text('Lesson Notes')),
+      ButtonSegment(value: 1, label: Text('Assignment')),
+      ButtonSegment(value: 2, label: Text('Resources')),
+    ],
+    selected: <int>{selected},
+    showSelectedIcon: false,
+    onSelectionChanged: (value) => onSelected(value.first),
+  );
+}
+
+class _LessonTabBody extends StatelessWidget {
+  const _LessonTabBody({
+    required this.selected,
+    required this.lesson,
+    required this.assignments,
+    required this.resources,
+    required this.repository,
+  });
+  final int selected;
+  final JsonMap lesson;
+  final List<dynamic> assignments, resources;
+  final LearnRepository repository;
+
+  @override
+  Widget build(BuildContext context) {
+    if (selected == 1) {
+      if (assignments.isEmpty) {
+        return const _LessonTabEmpty(
+          icon: Icons.assignment_outlined,
+          message: 'No assignment is available for this lesson.',
+        );
+      }
+      return Column(
+        children: assignments.map((raw) {
+          final assignment = LearnRepository.map(raw);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _PremiumCard(
+              child: Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.assignment_outlined,
+                    color: context.palette.goldText,
+                  ),
+                  title: Text(
+                    LearnRepository.text(assignment['title'], 'Assignment'),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: LearnRepository.text(assignment['uuid']).isEmpty
+                      ? null
+                      : () => Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => AssignmentDetailsScreen(
+                              repository: repository,
+                              assignmentUuid: LearnRepository.text(
+                                assignment['uuid'],
+                              ),
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    }
+    if (selected == 2) {
+      if (resources.isEmpty) {
+        return const _LessonTabEmpty(
+          icon: Icons.folder_open_outlined,
+          message: 'No resources are available for this lesson.',
+        );
+      }
+      return Column(
+        children: resources.map((raw) {
+          final resource = LearnRepository.map(raw);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _PremiumCard(
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.insert_drive_file_outlined,
+                    color: context.palette.goldText,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      LearnRepository.text(
+                        resource['title'],
+                        LearnRepository.text(resource['name'], 'Resource'),
+                      ),
+                      style: TextStyle(color: context.palette.primaryText),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    }
+    final notes = LearnRepository.text(
+      lesson['notes'],
+      LearnRepository.text(lesson['description']),
+    );
+    return _ExpandableLessonNotes(notes: notes);
+  }
+}
+
+class _ExpandableLessonNotes extends StatefulWidget {
+  const _ExpandableLessonNotes({required this.notes});
+  final String notes;
+  @override
+  State<_ExpandableLessonNotes> createState() => _ExpandableLessonNotesState();
+}
+
+class _ExpandableLessonNotesState extends State<_ExpandableLessonNotes> {
+  bool expanded = false;
+  @override
+  Widget build(BuildContext context) {
+    if (widget.notes.isEmpty) {
+      return const _LessonTabEmpty(
+        icon: Icons.notes_rounded,
+        message: 'Lesson notes are not available yet.',
+      );
+    }
+    return _PremiumCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.notes,
+            maxLines: expanded ? null : 5,
+            overflow: expanded ? null : TextOverflow.ellipsis,
+            style: TextStyle(color: context.palette.primaryText, height: 1.5),
+          ),
+          const SizedBox(height: 6),
+          TextButton(
+            key: const ValueKey('lesson-notes-toggle'),
+            onPressed: () => setState(() => expanded = !expanded),
+            child: Text(expanded ? 'Show Less' : 'Read More'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LessonTabEmpty extends StatelessWidget {
+  const _LessonTabEmpty({required this.icon, required this.message});
+  final IconData icon;
+  final String message;
+  @override
+  Widget build(BuildContext context) => _PremiumCard(
+    child: Row(
+      children: [
+        Icon(icon, color: context.palette.goldText),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            message,
+            style: TextStyle(color: context.palette.secondaryText),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+String _videoThumbnail(JsonMap video, JsonMap lesson) {
+  for (final value in <dynamic>[
+    video['thumbnail_url'],
+    video['thumbnail_path'],
+    video['poster_url'],
+    video['poster_path'],
+    lesson['thumbnail_url'],
+    lesson['thumbnail_path'],
+  ]) {
+    final thumbnail = LearnRepository.text(value);
+    if (thumbnail.isNotEmpty) return thumbnail;
+  }
+  return '';
+}
+
 JsonMap _nextLessonFromPayload(JsonMap payload, String currentUuid) {
   for (final candidate in <dynamic>[
     payload['next_lesson'],
@@ -333,53 +676,6 @@ JsonMap _nextLessonFromModules(List<dynamic> modules, String currentUuid) {
     return const <String, dynamic>{};
   }
   return orderedLessons[currentIndex + 1];
-}
-
-class _LessonViewerProgress extends StatelessWidget {
-  const _LessonViewerProgress({required this.progress});
-
-  final JsonMap progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final percent = LearnRepository.number(progress['percent']).clamp(0, 100);
-    final status = LearnRepository.text(progress['status'], 'IN PROGRESS');
-    return _PremiumCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  status.replaceAll('_', ' '),
-                  style: TextStyle(
-                    color: context.palette.goldText,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              Text(
-                '$percent%',
-                style: TextStyle(
-                  color: context.palette.primaryText,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 9),
-          LinearProgressIndicator(
-            value: percent / 100,
-            minHeight: 7,
-            color: context.palette.gold,
-            backgroundColor: context.palette.border,
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _LessonMeta extends StatelessWidget {
