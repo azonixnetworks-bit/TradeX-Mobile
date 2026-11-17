@@ -336,24 +336,20 @@ class _CourseCard extends StatelessWidget {
 }
 
 class _CourseHero extends StatelessWidget {
-  const _CourseHero({required this.course});
+  const _CourseHero({required this.course, required this.modules});
   final JsonMap course;
+  final List<dynamic> modules;
   @override
   Widget build(BuildContext context) {
     final thumbnail = LearnRepository.text(
       course['thumbnail_url'],
       LearnRepository.text(course['thumbnail_path']),
     );
-    final body = LearnRepository.text(
-      course['description'],
-      LearnRepository.text(course['short_description']),
-    );
+    final summary = LearnRepository.text(course['short_description']);
+    final description = LearnRepository.text(course['description'], summary);
     final progress = LearnRepository.map(course['progress']);
-    final instructor = LearnRepository.map(course['instructor']);
-    final instructorName = LearnRepository.text(
-      instructor['name'],
-      LearnRepository.text(course['instructor_name']),
-    );
+    final lessonCount = LearnRepository.number(progress['total_lessons']);
+    final percent = LearnRepository.number(progress['percent']).clamp(0, 100);
     return _PremiumCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,46 +380,49 @@ class _CourseHero extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             LearnRepository.text(course['title'], 'TradeX Course'),
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: context.palette.primaryText,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-          if (body.isNotEmpty) ...[
+          if (summary.isNotEmpty || description.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _ExpandableCourseDescription(body: body),
-          ],
-          if (instructorName.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: context.palette.goldSoft,
-                  child: Text(
-                    instructorName.characters.first.toUpperCase(),
-                    style: TextStyle(
-                      color: context.palette.goldText,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Text(
-                    instructorName,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
+            _ExpandableCourseDescription(
+              body: summary.isEmpty ? description : summary,
+              expandedBody: description,
             ),
           ],
-          if (progress.isNotEmpty) ...[
+          if (modules.isNotEmpty || lessonCount > 0 || progress.isNotEmpty) ...[
             const SizedBox(height: 14),
-            LinearProgressIndicator(
-              value:
-                  LearnRepository.number(progress['percent']).clamp(0, 100) /
-                  100,
-              minHeight: 7,
-              color: context.palette.gold,
-              backgroundColor: context.palette.border,
+            Row(
+              children: [
+                if (modules.isNotEmpty)
+                  Expanded(
+                    child: _CourseStat(
+                      icon: Icons.layers_outlined,
+                      label: '${modules.length} Modules',
+                    ),
+                  ),
+                if (modules.isNotEmpty && lessonCount > 0)
+                  const SizedBox(width: 8),
+                if (lessonCount > 0)
+                  Expanded(
+                    child: _CourseStat(
+                      icon: Icons.play_circle_outline_rounded,
+                      label: '$lessonCount Lessons',
+                    ),
+                  ),
+                if ((modules.isNotEmpty || lessonCount > 0) &&
+                    progress.isNotEmpty)
+                  const SizedBox(width: 8),
+                if (progress.isNotEmpty)
+                  Expanded(
+                    child: _CourseStat(
+                      icon: Icons.track_changes_rounded,
+                      label: '$percent% Complete',
+                    ),
+                  ),
+              ],
             ),
           ],
         ],
@@ -433,9 +432,13 @@ class _CourseHero extends StatelessWidget {
 }
 
 class _ExpandableCourseDescription extends StatefulWidget {
-  const _ExpandableCourseDescription({required this.body});
+  const _ExpandableCourseDescription({
+    required this.body,
+    required this.expandedBody,
+  });
 
   final String body;
+  final String expandedBody;
 
   @override
   State<_ExpandableCourseDescription> createState() =>
@@ -452,12 +455,17 @@ class _ExpandableCourseDescriptionState
         ?.copyWith(color: context.palette.primaryText, height: 1.55);
     return LayoutBuilder(
       builder: (context, constraints) {
+        final collapsedText = widget.body;
+        final expandedText = widget.expandedBody.isEmpty
+            ? widget.body
+            : widget.expandedBody;
         final painter = TextPainter(
-          text: TextSpan(text: widget.body, style: style),
+          text: TextSpan(text: collapsedText, style: style),
           maxLines: 4,
           textDirection: Directionality.of(context),
         )..layout(maxWidth: constraints.maxWidth);
-        final canExpand = painter.didExceedMaxLines;
+        final canExpand =
+            painter.didExceedMaxLines || expandedText != collapsedText;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -465,7 +473,7 @@ class _ExpandableCourseDescriptionState
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
               child: Text(
-                widget.body,
+                _expanded ? expandedText : collapsedText,
                 key: const ValueKey('course-description-text'),
                 maxLines: _expanded ? null : 4,
                 overflow: _expanded ? null : TextOverflow.ellipsis,
@@ -499,28 +507,497 @@ class _ExpandableCourseDescriptionState
   }
 }
 
-class _ModuleCard extends StatelessWidget {
-  const _ModuleCard({required this.module, required this.onTap});
-  final JsonMap module;
+class _CourseStat extends StatelessWidget {
+  const _CourseStat({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+    decoration: BoxDecoration(
+      color: context.palette.surfaceRaised,
+      borderRadius: TradeXRadii.control,
+      border: Border.all(color: context.palette.borderStrong),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 17, color: context.palette.goldText),
+        const SizedBox(width: 5),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: context.palette.primaryText,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _CourseContinueCard extends StatelessWidget {
+  const _CourseContinueCard({
+    required this.lesson,
+    required this.progress,
+    required this.onTap,
+  });
+
+  final JsonMap lesson;
+  final JsonMap progress;
   final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
-    final thumbnail = _thumbnailValue(module);
+    final percent = LearnRepository.number(progress['percent']).clamp(0, 100);
     return _PremiumCard(
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: thumbnail.isEmpty
-            ? const Icon(Icons.view_module_rounded, color: _gold, size: 32)
-            : CourseThumbnail(thumbnailPath: thumbnail, width: 72, height: 58),
-        title: Text(
-          LearnRepository.text(module['title'], 'Module'),
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),
-        subtitle: Text(
-          '${LearnRepository.number(module['lesson_count'])} lessons',
-        ),
-        trailing: const Icon(Icons.chevron_right, color: _gold),
+      child: Row(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: context.palette.goldSoft,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.school_rounded,
+              color: context.palette.goldText,
+              size: 30,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Continue Learning',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: context.palette.primaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  LearnRepository.text(lesson['title'], 'Current lesson'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: context.palette.secondaryText),
+                ),
+                const SizedBox(height: 9),
+                LinearProgressIndicator(
+                  value: percent / 100,
+                  minHeight: 6,
+                  color: context.palette.gold,
+                  backgroundColor: context.palette.border,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          IconButton.filled(
+            key: const ValueKey('course-continue-learning'),
+            onPressed: onTap,
+            tooltip: 'Continue learning',
+            style: IconButton.styleFrom(
+              backgroundColor: context.palette.gold,
+              foregroundColor: Colors.black,
+            ),
+            icon: const Icon(Icons.play_arrow_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CourseModulePreviewCard extends StatelessWidget {
+  const _CourseModulePreviewCard({
+    required this.index,
+    required this.module,
+    required this.onTap,
+  });
+
+  final int index;
+  final JsonMap module;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final count = LearnRepository.number(module['lesson_count']);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         onTap: onTap,
+        borderRadius: TradeXRadii.control,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            color: context.palette.surface,
+            borderRadius: TradeXRadii.control,
+            border: Border.all(color: context.palette.borderStrong),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: context.palette.goldSoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.menu_book_outlined,
+                  color: context.palette.goldText,
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${(index + 1).toString().padLeft(2, '0')}. ${LearnRepository.text(module['title'], 'Module')}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: context.palette.primaryText,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      count == 0
+                          ? 'No lessons published yet'
+                          : '$count ${count == 1 ? 'Lesson' : 'Lessons'}',
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: context.palette.secondaryText),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: context.palette.goldText,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CurriculumSummaryCard extends StatelessWidget {
+  const _CurriculumSummaryCard({required this.course, required this.modules});
+
+  final JsonMap course;
+  final List<dynamic> modules;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = LearnRepository.map(course['progress']);
+    final lessonCount = LearnRepository.number(progress['total_lessons']);
+    final percent = LearnRepository.number(progress['percent']).clamp(0, 100);
+    final thumbnail = LearnRepository.text(
+      course['thumbnail_url'],
+      LearnRepository.text(course['thumbnail_path']),
+    );
+    return _PremiumCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (thumbnail.isNotEmpty) ...[
+            CourseThumbnail(thumbnailPath: thumbnail, height: 128),
+            const SizedBox(height: 12),
+          ],
+          Text(
+            LearnRepository.text(course['title'], 'TradeX Course'),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: context.palette.primaryText,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          finalSummary(course, context),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _CourseStat(
+                  icon: Icons.track_changes_rounded,
+                  label: '$percent% Complete',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _CourseStat(
+                  icon: Icons.layers_outlined,
+                  label: '${modules.length} Modules',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _CourseStat(
+                  icon: Icons.play_circle_outline_rounded,
+                  label: '$lessonCount Lessons',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget finalSummary(JsonMap value, BuildContext context) {
+    final summary = LearnRepository.text(value['short_description']);
+    if (summary.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        summary,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodyMedium
+            ?.copyWith(color: context.palette.secondaryText),
+      ),
+    );
+  }
+}
+
+class _CurriculumModuleCard extends StatelessWidget {
+  const _CurriculumModuleCard({
+    required this.index,
+    required this.module,
+    required this.expanded,
+    required this.onToggle,
+    required this.onLessonTap,
+  });
+
+  final int index;
+  final JsonMap module;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final ValueChanged<JsonMap> onLessonTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final lessons = LearnRepository.list(module['lessons'])
+        .map(LearnRepository.map)
+        .toList(growable: false);
+    final completed = lessons.where((lesson) {
+      final progress = LearnRepository.map(lesson['progress']);
+      return LearnRepository.text(progress['status']).toUpperCase() ==
+          'COMPLETED';
+    }).length;
+    final percent = lessons.isEmpty
+        ? 0
+        : ((completed / lessons.length) * 100).round();
+    return Container(
+      decoration: BoxDecoration(
+        color: context.palette.surface,
+        borderRadius: TradeXRadii.card,
+        border: Border.all(color: context.palette.gold.withValues(alpha: .62)),
+        boxShadow: TradeXElevation.surface(
+          brightness: Theme.of(context).brightness,
+          palette: context.palette,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          InkWell(
+            key: ValueKey(
+              'curriculum-module-${LearnRepository.text(module['uuid'])}',
+            ),
+            onTap: onToggle,
+            child: Padding(
+              padding: const EdgeInsets.all(13),
+              child: Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: context.palette.goldSoft,
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Icon(
+                      Icons.layers_outlined,
+                      color: context.palette.goldText,
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${(index + 1).toString().padLeft(2, '0')}. ${LearnRepository.text(module['title'], 'Module')}',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: context.palette.primaryText,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          lessons.isEmpty
+                              ? 'No lessons published yet'
+                              : '${lessons.length} ${lessons.length == 1 ? 'Lesson' : 'Lessons'} · $percent% Complete',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: context.palette.secondaryText),
+                        ),
+                        if (lessons.isNotEmpty) ...[
+                          const SizedBox(height: 7),
+                          LinearProgressIndicator(
+                            value: percent / 100,
+                            minHeight: 5,
+                            color: context.palette.gold,
+                            backgroundColor: context.palette.border,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: context.palette.primaryText,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            child: expanded && lessons.isNotEmpty
+                ? Container(
+                    decoration: BoxDecoration(
+                      color: context.palette.surfaceRaised,
+                      border: Border(
+                        top: BorderSide(color: context.palette.border),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        for (
+                          var lessonIndex = 0;
+                          lessonIndex < lessons.length;
+                          lessonIndex++
+                        ) ...[
+                          _CurriculumLessonRow(
+                            index: lessonIndex,
+                            lesson: lessons[lessonIndex],
+                            onTap: () => onLessonTap(lessons[lessonIndex]),
+                          ),
+                          if (lessonIndex != lessons.length - 1)
+                            Divider(
+                              height: 1,
+                              indent: 54,
+                              color: context.palette.border,
+                            ),
+                        ],
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CurriculumLessonRow extends StatelessWidget {
+  const _CurriculumLessonRow({
+    required this.index,
+    required this.lesson,
+    required this.onTap,
+  });
+
+  final int index;
+  final JsonMap lesson;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = LearnRepository.map(lesson['progress']);
+    final status = LearnRepository.text(
+      progress['status'],
+      'NOT_STARTED',
+    ).toUpperCase();
+    final completed = status == 'COMPLETED';
+    final inProgress = status == 'IN_PROGRESS';
+    final locked = LearnRepository.flag(lesson['is_locked']);
+    return InkWell(
+      key: ValueKey(
+        'curriculum-lesson-${LearnRepository.text(lesson['uuid'])}',
+      ),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+        child: Row(
+          children: [
+            Icon(
+              locked
+                  ? Icons.lock_outline_rounded
+                  : completed
+                  ? Icons.check_circle_rounded
+                  : Icons.play_circle_outline_rounded,
+              color: completed
+                  ? context.palette.success
+                  : context.palette.goldText,
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '${index + 1}. ${LearnRepository.text(lesson['title'], 'Lesson')}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: context.palette.primaryText,
+                  fontWeight: inProgress || completed
+                      ? FontWeight.w800
+                      : FontWeight.w600,
+                ),
+              ),
+            ),
+            if (completed)
+              Text(
+                'Completed',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: context.palette.success,
+                  fontWeight: FontWeight.w800,
+                ),
+              )
+            else if (inProgress)
+              Text(
+                'Continue',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: context.palette.goldText,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

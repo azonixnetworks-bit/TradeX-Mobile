@@ -93,39 +93,214 @@ class SubjectDetailsScreen extends StatelessWidget {
       builder: (data) {
         final course = LearnRepository.map(data['course']);
         final modules = LearnRepository.list(data['modules']);
+        final continueLesson = _courseContinueLesson(modules);
         return ListView(
           children: [
-            _CourseHero(course: course),
+            _CourseHero(course: course, modules: modules),
+            if (continueLesson.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              _CourseContinueCard(
+                lesson: continueLesson,
+                progress: LearnRepository.map(course['progress']),
+                onTap: () =>
+                    _openCourseLesson(context, repository, continueLesson),
+              ),
+            ],
             const SizedBox(height: 18),
             const _SectionHeading(
-              icon: Icons.view_module_rounded,
-              title: 'Modules',
+              icon: Icons.layers_outlined,
+              title: 'Course Curriculum',
             ),
             const SizedBox(height: 10),
             if (modules.isEmpty) const _EmptyState('No modules available yet.'),
-            ...modules.map((raw) {
+            ...modules.indexed.map((entry) {
+              final index = entry.$1;
+              final raw = entry.$2;
               final module = LearnRepository.map(raw);
               return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _ModuleCard(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _CourseModulePreviewCard(
+                  index: index,
                   module: module,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute<void>(
-                      builder: (_) => ModuleLessonsScreen(
+                      builder: (_) => CourseCurriculumScreen(
                         repository: repository,
-                        moduleUuid: LearnRepository.text(module['uuid']),
+                        course: course,
+                        modules: modules,
+                        initialModuleUuid: LearnRepository.text(module['uuid']),
                       ),
                     ),
                   ),
                 ),
               );
             }),
+            if (modules.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              OutlinedButton.icon(
+                key: const ValueKey('open-course-curriculum'),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => CourseCurriculumScreen(
+                      repository: repository,
+                      course: course,
+                      modules: modules,
+                    ),
+                  ),
+                ),
+                icon: const Icon(Icons.menu_book_outlined),
+                label: const Text('View Full Curriculum'),
+              ),
+            ],
           ],
         );
       },
     ),
   );
+}
+
+class CourseCurriculumScreen extends StatefulWidget {
+  const CourseCurriculumScreen({
+    super.key,
+    required this.repository,
+    required this.course,
+    required this.modules,
+    this.initialModuleUuid,
+  });
+
+  final LearnRepository repository;
+  final JsonMap course;
+  final List<dynamic> modules;
+  final String? initialModuleUuid;
+
+  @override
+  State<CourseCurriculumScreen> createState() => _CourseCurriculumScreenState();
+}
+
+class _CourseCurriculumScreenState extends State<CourseCurriculumScreen> {
+  String? _expandedModule;
+
+  @override
+  void initState() {
+    super.initState();
+    final requested = widget.initialModuleUuid?.trim() ?? '';
+    if (requested.isNotEmpty) {
+      _expandedModule = requested;
+    } else {
+      _expandedModule = _moduleWithInProgressLesson(widget.modules);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final modules = widget.modules.map(LearnRepository.map).toList();
+    final continueLesson = _courseContinueLesson(widget.modules);
+    return _LearnScaffold(
+      title: 'Curriculum',
+      child: ListView(
+        key: const ValueKey('course-curriculum-list'),
+        padding: const EdgeInsets.only(bottom: 12),
+        children: [
+          _CurriculumSummaryCard(
+            course: widget.course,
+            modules: widget.modules,
+          ),
+          const SizedBox(height: 14),
+          if (modules.isEmpty)
+            const _EmptyState('No modules are available for this course yet.')
+          else
+            ...modules.indexed.map((entry) {
+              final module = entry.$2;
+              final uuid = LearnRepository.text(module['uuid']);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _CurriculumModuleCard(
+                  index: entry.$1,
+                  module: module,
+                  expanded: uuid == _expandedModule,
+                  onToggle: () => setState(
+                    () =>
+                        _expandedModule = _expandedModule == uuid ? null : uuid,
+                  ),
+                  onLessonTap: (lesson) =>
+                      _openCourseLesson(context, widget.repository, lesson),
+                ),
+              );
+            }),
+          if (continueLesson.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            FilledButton.icon(
+              key: const ValueKey('curriculum-continue-learning'),
+              onPressed: () =>
+                  _openCourseLesson(context, widget.repository, continueLesson),
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: const Text('Continue Learning'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+void _openCourseLesson(
+  BuildContext context,
+  LearnRepository repository,
+  JsonMap lesson,
+) {
+  if (LearnRepository.flag(lesson['is_locked'])) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => PremiumAccessScreen(repository: repository),
+      ),
+    );
+    return;
+  }
+  final uuid = LearnRepository.text(lesson['uuid']);
+  if (uuid.isEmpty) return;
+  Navigator.push(
+    context,
+    MaterialPageRoute<void>(
+      builder: (_) =>
+          UniversalLessonViewerScreen(repository: repository, lessonUuid: uuid),
+    ),
+  );
+}
+
+JsonMap _courseContinueLesson(List<dynamic> modules) {
+  for (final rawModule in modules) {
+    final module = LearnRepository.map(rawModule);
+    for (final rawLesson in LearnRepository.list(module['lessons'])) {
+      final lesson = LearnRepository.map(rawLesson);
+      final progress = LearnRepository.map(lesson['progress']);
+      if (LearnRepository.text(progress['status']).toUpperCase() ==
+              'IN_PROGRESS' &&
+          LearnRepository.text(lesson['uuid']).isNotEmpty &&
+          !LearnRepository.flag(lesson['is_locked'])) {
+        return lesson;
+      }
+    }
+  }
+  return const <String, dynamic>{};
+}
+
+String? _moduleWithInProgressLesson(List<dynamic> modules) {
+  for (final rawModule in modules) {
+    final module = LearnRepository.map(rawModule);
+    for (final rawLesson in LearnRepository.list(module['lessons'])) {
+      final progress = LearnRepository.map(
+        LearnRepository.map(rawLesson)['progress'],
+      );
+      if (LearnRepository.text(progress['status']).toUpperCase() ==
+          'IN_PROGRESS') {
+        return LearnRepository.text(module['uuid']);
+      }
+    }
+  }
+  return null;
 }
 
 class ModuleLessonsScreen extends StatelessWidget {

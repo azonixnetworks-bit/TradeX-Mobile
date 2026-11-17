@@ -130,6 +130,12 @@ void main() {
     expect(description.maxLines, 4);
     expect(description.style?.color, isNot(TradeXColors.secondaryText));
     expect(find.text('Read more'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('course-continue-learning')),
+      findsOneWidget,
+    );
+    expect(find.text('2 Modules'), findsOneWidget);
+    expect(find.text('3 Lessons'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('course-description-toggle')));
     await tester.pumpAndSettle();
@@ -138,6 +144,133 @@ void main() {
     );
     expect(description.maxLines, isNull);
     expect(find.text('Show less'), findsOneWidget);
+
+    final curriculumButton = find.byKey(
+      const ValueKey('open-course-curriculum'),
+    );
+    for (
+      var attempt = 0;
+      attempt < 5 && curriculumButton.evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.drag(find.byType(ListView).first, const Offset(0, -280));
+      await tester.pumpAndSettle();
+    }
+    expect(curriculumButton, findsOneWidget);
+    await tester.ensureVisible(curriculumButton);
+    await tester.tap(curriculumButton);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('course-curriculum-list')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('curriculum-module-module-one')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('curriculum-lesson-lesson-last')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('curriculum-lesson-lesson-last')),
+    );
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+    expect(find.byType(UniversalLessonViewerScreen), findsOneWidget);
+  });
+
+  testWidgets('curriculum preserves empty and locked access states', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = LearnRepository(_CourseDetailsApiClient());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: CourseCurriculumScreen(
+          key: const ValueKey('protected-curriculum'),
+          repository: repository,
+          course: const <String, dynamic>{
+            'title': 'Empty Course',
+            'progress': <String, dynamic>{
+              'total_lessons': 0,
+              'completed_lessons': 0,
+              'percent': 0,
+            },
+          },
+          modules: const [],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('No modules are available for this course yet.'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('curriculum-continue-learning')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.dark,
+        home: CourseCurriculumScreen(
+          key: const ValueKey('locked-curriculum'),
+          repository: repository,
+          course: const <String, dynamic>{
+            'title': 'Protected Course',
+            'progress': <String, dynamic>{
+              'total_lessons': 1,
+              'completed_lessons': 0,
+              'percent': 0,
+            },
+          },
+          modules: const [
+            <String, dynamic>{
+              'uuid': 'protected-module',
+              'title': 'Protected Module',
+              'lesson_count': 1,
+              'lessons': [
+                <String, dynamic>{
+                  'uuid': 'protected-lesson',
+                  'title': 'Premium Lesson',
+                  'is_locked': true,
+                  'progress': <String, dynamic>{'status': 'NOT_STARTED'},
+                },
+              ],
+            },
+          ],
+          initialModuleUuid: 'protected-module',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final protectedLesson = find.byKey(
+      const ValueKey('curriculum-lesson-protected-lesson'),
+    );
+    for (
+      var attempt = 0;
+      attempt < 4 && protectedLesson.evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.drag(
+        find.byKey(const ValueKey('course-curriculum-list')),
+        const Offset(0, -220),
+      );
+      await tester.pumpAndSettle();
+    }
+    expect(protectedLesson, findsOneWidget);
+    await tester.ensureVisible(protectedLesson);
+    await tester.tap(protectedLesson);
+    await tester.pumpAndSettle();
+    expect(find.byType(PremiumAccessScreen), findsOneWidget);
   });
 
   testWidgets('learn dashboard falls back when overview service returns 500', (
@@ -490,8 +623,46 @@ class _CourseDetailsApiClient extends _LearnApiClient {
               12,
               'Learn market structure, risk control and disciplined execution.',
             ).join(' '),
+            'progress': {
+              'total_lessons': 3,
+              'completed_lessons': 1,
+              'percent': 33,
+            },
           },
-          'modules': const <dynamic>[],
+          'modules': [
+            {
+              'uuid': 'module-one',
+              'title': 'How Market Works',
+              'lesson_count': 2,
+              'lessons': [
+                {
+                  'uuid': 'lesson-complete',
+                  'title': 'What is Market Mechanics?',
+                  'is_locked': false,
+                  'progress': {'status': 'COMPLETED'},
+                },
+                {
+                  'uuid': 'lesson-last',
+                  'title': 'Supply and Demand',
+                  'is_locked': false,
+                  'progress': {'status': 'IN_PROGRESS'},
+                },
+              ],
+            },
+            {
+              'uuid': 'module-two',
+              'title': 'Market Trends',
+              'lesson_count': 1,
+              'lessons': [
+                {
+                  'uuid': 'lesson-locked',
+                  'title': 'Trend Continuation',
+                  'is_locked': true,
+                  'progress': {'status': 'NOT_STARTED'},
+                },
+              ],
+            },
+          ],
         },
       };
     }
