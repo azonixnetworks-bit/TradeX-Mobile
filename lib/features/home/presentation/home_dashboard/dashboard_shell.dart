@@ -151,6 +151,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       onLogout: _logout,
       apiClient: widget.dependencies.apiGateway,
       marketNewsRepository: widget.dependencies.marketNewsRepository,
+      warningSource: widget.dependencies.marketNewsWarningSource,
       tradeIdeasRepository: widget.dependencies.dashboardTradeIdeasRepository,
       learningRepository: widget.dependencies.dashboardLearningRepository,
       courseRepository: widget.dependencies.learnRepository,

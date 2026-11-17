@@ -178,6 +178,32 @@ void main() {
     expect(find.byKey(const ValueKey('no-trade-ended-panel')), findsOneWidget);
   });
 
+  testWidgets('active-only banner disappears when the news window ends', (
+    tester,
+  ) async {
+    final now = DateTime.now().toUtc();
+    final source = _CountingWarningSource(<EconomicNewsSnapshot>[
+      _event(
+        scheduled: now.subtract(const Duration(minutes: 31)),
+        observedAt: now,
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.light,
+        home: Scaffold(
+          body: NoTradeZoneWarningBanner(source: source, activeOnly: true),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.text('You Can Trade on Funded Accounts'), findsNothing);
+    expect(find.byKey(const ValueKey('no-trade-ended-panel')), findsNothing);
+  });
+
   testWidgets('Forex Trade Ideas shows warning without blocking idea cards', (
     tester,
   ) async {

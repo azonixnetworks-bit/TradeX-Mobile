@@ -10,10 +10,12 @@ class NoTradeZoneWarningBanner extends StatefulWidget {
     super.key,
     required this.source,
     this.applicableSymbolsOrCurrencies = const <String>[],
+    this.activeOnly = false,
   });
 
   final NoTradeWarningSource source;
   final Iterable<String> applicableSymbolsOrCurrencies;
+  final bool activeOnly;
 
   @override
   State<NoTradeZoneWarningBanner> createState() =>
@@ -93,9 +95,12 @@ class _NoTradeZoneWarningBannerState extends State<NoTradeZoneWarningBanner>
       _now,
       applicableSymbolsOrCurrencies: widget.applicableSymbolsOrCurrencies,
     );
+    final visible =
+        evaluation.isVisible &&
+        (!widget.activeOnly || evaluation.phase == NoTradeWarningPhase.active);
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 220),
-      child: evaluation.isVisible
+      child: visible
           ? Padding(
               key: ValueKey('no-trade-warning-${evaluation.phase.name}'),
               padding: const EdgeInsets.only(bottom: 14),
@@ -146,7 +151,8 @@ class _NoTradeWarningPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final active = evaluation.phase == NoTradeWarningPhase.active;
-    final accent = active ? TradeXColors.error : TradeXColors.success;
+    const warningRed = Color(0xFF8B1E2D);
+    final accent = active ? warningRed : TradeXColors.success;
     final event = evaluation.primaryEvent!;
     final scheduled = event.scheduledAtUtc?.toLocal();
     final countdownTarget = active ? evaluation.windowEndsAtUtc : null;
@@ -196,7 +202,7 @@ class _NoTradeWarningPanel extends StatelessWidget {
                           ? 'High-impact economic news is active. Avoid trading on funded accounts during this period.'
                           : "The news caution window has ended. Follow your funded account provider's trading rules.",
                       style: const TextStyle(
-                        color: TradeXColors.primaryText,
+                        color: Colors.black87,
                         fontSize: 11,
                         height: 1.4,
                       ),
@@ -251,7 +257,7 @@ class _WarningChip extends StatelessWidget {
     constraints: const BoxConstraints(maxWidth: 240),
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
     decoration: BoxDecoration(
-      color: TradeXColors.background.withValues(alpha: .58),
+      color: Colors.white.withValues(alpha: .88),
       borderRadius: BorderRadius.circular(99),
       border: Border.all(color: TradeXColors.borderStrong),
     ),
@@ -266,7 +272,7 @@ class _WarningChip extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: TradeXColors.primaryText,
+              color: Colors.black87,
               fontSize: 10,
               fontWeight: FontWeight.w800,
             ),

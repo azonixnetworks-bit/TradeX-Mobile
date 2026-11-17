@@ -10,6 +10,7 @@ class _HomeContent extends StatelessWidget {
     required this.learningRepository,
     required this.courseRepository,
     required this.marketNewsRepository,
+    required this.warningSource,
   });
 
   final ValueChanged<String> onActionTap;
@@ -19,6 +20,7 @@ class _HomeContent extends StatelessWidget {
   final DashboardLearningRepository learningRepository;
   final LearnRepository courseRepository;
   final MarketNewsRepositoryContract marketNewsRepository;
+  final NoTradeWarningSource warningSource;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +49,10 @@ class _HomeContent extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
+                  NoTradeZoneWarningBanner(
+                    source: warningSource,
+                    activeOnly: true,
+                  ),
                   _SectionTitle(
                     icon: Icons.apps_rounded,
                     title: 'Services',
