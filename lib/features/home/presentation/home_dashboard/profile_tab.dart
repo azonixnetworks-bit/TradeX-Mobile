@@ -28,4 +28,4 @@ class _ProfileTab extends StatefulWidget {
   State<_ProfileTab> createState() => _ProfileTabState();
 }
 
-enum _ProfileSection { account, withdrawal, security, help }
+enum _ProfileSection { account, withdrawal, security, kyc, help }

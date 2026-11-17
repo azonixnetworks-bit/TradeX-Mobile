@@ -217,8 +217,9 @@ class _TabItem {
 const _tabItems = [
   _TabItem('Home', Icons.home_rounded),
   _TabItem('Learn', Icons.menu_book_rounded),
-  _TabItem('Trade Ideas', Icons.lightbulb_rounded),
-  _TabItem('Affiliate Dashboard', Icons.groups_rounded),
+  _TabItem('Ideas', Icons.lightbulb_rounded),
+  _TabItem('Affiliate', Icons.groups_rounded),
+  _TabItem('Trade', Icons.candlestick_chart_rounded),
   _TabItem('Profile', Icons.person_outline_rounded),
 ];
 

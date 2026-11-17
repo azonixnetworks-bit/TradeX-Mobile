@@ -30,15 +30,15 @@ class RecentTradesSection extends StatelessWidget {
           accent: _dashboardGold,
           child: Column(
             children: [
-              const Icon(
+              Icon(
                 Icons.menu_book_outlined,
-                color: _dashboardMuted,
+                color: context.palette.secondaryText,
                 size: 34,
               ),
               const SizedBox(height: 9),
-              const Text(
+              Text(
                 'Your first trade plan starts here.',
-                style: TextStyle(color: _dashboardText),
+                style: TextStyle(color: context.palette.primaryText),
               ),
               const SizedBox(height: 10),
               OutlinedButton.icon(
@@ -102,8 +102,8 @@ class RecentTradeCard extends StatelessWidget {
                                   entry.symbol,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: _dashboardText,
+                                  style: TextStyle(
+                                    color: context.palette.primaryText,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w900,
                                   ),
@@ -118,8 +118,8 @@ class RecentTradeCard extends StatelessWidget {
                             '${titleCase(entry.market)} · ${entry.sessionLabel.isEmpty ? 'No session' : entry.sessionLabel}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: _dashboardMuted,
+                            style: TextStyle(
+                              color: context.palette.secondaryText,
                               fontSize: 10,
                             ),
                           ),
@@ -129,9 +129,9 @@ class RecentTradeCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     TradeStatusBadge(status: entry.status),
                     const SizedBox(width: 2),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right_rounded,
-                      color: _dashboardMuted,
+                      color: context.palette.secondaryText,
                     ),
                   ],
                 ),
@@ -258,13 +258,13 @@ class _DashboardCard extends StatelessWidget {
     required this.child,
     required this.accent,
     this.onTap,
-    this.minHeight = 154,
+    this.minHeight,
   });
 
   final Widget child;
   final Color accent;
   final VoidCallback? onTap;
-  final double minHeight;
+  final double? minHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -273,11 +273,13 @@ class _DashboardCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: TradeXRadii.card,
         child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: minHeight),
+          constraints: minHeight == null
+              ? const BoxConstraints()
+              : BoxConstraints(minHeight: minHeight!),
           child: Ink(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(TradeXSpacing.sm),
             decoration: BoxDecoration(
               color: palette.surface,
               gradient: context.isDarkMode
@@ -287,7 +289,7 @@ class _DashboardCard extends StatelessWidget {
                       colors: [palette.surfaceRaised, palette.surface],
                     )
                   : null,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: TradeXRadii.card,
               border: Border.all(color: accent.withValues(alpha: .34)),
               boxShadow: TradeXElevation.surface(
                 brightness: Theme.of(context).brightness,
@@ -404,7 +406,6 @@ class _QuickActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _DashboardCard(
     accent: _dashboardGold,
-    minHeight: 105,
     onTap: action.onTap,
     child: Row(
       children: [

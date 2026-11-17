@@ -75,10 +75,10 @@ class _CalculatorDashboard extends StatelessWidget {
         const SizedBox(height: 8),
         const _GradientTitle(first: 'Risk Reward', second: 'Dashboard'),
         const SizedBox(height: 12),
-        const Text(
+        Text(
           'Plan position size, margin and reward using verified market specifications.',
           style: TextStyle(
-            color: TradeXColors.secondaryText,
+            color: context.palette.secondaryText,
             height: 1.45,
             fontSize: 15,
           ),
@@ -168,14 +168,14 @@ class _HeroCard extends StatelessWidget {
   Widget build(BuildContext context) => _GoldCard(
     child: Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Trade Smarter —',
                 style: TextStyle(
-                  color: TradeXColors.goldBright,
+                  color: context.palette.goldText,
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
                 ),
@@ -183,16 +183,16 @@ class _HeroCard extends StatelessWidget {
               Text(
                 'Manage Your Risk',
                 style: TextStyle(
-                  color: TradeXColors.primaryText,
+                  color: context.palette.primaryText,
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 'Use verified specifications and server-side calculations to plan with confidence.',
                 style: TextStyle(
-                  color: TradeXColors.secondaryText,
+                  color: context.palette.secondaryText,
                   height: 1.4,
                 ),
               ),
@@ -236,8 +236,8 @@ class _DashboardMarketCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: TradeXColors.goldBright,
+                  style: TextStyle(
+                    color: context.palette.goldText,
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                   ),
@@ -245,18 +245,15 @@ class _DashboardMarketCard extends StatelessWidget {
                 const SizedBox(height: 5),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: TradeXColors.secondaryText,
+                  style: TextStyle(
+                    color: context.palette.secondaryText,
                     height: 1.3,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: TradeXColors.goldBright,
-          ),
+          Icon(Icons.chevron_right_rounded, color: context.palette.goldText),
         ],
       ),
     ),

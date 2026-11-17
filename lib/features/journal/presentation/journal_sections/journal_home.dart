@@ -116,7 +116,7 @@ class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
         ),
         child: ListView(
           key: const ValueKey('journal-dashboard-scroll'),
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+          padding: const EdgeInsets.fromLTRB(22, 14, 22, 28),
           children: [
             JournalDashboardMetricGrid(
               summary: summary,
@@ -132,17 +132,14 @@ class _TradeJournalHomeScreenState extends State<TradeJournalHomeScreen> {
                   )
                   .length,
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 235,
-              child: EquityCurveCard(
-                values: curveData.values,
-                currency: curveData.currency,
-                period: _period,
-                onPeriodChanged: _selectPeriod,
-              ),
+            const SizedBox(height: TradeXSpacing.sm),
+            EquityCurveCard(
+              values: curveData.values,
+              currency: curveData.currency,
+              period: _period,
+              onPeriodChanged: _selectPeriod,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: TradeXSpacing.sm),
             _quickActions(),
             const SizedBox(height: 20),
             RecentTradesSection(

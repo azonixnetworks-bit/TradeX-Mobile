@@ -163,143 +163,152 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
 
   Widget _buildForm(TradeJournalMeta meta) => Form(
     key: _formKey,
-    child: ListView(
-      key: const ValueKey('trade-plan-scroll'),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-      children: [
-        const JournalSectionTitle(title: 'Timing & Session'),
-        const SizedBox(height: 10),
-        JournalPanel(
-          child: Column(
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _PickerTile(
-                      icon: Icons.calendar_today_rounded,
-                      label: 'Trade Date',
-                      value: _date(_tradeDate),
-                      onTap: _pickDate,
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [context.palette.background, context.palette.surfaceMuted],
+        ),
+      ),
+      child: ListView(
+        key: const ValueKey('trade-plan-scroll'),
+        padding: const EdgeInsets.fromLTRB(22, 14, 22, 28),
+        children: [
+          const JournalSectionTitle(title: 'Timing & Session'),
+          const SizedBox(height: 10),
+          JournalPanel(
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _PickerTile(
+                        icon: Icons.calendar_today_rounded,
+                        label: 'Trade Date',
+                        value: _date(_tradeDate),
+                        onTap: _pickDate,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _PickerTile(
-                      key: const ValueKey('trade-time-picker'),
-                      icon: Icons.schedule_rounded,
-                      label: 'Trade Time',
-                      value: MaterialLocalizations.of(context)
-                          .formatTimeOfDay(_tradeTime),
-                      onTap: _pickTime,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _PickerTile(
+                        key: const ValueKey('trade-time-picker'),
+                        icon: Icons.schedule_rounded,
+                        label: 'Trade Time',
+                        value: MaterialLocalizations.of(context)
+                            .formatTimeOfDay(_tradeTime),
+                        onTap: _pickTime,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  key: const ValueKey('trade-time-now'),
-                  onPressed: () => setState(() {
-                    final now = DateTime.now();
-                    _tradeTime = TimeOfDay.fromDateTime(now);
-                  }),
-                  icon: const Icon(Icons.bolt_rounded, size: 17),
-                  label: const Text('Use current time'),
+                  ],
                 ),
-              ),
-              _dropdown(
-                key: const ValueKey('trade-session-dropdown'),
-                label: 'Session',
-                value: _session,
-                values: const ['asia', 'london', 'new_york', 'other'],
-                onChanged: (value) => setState(() {
-                  _session = value;
-                  if (value != 'other') {
-                    _controllers['session_label']!.clear();
-                  }
-                }),
-              ),
-              if (_session == 'other') ...[
-                const SizedBox(height: 12),
-                _textField('session_label', 'Other Session (Optional)'),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    key: const ValueKey('trade-time-now'),
+                    onPressed: () => setState(() {
+                      final now = DateTime.now();
+                      _tradeTime = TimeOfDay.fromDateTime(now);
+                    }),
+                    icon: const Icon(Icons.bolt_rounded, size: 17),
+                    label: const Text('Use current time'),
+                  ),
+                ),
+                _dropdown(
+                  key: const ValueKey('trade-session-dropdown'),
+                  label: 'Session',
+                  value: _session,
+                  values: const ['asia', 'london', 'new_york', 'other'],
+                  onChanged: (value) => setState(() {
+                    _session = value;
+                    if (value != 'other') {
+                      _controllers['session_label']!.clear();
+                    }
+                  }),
+                ),
+                if (_session == 'other') ...[
+                  const SizedBox(height: 12),
+                  _textField('session_label', 'Other Session (Optional)'),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
-        const SizedBox(height: 18),
-        StrategyReasonSection(
-          tradeSetup: _tradeSetupFields(meta),
-          htfTrends: _htfTrends,
-          ltfTrends: _ltfTrends,
-          htfZones: _htfZones,
-          ltfZones: _ltfZones,
-          zoneFinding: _zoneFinding,
-          confirmationFinding: _confirmationFinding,
-          direction: _strategyDirection,
-          entryType: _direction,
-          entryStatus: _status,
-          showEntryStatus: !_editing,
-          strategyController: _controllers['setup_strategy']!,
-          onHtfChanged: (timeframe, trend) =>
-              _setTrend(htf: true, timeframe: timeframe, trend: trend),
-          onLtfChanged: (timeframe, trend) =>
-              _setTrend(htf: false, timeframe: timeframe, trend: trend),
-          onHtfZoneChanged: (option) =>
-              _toggleTrendZone(htf: true, option: option),
-          onLtfZoneChanged: (option) =>
-              _toggleTrendZone(htf: false, option: option),
-          onZoneChanged: (timeframe, option) => _toggleFinding(
-            confirmation: false,
-            timeframe: timeframe,
-            option: option,
+          const SizedBox(height: 18),
+          StrategyReasonSection(
+            tradeSetup: _tradeSetupFields(meta),
+            htfTrends: _htfTrends,
+            ltfTrends: _ltfTrends,
+            htfZones: _htfZones,
+            ltfZones: _ltfZones,
+            zoneFinding: _zoneFinding,
+            confirmationFinding: _confirmationFinding,
+            direction: _strategyDirection,
+            entryType: _direction,
+            entryStatus: _status,
+            showEntryStatus: !_editing,
+            strategyController: _controllers['setup_strategy']!,
+            onHtfChanged: (timeframe, trend) =>
+                _setTrend(htf: true, timeframe: timeframe, trend: trend),
+            onLtfChanged: (timeframe, trend) =>
+                _setTrend(htf: false, timeframe: timeframe, trend: trend),
+            onHtfZoneChanged: (option) =>
+                _toggleTrendZone(htf: true, option: option),
+            onLtfZoneChanged: (option) =>
+                _toggleTrendZone(htf: false, option: option),
+            onZoneChanged: (timeframe, option) => _toggleFinding(
+              confirmation: false,
+              timeframe: timeframe,
+              option: option,
+            ),
+            onConfirmationChanged: (timeframe, option) => _toggleFinding(
+              confirmation: true,
+              timeframe: timeframe,
+              option: option,
+            ),
+            onDirectionChanged: (value) =>
+                setState(() => _strategyDirection = value),
+            onEntryTypeChanged: _changeEntryType,
+            onEntryStatusChanged: (value) => setState(() => _status = value),
           ),
-          onConfirmationChanged: (timeframe, option) => _toggleFinding(
-            confirmation: true,
-            timeframe: timeframe,
-            option: option,
+          const SizedBox(height: 18),
+          PriceRiskPlanSection(
+            plannedEntryController: _controllers['planned_entry']!,
+            stopLossController: _controllers['planned_sl']!,
+            takeProfitController: _controllers['planned_tp']!,
+            riskAmountController: _controllers['risk_amount']!,
+            direction: _direction,
+            symbol: _controller('symbol'),
+            livePrice: _selectedSymbolPrice,
+            livePriceLoading: _livePriceLoading,
+            entryRequired: _status == 'open',
+            onUseLivePrice: _selectedSymbolPrice == null
+                ? null
+                : _applyLivePricePlan,
           ),
-          onDirectionChanged: (value) =>
-              setState(() => _strategyDirection = value),
-          onEntryTypeChanged: _changeEntryType,
-          onEntryStatusChanged: (value) => setState(() => _status = value),
-        ),
-        const SizedBox(height: 18),
-        PriceRiskPlanSection(
-          plannedEntryController: _controllers['planned_entry']!,
-          stopLossController: _controllers['planned_sl']!,
-          takeProfitController: _controllers['planned_tp']!,
-          riskAmountController: _controllers['risk_amount']!,
-          direction: _direction,
-          symbol: _controller('symbol'),
-          livePrice: _selectedSymbolPrice,
-          livePriceLoading: _livePriceLoading,
-          entryRequired: _status == 'open',
-          onUseLivePrice: _selectedSymbolPrice == null
-              ? null
-              : _applyLivePricePlan,
-        ),
-        const SizedBox(height: 18),
-        PsychologyChecklistSection(
-          emotion: _emotion,
-          emotions: meta.emotionsBefore,
-          confidence: _int('confidence_before'),
-          mentalStateController: _controllers['mental_state_note']!,
-          checklist: _checklist,
-          onEmotionChanged: (value) => setState(() => _emotion = value),
-          onConfidenceChanged: (value) => setState(
-            () => _controllers['confidence_before']!.text = '$value',
+          const SizedBox(height: 18),
+          PsychologyChecklistSection(
+            emotion: _emotion,
+            emotions: meta.emotionsBefore,
+            confidence: _int('confidence_before'),
+            mentalStateController: _controllers['mental_state_note']!,
+            checklist: _checklist,
+            onEmotionChanged: (value) => setState(() => _emotion = value),
+            onConfidenceChanged: (value) => setState(
+              () => _controllers['confidence_before']!.text = '$value',
+            ),
+            onChecklistChanged: (key, selected) =>
+                setState(() => _checklist[key] = selected ? 'yes' : 'no'),
           ),
-          onChecklistChanged: (key, selected) =>
-              setState(() => _checklist[key] = selected ? 'yes' : 'no'),
-        ),
-        const SizedBox(height: 18),
-        SaveTradeButton(
-          label: _editing ? 'Update Trade Plan' : 'Save Trade',
-          onPressed: () => _save(meta),
-          busy: _saving,
-        ),
-      ],
+          const SizedBox(height: 18),
+          SaveTradeButton(
+            label: _editing ? 'Update Trade Plan' : 'Save Trade',
+            onPressed: () => _save(meta),
+            busy: _saving,
+          ),
+        ],
+      ),
     ),
   );
 
@@ -451,8 +460,8 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
               _symbolLookupFailed
                   ? 'Suggestions unavailable. You can enter the symbol manually.'
                   : 'No matching symbol found. You can still enter it manually.',
-              style: const TextStyle(
-                color: TradeXColors.secondaryText,
+              style: TextStyle(
+                color: context.palette.secondaryText,
                 fontSize: 11,
               ),
             ),
@@ -535,17 +544,17 @@ class _TradeJournalPlanScreenState extends State<TradeJournalPlanScreen> {
                         suggestion.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: TradeXColors.secondaryText,
+                        style: TextStyle(
+                          color: context.palette.secondaryText,
                           fontSize: 11,
                         ),
                       ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.north_west_rounded,
-                color: TradeXColors.secondaryText,
+                color: context.palette.secondaryText,
                 size: 17,
               ),
             ],

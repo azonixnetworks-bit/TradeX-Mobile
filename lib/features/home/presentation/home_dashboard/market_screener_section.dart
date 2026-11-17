@@ -19,8 +19,14 @@ class _HomeMarketScreenerState extends State<_HomeMarketScreener>
     ('COMMODITY', 'Commodity'),
     ('INDICES', 'Indices'),
   ];
+  static const _stockRegions = <(String, String)>[
+    ('SRI_LANKA', 'CSE'),
+    ('INDIA', 'India'),
+    ('INTERNATIONAL', 'International'),
+  ];
 
   String _market = 'CRYPTO';
+  String _stockRegion = 'INTERNATIONAL';
   List<_HomeScreenerQuote> _quotes = const [];
   Timer? _timer;
   bool _loading = true;
@@ -66,20 +72,30 @@ class _HomeMarketScreenerState extends State<_HomeMarketScreener>
       });
     }
     final requestedMarket = _market;
+    final requestedStockRegion = _stockRegion;
+    final stockQuery = requestedMarket == 'STOCKS'
+        ? '&region=$requestedStockRegion'
+        : '';
+    final timeframe =
+        requestedMarket == 'STOCKS' && requestedStockRegion != 'INTERNATIONAL'
+        ? 'D1'
+        : 'H1';
     try {
       final response = await widget.apiClient.getJson(
         '/api/v1/screener/results?market=$requestedMarket'
-        '&timeframe=H1&sort=change_percent&order=desc',
+        '&timeframe=$timeframe$stockQuery'
+        '&sort=change_percent&order=desc',
       );
       final data = _screenerMap(response['data']);
       final rows = _screenerRows(data['results'])
           .map(_HomeScreenerQuote.fromJson)
           .where((quote) => quote.symbol.isNotEmpty)
-          .take(10)
+          .take(5)
           .toList(growable: false);
       if (!mounted ||
           requestVersion != _requestVersion ||
-          requestedMarket != _market) {
+          requestedMarket != _market ||
+          requestedStockRegion != _stockRegion) {
         return;
       }
       setState(() {
@@ -91,7 +107,8 @@ class _HomeMarketScreenerState extends State<_HomeMarketScreener>
     } catch (_) {
       if (!mounted ||
           requestVersion != _requestVersion ||
-          requestedMarket != _market) {
+          requestedMarket != _market ||
+          requestedStockRegion != _stockRegion) {
         return;
       }
       setState(() {
@@ -112,6 +129,35 @@ class _HomeMarketScreenerState extends State<_HomeMarketScreener>
       _error = null;
     });
     _load();
+  }
+
+  void _selectStockRegion(String region) {
+    if (region == _stockRegion) return;
+    setState(() {
+      _stockRegion = region;
+      _quotes = const [];
+      _loading = true;
+      _error = null;
+    });
+    _load();
+  }
+
+  void _openChart(_HomeScreenerQuote quote) {
+    final qualifiedSymbol = _screenerTradingViewSymbol(
+      market: _market,
+      quote: quote,
+    );
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: const RouteSettings(name: '/market-screener/tradingview'),
+        builder: (_) => TradingViewChartScreen.qualified(
+          qualifiedSymbol: qualifiedSymbol,
+          interval: _market == 'STOCKS' && _stockRegion != 'INTERNATIONAL'
+              ? 'D'
+              : '60',
+        ),
+      ),
+    );
   }
 
   @override
@@ -196,6 +242,42 @@ class _HomeMarketScreenerState extends State<_HomeMarketScreener>
               },
             ),
           ),
+          if (_market == 'STOCKS') ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 36,
+              child: ListView.separated(
+                key: const ValueKey('home-screener-stock-regions'),
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: _stockRegions.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final region = _stockRegions[index];
+                  final selected = region.$1 == _stockRegion;
+                  return ChoiceChip(
+                    key: ValueKey(
+                      'home-screener-stock-${region.$1.toLowerCase()}',
+                    ),
+                    label: Text(region.$2),
+                    selected: selected,
+                    showCheckmark: false,
+                    selectedColor: palette.gold,
+                    backgroundColor: palette.surfaceRaised,
+                    side: BorderSide(
+                      color: selected ? palette.gold : palette.borderStrong,
+                    ),
+                    labelStyle: TextStyle(
+                      color: selected ? Colors.black : palette.primaryText,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    onSelected: (_) => _selectStockRegion(region.$1),
+                  );
+                },
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           if (_loading && _quotes.isEmpty)
             const SizedBox(
@@ -232,7 +314,10 @@ class _HomeMarketScreenerState extends State<_HomeMarketScreener>
             ),
             const SizedBox(height: 7),
             for (var index = 0; index < _quotes.length; index++) ...[
-              _HomeScreenerRow(quote: _quotes[index]),
+              _HomeScreenerRow(
+                quote: _quotes[index],
+                onTap: () => _openChart(_quotes[index]),
+              ),
               if (index != _quotes.length - 1)
                 Divider(height: 1, color: palette.border),
             ],
@@ -244,90 +329,101 @@ class _HomeMarketScreenerState extends State<_HomeMarketScreener>
 }
 
 class _HomeScreenerRow extends StatelessWidget {
-  const _HomeScreenerRow({required this.quote});
+  const _HomeScreenerRow({required this.quote, required this.onTap});
 
   final _HomeScreenerQuote quote;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final positive = quote.changePercent >= 0;
     final movement = positive ? palette.success : palette.error;
-    return SizedBox(
+    return InkWell(
       key: ValueKey('home-screener-quote-${quote.symbol}'),
-      height: 52,
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: palette.goldSoft,
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: Text(
-              quote.symbol.substring(0, math.min(3, quote.symbol.length)),
-              style: TextStyle(
-                color: palette.goldText,
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        height: 52,
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: palette.goldSoft,
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Text(
+                quote.symbol.substring(0, math.min(3, quote.symbol.length)),
+                style: TextStyle(
+                  color: palette.goldText,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  quote.symbol,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: palette.primaryText,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    quote.symbol,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: palette.primaryText,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-                Text(
-                  quote.trend,
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: palette.secondaryText,
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
+                  Text(
+                    quote.trend,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: palette.secondaryText,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            _screenerPrice(quote.price),
-            style: TextStyle(
-              color: palette.primaryText,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 62,
-            child: Text(
-              '${positive ? '+' : ''}${quote.changePercent.toStringAsFixed(2)}%',
-              textAlign: TextAlign.right,
+            const SizedBox(width: 8),
+            Text(
+              _screenerPrice(quote.price),
               style: TextStyle(
-                color: movement,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
+                color: palette.primaryText,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 62,
+              child: Text(
+                '${positive ? '+' : ''}${quote.changePercent.toStringAsFixed(2)}%',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: movement,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.candlestick_chart_rounded,
+              size: 16,
+              color: palette.goldText,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -370,6 +466,8 @@ class _HomeScreenerQuote {
     required this.price,
     required this.changePercent,
     required this.trend,
+    required this.exchange,
+    required this.tradingViewSymbol,
   });
 
   factory _HomeScreenerQuote.fromJson(Map<String, dynamic> json) =>
@@ -378,13 +476,49 @@ class _HomeScreenerQuote {
         price: _screenerNumber(json['close'] ?? json['price']),
         changePercent: _screenerNumber(json['change_percent']),
         trend: json['trend']?.toString().trim().toUpperCase() ?? 'LIVE',
+        exchange: json['exchange']?.toString().trim().toUpperCase() ?? '',
+        tradingViewSymbol:
+            json['tradingview_symbol']?.toString().trim().toUpperCase() ?? '',
       );
 
   final String symbol;
   final double price;
   final double changePercent;
   final String trend;
+  final String exchange;
+  final String tradingViewSymbol;
 }
+
+String _screenerTradingViewSymbol({
+  required String market,
+  required _HomeScreenerQuote quote,
+}) {
+  if (quote.tradingViewSymbol.contains(':')) return quote.tradingViewSymbol;
+  final symbol = quote.symbol.replaceAll(RegExp(r'[^A-Z0-9._-]'), '');
+  final resolved = const TradeIdeaTradingViewSymbolResolver().resolve(
+    category: market,
+    symbol: symbol,
+  );
+  if (resolved != null) return resolved;
+  return switch (market) {
+    'CRYPTO' => 'BINANCE:$symbol',
+    'FOREX' => 'OANDA:$symbol',
+    'STOCKS' => '${_stockTradingViewExchange(quote.exchange)}:$symbol',
+    'COMMODITY' =>
+      symbol == 'XAUUSD' || symbol == 'XAGUSD'
+          ? 'OANDA:$symbol'
+          : 'TVC:$symbol',
+    'INDICES' => 'TVC:$symbol',
+    'DERIV' => 'OANDA:$symbol',
+    _ => 'TVC:$symbol',
+  };
+}
+
+String _stockTradingViewExchange(String exchange) => switch (exchange) {
+  'NASDAQ' || 'NYSE' || 'NSE' || 'BSE' => exchange,
+  'CSE' || 'XCOL' => 'CSELK',
+  _ => 'NASDAQ',
+};
 
 Map<String, dynamic> _screenerMap(Object? value) => value is Map
     ? value.map((key, value) => MapEntry(key.toString(), value))

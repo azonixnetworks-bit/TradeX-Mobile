@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tradex_mobile/core/theme/tradex_theme.dart';
@@ -66,6 +69,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('••••••••'), findsWidgets);
 
+    await tester.scrollUntilVisible(
+      find.text('Available Products'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('Available Products'));
     await tester.pumpAndSettle();
     expect(find.text('Available Products'), findsOneWidget);
@@ -142,6 +150,24 @@ class _FakeInvestmentRepository implements InvestmentRepository {
     String investmentId, {
     bool refresh = false,
   }) async => dashboard;
+
+  @override
+  Future<CustomerInvestment> createApplication({
+    required double amount,
+    required int periodYears,
+    required int reviewIntervalMonths,
+  }) async => dashboard.investments.first;
+
+  @override
+  Future<void> submitDeposit({
+    required String investmentId,
+    required String transactionId,
+    String? senderAddress,
+  }) async {}
+
+  @override
+  Future<Uint8List> downloadAgreement(String investmentId) async =>
+      Uint8List(0);
 }
 
 class _UnavailableInvestmentRepository implements InvestmentRepository {
@@ -156,6 +182,24 @@ class _UnavailableInvestmentRepository implements InvestmentRepository {
     String investmentId, {
     bool refresh = false,
   }) => Future.error(const InvestmentFeatureUnavailable());
+
+  @override
+  Future<CustomerInvestment> createApplication({
+    required double amount,
+    required int periodYears,
+    required int reviewIntervalMonths,
+  }) => Future.error(const InvestmentFeatureUnavailable());
+
+  @override
+  Future<void> submitDeposit({
+    required String investmentId,
+    required String transactionId,
+    String? senderAddress,
+  }) => Future.error(const InvestmentFeatureUnavailable());
+
+  @override
+  Future<Uint8List> downloadAgreement(String investmentId) =>
+      Future.error(const InvestmentFeatureUnavailable());
 }
 
 final _dashboard = InvestmentDashboard(

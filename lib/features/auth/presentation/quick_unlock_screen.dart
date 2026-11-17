@@ -143,6 +143,7 @@ class _QuickUnlockScreenState extends State<QuickUnlockScreen> {
           ? 'Use $_biometricLabel to securely continue to TradeX.'
           : 'Enter your private 4-digit passcode to continue.',
       securityDecor: true,
+      keepDecorationFixedOnKeyboard: true,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -29,7 +29,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     _navigationCubit = HomeNavigationCubit(
       preferences: widget.dependencies.dashboardPreferences,
     );
-    _tabPages = List<Widget?>.filled(5, null);
+    _tabPages = List<Widget?>.filled(6, null);
     _tabPages[_navigationCubit.state] = _buildTab(_navigationCubit.state);
     unawaited(_primeDailyEconomicNews());
     unawaited(widget.dependencies.homeWidgetPublisher.refresh());
@@ -107,6 +107,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       'trade_ideas',
       'affiliate',
       'profile',
+      'trade',
     ];
     const screens = <String>[
       'dashboard_home',
@@ -114,6 +115,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       'dashboard_ideas',
       'dashboard_affiliate',
       'dashboard_profile',
+      'dashboard_trade',
     ];
     ActivityTrackingScope.maybeOf(context)
         ?.view(modules[index], screens[index]);
@@ -135,7 +137,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
     final direction = distance.abs() >= 56 ? distance : velocity;
     final current = _navigationCubit.state;
-    if (direction < 0 && current < 4) {
+    if (direction < 0 && current < 5) {
       _selectTab(current + 1);
     } else if (direction > 0 && current > 0) {
       _selectTab(current - 1);
@@ -175,6 +177,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       learnRepository: widget.dependencies.learnRepository,
       withdrawalDraftStore: widget.dependencies.withdrawalDraftStore,
     ),
+    4 => const _TradeHubTab(key: PageStorageKey('trade-tab')),
     _ => _ProfileTab(
       key: const PageStorageKey('profile-tab'),
       onActionTap: _openAction,
@@ -340,7 +343,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                               key: const ValueKey('main-menu-page-view'),
                               index: selectedTab,
                               children: List<Widget>.generate(
-                                5,
+                                6,
                                 (index) => TickerMode(
                                   enabled: index == selectedTab,
                                   child:
@@ -366,7 +369,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                     _horizontalDragDistance = 0,
                               ),
                             ),
-                          if (selectedTab < 4)
+                          if (selectedTab < 5)
                             Positioned(
                               right: 0,
                               top: 0,

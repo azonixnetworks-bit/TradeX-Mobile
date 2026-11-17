@@ -84,4 +84,22 @@ class AppPlatformImpl implements AppPlatform {
       ),
     );
   }
+
+  @override
+  Future<void> shareFile({
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+    required String text,
+  }) async {
+    final directory = await getTemporaryDirectory();
+    final file = File('${directory.path}${Platform.pathSeparator}$fileName');
+    await file.writeAsBytes(bytes, flush: true);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: mimeType, name: fileName)],
+        text: text,
+      ),
+    );
+  }
 }

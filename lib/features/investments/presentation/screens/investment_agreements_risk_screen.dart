@@ -137,7 +137,10 @@ class InvestmentAgreementsRiskScreen extends StatelessWidget {
                         child: OutlinedButton.icon(
                           onPressed: agreement?.authorizedDownloadPath == null
                               ? null
-                              : () => _documentUnavailable(context),
+                              : () => _download(
+                                  context,
+                                  agreement!.authorizedDownloadPath!,
+                                ),
                           icon: const Icon(Icons.download_rounded),
                           label: const Text('Download'),
                         ),
@@ -183,6 +186,22 @@ class InvestmentAgreementsRiskScreen extends StatelessWidget {
       },
     ),
   );
+
+  Future<void> _download(BuildContext context, String path) async {
+    try {
+      final id = investmentId ?? path.split('/').reversed.skip(1).first;
+      final bytes = await repository.downloadAgreement(id);
+      await AppPlatformRegistry.current.shareFile(
+        bytes: bytes,
+        fileName: 'TradeX-investment-agreement.html',
+        mimeType: 'text/html',
+        text: 'TradeX investment agreement',
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      _documentUnavailable(context);
+    }
+  }
 
   void _documentUnavailable(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(

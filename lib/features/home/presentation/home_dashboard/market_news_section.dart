@@ -236,19 +236,34 @@ class _MarketNewsCard extends StatelessWidget {
                             ),
                         ],
                       ),
-                      const Spacer(),
-                      Text(
-                        item.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF171717),
-                          fontSize: 11.5,
-                          height: 1.12,
-                          fontWeight: FontWeight.w900,
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: .92),
+                          borderRadius: BorderRadius.circular(9),
+                          border: Border.all(
+                            color: TradeXColors.gold.withValues(alpha: .32),
+                          ),
+                        ),
+                        child: Text(
+                          item.title,
+                          key: ValueKey('market-news-title-${item.uuid}'),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF171717),
+                            fontSize: 13,
+                            height: 1.18,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      const Spacer(),
                       _MarketNewsReleaseValues(item: item),
                       const SizedBox(height: 4),
                       Text(

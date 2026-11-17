@@ -63,7 +63,7 @@ class AppPreferences extends Cubit<AppPreferencesState>
         preferences.getBool(_learnLanguageSeenKey) ?? false;
     final dashboardTab = (preferences.getInt(_dashboardTabKey) ?? 0).clamp(
       0,
-      4,
+      5,
     );
     final backgroundedAtMs = preferences.getInt(_backgroundedAtKey);
     final lastBackgroundedAt = backgroundedAtMs == null
@@ -130,7 +130,7 @@ class AppPreferences extends Cubit<AppPreferencesState>
 
   @override
   Future<void> setDashboardTab(int index) async {
-    final normalized = index.clamp(0, 4);
+    final normalized = index.clamp(0, 5);
     if (dashboardTab == normalized) return;
     emit(
       AppPreferencesState(

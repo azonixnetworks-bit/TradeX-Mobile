@@ -10,7 +10,8 @@ enum EconomicNewsFilter {
   overview('Overview', null),
   high('High Impact', 'HIGH'),
   medium('Medium Impact', 'MEDIUM'),
-  low('Low Impact', 'LOW');
+  low('Low Impact', 'LOW'),
+  lastSevenDays('Last 7 Days', null);
 
   const EconomicNewsFilter(this.label, this.impact);
 
@@ -22,16 +23,19 @@ class EconomicNewsState {
   const EconomicNewsState({
     this.status = EconomicNewsStatus.initial,
     this.items = const [],
+    this.pastItems = const [],
     this.filter = EconomicNewsFilter.overview,
     required this.now,
   });
 
   final EconomicNewsStatus status;
   final List<MarketNewsItem> items;
+  final List<MarketNewsItem> pastItems;
   final EconomicNewsFilter filter;
   final DateTime now;
 
   List<MarketNewsItem> get visibleItems {
+    if (filter == EconomicNewsFilter.lastSevenDays) return pastItems;
     final impact = filter.impact;
     if (impact == null) return items;
     return items
@@ -42,11 +46,13 @@ class EconomicNewsState {
   EconomicNewsState copyWith({
     EconomicNewsStatus? status,
     List<MarketNewsItem>? items,
+    List<MarketNewsItem>? pastItems,
     EconomicNewsFilter? filter,
     DateTime? now,
   }) => EconomicNewsState(
     status: status ?? this.status,
     items: items ?? this.items,
+    pastItems: pastItems ?? this.pastItems,
     filter: filter ?? this.filter,
     now: now ?? this.now,
   );
@@ -76,15 +82,17 @@ class EconomicNewsCubit extends Cubit<EconomicNewsState> {
       emit(state.copyWith(status: EconomicNewsStatus.loading, now: _now()));
     }
     try {
-      final items = await _repository.today(
-        now: _now(),
-        forceRefresh: forceRefresh,
-      );
+      final currentNow = _now();
+      final results = await Future.wait([
+        _repository.today(now: currentNow, forceRefresh: forceRefresh),
+        _repository.pastSevenDays(now: currentNow),
+      ]);
       if (isClosed) return;
       emit(
         state.copyWith(
           status: EconomicNewsStatus.success,
-          items: items,
+          items: results[0],
+          pastItems: results[1],
           now: _now(),
         ),
       );

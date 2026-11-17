@@ -11,6 +11,7 @@ import 'package:tradex_mobile/features/home/presentation/home_dashboard_screen.d
 import 'package:tradex_mobile/features/home/home_dependencies.dart';
 import 'package:tradex_mobile/features/journal/presentation/trade_journal_home_screen.dart';
 import 'package:tradex_mobile/features/catalog/catalog_dependencies.dart';
+import 'package:tradex_mobile/features/market/presentation/trading_view_chart_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -30,11 +31,13 @@ void main() {
     final store = SecureSessionStore();
     final device = DeviceIdentity(store);
     final api = _HomeMarketApiClient(store, device);
+    final observer = _HomeNavigatorObserver();
     CatalogDependenciesRegistry.configure(CatalogDependencies(api));
 
     await tester.pumpWidget(
       MaterialApp(
         theme: TradeXTheme.dark,
+        navigatorObservers: [observer],
         home: HomeDashboardScreen(
           onLogout: () async {},
           onForgetDevice: () async {},
@@ -98,6 +101,57 @@ void main() {
       findsOneWidget,
     );
     await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('home-market-screener')),
+      260,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Latest 5'), findsOneWidget);
+    observer.routes.clear();
+    final cryptoQuote = find.byKey(
+      const ValueKey('home-screener-quote-CRYPTO0'),
+    );
+    tester.widget<InkWell>(cryptoQuote).onTap!();
+    expect(observer.routes, hasLength(1));
+    final chartRoute = observer.routes.single as MaterialPageRoute<void>;
+    expect(chartRoute.settings.name, '/market-screener/tradingview');
+    final chart = chartRoute.builder(tester.element(cryptoQuote));
+    expect(chart, isA<TradingViewChartScreen>());
+    expect(
+      (chart as TradingViewChartScreen).qualifiedSymbol,
+      'BINANCE:CRYPTO0',
+    );
+    Navigator.of(tester.element(cryptoQuote)).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('home-screener-stocks')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('home-screener-stock-regions')),
+      findsOneWidget,
+    );
+    for (final region in const ['CSE', 'India', 'International']) {
+      expect(find.text(region), findsOneWidget);
+    }
+    expect(
+      api.requestedPaths.any(
+        (path) =>
+            path.contains('market=STOCKS') &&
+            path.contains('region=INTERNATIONAL'),
+      ),
+      isTrue,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('home-screener-stock-india')));
+    await tester.pumpAndSettle();
+    expect(
+      api.requestedPaths.any(
+        (path) =>
+            path.contains('region=INDIA') && path.contains('timeframe=D1'),
+      ),
+      isTrue,
+    );
+    await tester.scrollUntilVisible(
       find.byKey(const ValueKey('economic-news-title')),
       300,
       scrollable: find.byType(Scrollable).first,
@@ -108,6 +162,10 @@ void main() {
     expect(find.byKey(const ValueKey('market-news-card-0')), findsOneWidget);
     expect(find.byKey(const ValueKey('market-news-card-3')), findsOneWidget);
     expect(find.text('Federal Reserve holds rates steady'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('market-news-title-event-1')),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey('market-news-artwork-icon-event-1')),
       findsOneWidget,
@@ -195,8 +253,28 @@ void main() {
 class _HomeMarketApiClient extends TradeXApiClient {
   _HomeMarketApiClient(super.sessionStore, super.deviceIdentity);
 
+  final List<String> requestedPaths = <String>[];
+
   @override
   Future<Map<String, dynamic>> getJson(String path) async {
+    requestedPaths.add(path);
+    if (path.startsWith('/api/v1/screener/results')) {
+      final region = Uri.parse('https://local$path').queryParameters['region'];
+      final prefix = region ?? 'CRYPTO';
+      return <String, dynamic>{
+        'data': <String, dynamic>{
+          'results': List<Map<String, dynamic>>.generate(
+            7,
+            (index) => <String, dynamic>{
+              'symbol': '$prefix$index',
+              'close': 100 + index,
+              'change_percent': 7 - index,
+              'trend': 'BULLISH',
+            },
+          ),
+        },
+      };
+    }
     if (path.startsWith('/api/v1/economic-news/calendar')) {
       return <String, dynamic>{
         'data': <String, dynamic>{
@@ -278,5 +356,15 @@ class _HomeMarketApiClient extends TradeXApiClient {
       };
     }
     return <String, dynamic>{'data': <String, dynamic>{}};
+  }
+}
+
+class _HomeNavigatorObserver extends NavigatorObserver {
+  final List<Route<dynamic>> routes = <Route<dynamic>>[];
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    routes.add(route);
+    super.didPush(route, previousRoute);
   }
 }

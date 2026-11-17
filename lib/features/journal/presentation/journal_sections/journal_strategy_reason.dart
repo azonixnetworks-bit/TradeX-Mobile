@@ -67,20 +67,20 @@ class StrategyReasonSection extends StatelessWidget {
     key: const ValueKey('strategy-reason-section'),
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [_strategySurfaceRaised, _strategyBackground],
+      gradient: context.isDarkMode
+          ? LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [context.palette.surfaceRaised, context.palette.surface],
+            )
+          : null,
+      color: context.palette.surface,
+      borderRadius: TradeXRadii.card,
+      border: Border.all(color: context.palette.border),
+      boxShadow: TradeXElevation.surface(
+        brightness: Theme.of(context).brightness,
+        palette: context.palette,
       ),
-      borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: _strategyBorder.withValues(alpha: .85)),
-      boxShadow: [
-        BoxShadow(
-          color: _strategyBlue.withValues(alpha: .08),
-          blurRadius: 22,
-          spreadRadius: -6,
-        ),
-      ],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,

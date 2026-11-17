@@ -104,20 +104,20 @@ class PremiumPlanSection extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [_planSurfaceRaised, _planBackground],
+      gradient: context.isDarkMode
+          ? LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [context.palette.surfaceRaised, context.palette.surface],
+            )
+          : null,
+      color: context.palette.surface,
+      borderRadius: TradeXRadii.card,
+      border: Border.all(color: context.palette.border),
+      boxShadow: TradeXElevation.surface(
+        brightness: Theme.of(context).brightness,
+        palette: context.palette,
       ),
-      borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: _planBorder.withValues(alpha: .9)),
-      boxShadow: [
-        BoxShadow(
-          color: accent.withValues(alpha: .055),
-          blurRadius: 22,
-          spreadRadius: -7,
-        ),
-      ],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,8 +133,8 @@ class PremiumPlanSection extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: _planText,
+                    style: TextStyle(
+                      color: context.palette.primaryText,
                       fontSize: 21,
                       fontWeight: FontWeight.w900,
                     ),
@@ -142,8 +142,8 @@ class PremiumPlanSection extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      color: _planMuted,
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
                       fontSize: 12,
                       height: 1.25,
                     ),
@@ -226,12 +226,12 @@ class PremiumRiskField extends StatelessWidget {
               ? (value) =>
                     value?.trim().isEmpty == true ? '$label is required.' : null
               : null),
-      style: const TextStyle(
-        color: _planText,
+      style: TextStyle(
+        color: context.palette.primaryText,
         fontSize: 16,
         fontWeight: FontWeight.w600,
       ),
-      decoration: _inputDecoration(hint).copyWith(
+      decoration: _inputDecoration(context, hint).copyWith(
         suffixIcon: step == null
             ? null
             : _NumberStepper(controller: controller, step: step!),
@@ -252,30 +252,31 @@ class _NumberStepper extends StatelessWidget {
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _stepButton(Icons.keyboard_arrow_up_rounded, step),
-        _stepButton(Icons.keyboard_arrow_down_rounded, -step),
+        _stepButton(context, Icons.keyboard_arrow_up_rounded, step),
+        _stepButton(context, Icons.keyboard_arrow_down_rounded, -step),
       ],
     ),
   );
 
-  Widget _stepButton(IconData icon, double delta) => InkWell(
-    onTap: () {
-      HapticFeedback.selectionClick();
-      final current = double.tryParse(controller.text.trim()) ?? 0;
-      final next = (current + delta).clamp(0, double.infinity);
-      final decimals = step < .001
-          ? 4
-          : step < .1
-          ? 2
-          : 0;
-      controller.text = next.toStringAsFixed(decimals);
-      controller.selection = TextSelection.collapsed(
-        offset: controller.text.length,
+  Widget _stepButton(BuildContext context, IconData icon, double delta) =>
+      InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          final current = double.tryParse(controller.text.trim()) ?? 0;
+          final next = (current + delta).clamp(0, double.infinity);
+          final decimals = step < .001
+              ? 4
+              : step < .1
+              ? 2
+              : 0;
+          controller.text = next.toStringAsFixed(decimals);
+          controller.selection = TextSelection.collapsed(
+            offset: controller.text.length,
+          );
+        },
+        borderRadius: BorderRadius.circular(5),
+        child: Icon(icon, color: context.palette.primaryText, size: 18),
       );
-    },
-    borderRadius: BorderRadius.circular(5),
-    child: Icon(icon, color: _planText, size: 18),
-  );
 }
 
 class PremiumCurrencyField extends StatelessWidget {
@@ -309,14 +310,17 @@ class PremiumCurrencyField extends StatelessWidget {
         key: ValueKey('risk-currency-$selected'),
         initialValue: selected,
         isExpanded: true,
-        dropdownColor: _planSurfaceRaised,
-        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: _planText),
-        style: const TextStyle(
-          color: _planText,
+        dropdownColor: context.palette.surfaceRaised,
+        icon: Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: context.palette.primaryText,
+        ),
+        style: TextStyle(
+          color: context.palette.primaryText,
           fontSize: 16,
           fontWeight: FontWeight.w600,
         ),
-        decoration: _inputDecoration('Currency'),
+        decoration: _inputDecoration(context, 'Currency'),
         items: [
           for (final value in values)
             DropdownMenuItem(value: value, child: Text(value)),
@@ -410,14 +414,12 @@ class PremiumEmotionField extends StatelessWidget {
                                 ],
                               )
                             : null,
-                        color: selected
-                            ? null
-                            : _planBackground.withValues(alpha: .72),
+                        color: selected ? null : context.palette.surfaceMuted,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: selected
                               ? const Color(0xFFE186FF)
-                              : _planBorder.withValues(alpha: .95),
+                              : context.palette.border,
                           width: selected ? 1.3 : 1,
                         ),
                         boxShadow: selected
@@ -444,7 +446,9 @@ class PremiumEmotionField extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: selected ? _planText : _planMuted,
+                              color: selected
+                                  ? context.palette.primaryText
+                                  : context.palette.secondaryText,
                               fontSize: 9.5,
                               height: 1,
                               fontWeight: selected
@@ -532,12 +536,12 @@ class ConfidenceSelector extends StatelessWidget {
                             colors: [Color(0xFFC34DFF), Color(0xFF7624FF)],
                           )
                         : null,
-                    color: value == score ? null : _planBackground,
+                    color: value == score ? null : context.palette.surfaceMuted,
                     borderRadius: BorderRadius.circular(9),
                     border: Border.all(
                       color: value == score
                           ? const Color(0xFFE186FF)
-                          : _planBorder,
+                          : context.palette.border,
                     ),
                     boxShadow: value == score
                         ? [
@@ -550,8 +554,8 @@ class ConfidenceSelector extends StatelessWidget {
                   ),
                   child: Text(
                     '$score',
-                    style: const TextStyle(
-                      color: _planText,
+                    style: TextStyle(
+                      color: context.palette.primaryText,
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                     ),
@@ -587,7 +591,7 @@ class PremiumMentalStateField extends StatelessWidget {
       keyboardType: TextInputType.multiline,
       textCapitalization: TextCapitalization.sentences,
       scrollPadding: const EdgeInsets.only(bottom: 120),
-      style: const TextStyle(color: _planText, height: 1.3),
+      style: TextStyle(color: context.palette.primaryText, height: 1.3),
       buildCounter:
           (
             context, {
@@ -596,9 +600,13 @@ class PremiumMentalStateField extends StatelessWidget {
             required maxLength,
           }) => Text(
             '$currentLength / $maxLength',
-            style: const TextStyle(color: _planMuted, fontSize: 10),
+            style: TextStyle(
+              color: context.palette.secondaryText,
+              fontSize: 10,
+            ),
           ),
       decoration: _inputDecoration(
+        context,
         'e.g. I feel confident about this setup because...',
       ),
     ),
@@ -616,7 +624,7 @@ class _ChecklistCard extends StatelessWidget {
     key: const ValueKey('premium-trade-checklist'),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: _planSurface.withValues(alpha: .65),
+      color: context.palette.surface,
       borderRadius: BorderRadius.circular(17),
       border: Border.all(color: _planPurple),
       boxShadow: [
@@ -626,14 +634,14 @@ class _ChecklistCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
             Icon(Icons.playlist_add_check_rounded, color: _planPurple),
             SizedBox(width: 8),
             Text(
               'Checklist',
               style: TextStyle(
-                color: _planText,
+                color: context.palette.primaryText,
                 fontSize: 15,
                 fontWeight: FontWeight.w900,
               ),
@@ -692,9 +700,9 @@ class PremiumChecklistTile extends StatelessWidget {
     constraints: const BoxConstraints(minHeight: 48),
     padding: const EdgeInsets.only(left: 10, right: 5),
     decoration: BoxDecoration(
-      color: _planSurfaceRaised.withValues(alpha: .72),
+      color: context.palette.surfaceRaised,
       borderRadius: BorderRadius.circular(11),
-      border: Border.all(color: _planBorder.withValues(alpha: .8)),
+      border: Border.all(color: context.palette.border),
     ),
     child: Row(
       children: [
@@ -704,8 +712,8 @@ class PremiumChecklistTile extends StatelessWidget {
           child: Text(
             label,
             maxLines: 2,
-            style: const TextStyle(
-              color: _planText,
+            style: TextStyle(
+              color: context.palette.primaryText,
               fontSize: 11,
               fontWeight: FontWeight.w600,
             ),
@@ -719,8 +727,8 @@ class PremiumChecklistTile extends StatelessWidget {
           },
           activeThumbColor: const Color(0xFF8CFFE1),
           activeTrackColor: const Color(0xFF00B985),
-          inactiveThumbColor: _planMuted,
-          inactiveTrackColor: _planBackground,
+          inactiveThumbColor: context.palette.secondaryText,
+          inactiveTrackColor: context.palette.surfaceMuted,
         ),
       ],
     ),
@@ -745,9 +753,9 @@ class _FieldCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
     decoration: BoxDecoration(
-      color: _planSurface.withValues(alpha: .62),
+      color: context.palette.surfaceMuted,
       borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: _planBorder.withValues(alpha: .92)),
+      border: Border.all(color: context.palette.border),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -759,8 +767,8 @@ class _FieldCard extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
-                  color: _planText,
+                style: TextStyle(
+                  color: context.palette.primaryText,
                   fontSize: 13,
                   fontWeight: FontWeight.w900,
                 ),
@@ -776,29 +784,33 @@ class _FieldCard extends StatelessWidget {
   );
 }
 
-InputDecoration _inputDecoration(String hint) => InputDecoration(
-  hintText: hint,
-  hintStyle: const TextStyle(color: _planMuted, fontWeight: FontWeight.w500),
-  filled: true,
-  fillColor: _planBackground.withValues(alpha: .72),
-  contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
-  enabledBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(11),
-    borderSide: BorderSide(color: _planBorder.withValues(alpha: .95)),
-  ),
-  focusedBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(11),
-    borderSide: const BorderSide(color: _planBlue, width: 1.25),
-  ),
-  errorBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(11),
-    borderSide: const BorderSide(color: _planRed),
-  ),
-  focusedErrorBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(11),
-    borderSide: const BorderSide(color: _planRed, width: 1.25),
-  ),
-);
+InputDecoration _inputDecoration(BuildContext context, String hint) =>
+    InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(
+        color: context.palette.secondaryText,
+        fontWeight: FontWeight.w500,
+      ),
+      filled: true,
+      fillColor: context.palette.surfaceMuted,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: BorderSide(color: context.palette.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: _planBlue, width: 1.25),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: _planRed),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: _planRed, width: 1.25),
+      ),
+    );
 
 String _titleCase(String value) => value
     .replaceAll('_', ' ')

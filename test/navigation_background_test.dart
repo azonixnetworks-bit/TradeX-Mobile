@@ -102,12 +102,18 @@ void main() {
     expect(find.byKey(const PageStorageKey('home-tab')), findsOneWidget);
     expect(find.byKey(const PageStorageKey('profile-tab')), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('dashboard-nav-item-4')));
+    await tester.tap(find.byKey(const ValueKey('dashboard-nav-item-5')));
     await tester.pump();
     expect(find.byKey(const PageStorageKey('home-tab')), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byKey(const PageStorageKey('profile-tab')), findsOneWidget);
     expect(find.byKey(const PageStorageKey('home-tab')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('dashboard-nav-item-4')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const PageStorageKey('trade-tab')), findsOneWidget);
+    expect(find.byKey(const PageStorageKey('profile-tab')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('dashboard-nav-item-3')));
     await tester.pump();

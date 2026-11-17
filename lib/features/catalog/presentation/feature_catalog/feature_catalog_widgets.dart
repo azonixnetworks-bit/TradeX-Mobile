@@ -252,12 +252,26 @@ class _ObjectPanel extends StatelessWidget {
 }
 
 class _TradingRoutineView extends StatelessWidget {
-  const _TradingRoutineView({required this.payload});
+  const _TradingRoutineView({
+    required this.payload,
+    required this.apiClient,
+    required this.onEnabled,
+  });
 
   final Map<String, dynamic> payload;
+  final ApiGateway apiClient;
+  final VoidCallback onEnabled;
 
   @override
   Widget build(BuildContext context) {
+    final preference = payload['preference'];
+    if (preference is Map && preference['enabled'] != true) {
+      return _TradingRoutineSetup(
+        payload: payload,
+        apiClient: apiClient,
+        onSaved: onEnabled,
+      );
+    }
     final sections = _routineSections(payload);
     final items = sections.expand((section) => section.$2).toList();
     final completed = items.where(_routineCompleted).length;
@@ -381,6 +395,342 @@ class _TradingRoutineView extends StatelessWidget {
     );
   }
 }
+
+class _TradingRoutineSetup extends StatefulWidget {
+  const _TradingRoutineSetup({
+    required this.payload,
+    required this.apiClient,
+    required this.onSaved,
+  });
+
+  final Map<String, dynamic> payload;
+  final ApiGateway apiClient;
+  final VoidCallback onSaved;
+
+  @override
+  State<_TradingRoutineSetup> createState() => _TradingRoutineSetupState();
+}
+
+class _TradingRoutineSetupState extends State<_TradingRoutineSetup> {
+  final _formKey = GlobalKey<FormState>();
+  late final Map<String, dynamic> _preference;
+  late final TextEditingController _timezone;
+  late final TextEditingController _deliveryTime;
+  late final TextEditingController _balance;
+  late final TextEditingController _risk;
+  late final TextEditingController _dailyRisk;
+  late final TextEditingController _maxTrades;
+  late final TextEditingController _maxLosses;
+  late final TextEditingController _minimumRr;
+  late final TextEditingController _focus;
+  final _markets = <String>{};
+  final _sessions = <String>{};
+  var _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _preference = _asStringMap(widget.payload['preference']);
+    _timezone = TextEditingController(
+      text: _preference['timezone']?.toString() ?? 'Asia/Colombo',
+    );
+    _deliveryTime = TextEditingController(
+      text: _preference['delivery_time_local']?.toString() ?? '06:00',
+    );
+    _balance = _controller('planning_balance', 10000);
+    _risk = _controller('risk_per_trade_percent', .5);
+    _dailyRisk = _controller('daily_risk_cap_percent', 1);
+    _maxTrades = _controller('max_trades', 3);
+    _maxLosses = _controller('max_consecutive_losses', 2);
+    _minimumRr = _controller('minimum_rr', 2);
+    _focus = TextEditingController(
+      text: _preference['focus_statement']?.toString() ?? '',
+    );
+    _markets.addAll(_strings(_preference['markets']));
+    _sessions.addAll(_strings(_preference['sessions']));
+    if (_markets.isEmpty) _markets.add('FOREX');
+    if (_sessions.isEmpty) _sessions.add('LONDON');
+  }
+
+  TextEditingController _controller(String key, num fallback) =>
+      TextEditingController(text: (_preference[key] ?? fallback).toString());
+
+  @override
+  void dispose() {
+    for (final controller in [
+      _timezone,
+      _deliveryTime,
+      _balance,
+      _risk,
+      _dailyRisk,
+      _maxTrades,
+      _maxLosses,
+      _minimumRr,
+      _focus,
+    ]) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Form(
+    key: _formKey,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Set your risk limits and daily process once. TradeX will generate today’s discipline plan from these settings.',
+          style: TextStyle(color: context.palette.secondaryText, height: 1.4),
+        ),
+        const SizedBox(height: TradeXSpacing.md),
+        _setupCard(
+          title: 'Account & Schedule',
+          icon: Icons.schedule_rounded,
+          child: Column(
+            children: [
+              _numberField(_balance, 'Planning balance', suffix: 'USD'),
+              const SizedBox(height: TradeXSpacing.sm),
+              Row(
+                children: [
+                  Expanded(child: _textField(_timezone, 'Timezone')),
+                  const SizedBox(width: TradeXSpacing.sm),
+                  Expanded(
+                    child: _textField(
+                      _deliveryTime,
+                      'Plan time',
+                      hint: '06:00',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: TradeXSpacing.sm),
+        _setupCard(
+          title: 'Risk Guardrails',
+          icon: Icons.shield_outlined,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _numberField(_risk, 'Risk / trade', suffix: '%'),
+                  ),
+                  const SizedBox(width: TradeXSpacing.sm),
+                  Expanded(
+                    child: _numberField(
+                      _dailyRisk,
+                      'Daily risk cap',
+                      suffix: '%',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: TradeXSpacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: _numberField(
+                      _maxTrades,
+                      'Max trades',
+                      wholeNumber: true,
+                    ),
+                  ),
+                  const SizedBox(width: TradeXSpacing.sm),
+                  Expanded(
+                    child: _numberField(
+                      _maxLosses,
+                      'Stop after losses',
+                      wholeNumber: true,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: TradeXSpacing.sm),
+              _numberField(_minimumRr, 'Minimum risk–reward', suffix: 'R'),
+            ],
+          ),
+        ),
+        const SizedBox(height: TradeXSpacing.sm),
+        _setupCard(
+          title: 'Markets & Sessions',
+          icon: Icons.candlestick_chart_rounded,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _choiceChips(const [
+                'FOREX',
+                'CRYPTO',
+                'COMMODITY',
+                'DERIV',
+                'STOCKS',
+              ], _markets),
+              const SizedBox(height: TradeXSpacing.sm),
+              _choiceChips(const [
+                'ASIA',
+                'LONDON',
+                'NEW_YORK',
+                'CUSTOM',
+              ], _sessions),
+            ],
+          ),
+        ),
+        const SizedBox(height: TradeXSpacing.sm),
+        _setupCard(
+          title: 'Daily Focus',
+          icon: Icons.track_changes_rounded,
+          child: TextFormField(
+            controller: _focus,
+            minLines: 3,
+            maxLines: 5,
+            decoration: const InputDecoration(
+              labelText: 'Focus statement',
+              alignLabelWithHint: true,
+            ),
+            validator: _required,
+          ),
+        ),
+        const SizedBox(height: TradeXSpacing.md),
+        FilledButton.icon(
+          onPressed: _saving ? null : _save,
+          icon: _saving
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.check_circle_outline_rounded),
+          label: const Text('Enable Daily Trading Routine'),
+        ),
+        const SizedBox(height: TradeXSpacing.sm),
+        Text(
+          'This is a discipline and risk-planning tool. It does not provide trade signals or guarantee results.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: context.palette.secondaryText, fontSize: 11),
+        ),
+      ],
+    ),
+  );
+
+  Widget _setupCard({
+    required String title,
+    required IconData icon,
+    required Widget child,
+  }) => Container(
+    padding: TradeXSpacing.card,
+    decoration: _panelDecoration(context),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: context.palette.goldText),
+            const SizedBox(width: TradeXSpacing.xs),
+            Text(
+              title,
+              style: TextStyle(
+                color: context.palette.primaryText,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: TradeXSpacing.sm),
+        child,
+      ],
+    ),
+  );
+
+  Widget _textField(
+    TextEditingController controller,
+    String label, {
+    String? hint,
+  }) => TextFormField(
+    controller: controller,
+    decoration: InputDecoration(labelText: label, hintText: hint),
+    validator: _required,
+  );
+
+  Widget _numberField(
+    TextEditingController controller,
+    String label, {
+    String? suffix,
+    bool wholeNumber = false,
+  }) => TextFormField(
+    controller: controller,
+    keyboardType: TextInputType.numberWithOptions(decimal: !wholeNumber),
+    decoration: InputDecoration(labelText: label, suffixText: suffix),
+    validator: (value) {
+      final text = value?.trim() ?? '';
+      final parsed = wholeNumber ? int.tryParse(text) : double.tryParse(text);
+      return parsed == null || parsed <= 0 ? 'Enter a valid value.' : null;
+    },
+  );
+
+  Widget _choiceChips(List<String> values, Set<String> selected) => Wrap(
+    spacing: TradeXSpacing.xs,
+    runSpacing: TradeXSpacing.xs,
+    children: [
+      for (final value in values)
+        FilterChip(
+          label: Text(_label(value)),
+          selected: selected.contains(value),
+          onSelected: (enabled) => setState(() {
+            enabled ? selected.add(value) : selected.remove(value);
+          }),
+        ),
+    ],
+  );
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_markets.isEmpty || _sessions.isEmpty) {
+      _message('Select at least one market and one session.');
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await widget.apiClient.putJson('/api/v1/trading-routine/preferences', {
+        'enabled': true,
+        'timezone': _timezone.text.trim(),
+        'delivery_time_local': _deliveryTime.text.trim(),
+        'planning_balance': double.parse(_balance.text.trim()),
+        'risk_per_trade_percent': double.parse(_risk.text.trim()),
+        'daily_risk_cap_percent': double.parse(_dailyRisk.text.trim()),
+        'max_trades': int.parse(_maxTrades.text.trim()),
+        'max_consecutive_losses': int.parse(_maxLosses.text.trim()),
+        'minimum_rr': double.parse(_minimumRr.text.trim()),
+        'markets': _markets.toList(),
+        'sessions': _sessions.toList(),
+        'pre_market_checklist': _strings(_preference['pre_market_checklist']),
+        'no_trade_rules': _strings(_preference['no_trade_rules']),
+        'focus_statement': _focus.text.trim(),
+        'whatsapp_pdf_enabled': false,
+      });
+      widget.onSaved();
+    } catch (error) {
+      _message(error is UserFacingException ? error.message : error.toString());
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  void _message(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+Map<String, dynamic> _asStringMap(Object? value) => value is Map
+    ? value.map((key, value) => MapEntry(key.toString(), value))
+    : <String, dynamic>{};
+
+List<String> _strings(Object? value) => value is List
+    ? value.map((item) => item.toString()).toList(growable: false)
+    : const [];
 
 class _RoutineSectionCard extends StatelessWidget {
   const _RoutineSectionCard({required this.title, required this.items});

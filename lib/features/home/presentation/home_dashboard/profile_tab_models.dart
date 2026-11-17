@@ -7,7 +7,8 @@ class _ProfileAccordionSection {
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.children,
+    this.children = const [],
+    this.action,
   });
 
   final _ProfileSection section;
@@ -16,6 +17,7 @@ class _ProfileAccordionSection {
   final String title;
   final String subtitle;
   final List<Widget> children;
+  final VoidCallback? action;
 }
 
 class _ProfileAccordionPanel extends StatelessWidget {
@@ -30,22 +32,25 @@ class _ProfileAccordionPanel extends StatelessWidget {
   final ValueChanged<_ProfileSection> onToggle;
 
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: _panelDecoration(context),
-    clipBehavior: Clip.antiAlias,
-    child: Column(
-      children: List<Widget>.generate(sections.length * 2 - 1, (index) {
-        if (index.isOdd) {
-          return const Divider(height: 1, color: TradeXColors.border);
-        }
-        final section = sections[index ~/ 2];
-        return _ProfileAccordionTile(
-          section: section,
-          expanded: expandedSection == section.section,
-          onTap: () => onToggle(section.section),
-        );
-      }),
-    ),
+  Widget build(BuildContext context) => Column(
+    children: [
+      for (var index = 0; index < sections.length; index++) ...[
+        Container(
+          key: ValueKey('profile-section-card-${sections[index].section.name}'),
+          decoration: _panelDecoration(context),
+          clipBehavior: Clip.antiAlias,
+          child: _ProfileAccordionTile(
+            section: sections[index],
+            expanded: expandedSection == sections[index].section,
+            onTap:
+                sections[index].action ??
+                () => onToggle(sections[index].section),
+          ),
+        ),
+        if (index != sections.length - 1)
+          const SizedBox(height: TradeXSpacing.sm),
+      ],
+    ],
   );
 }
 
@@ -61,52 +66,55 @@ class _ProfileAccordionTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      _MenuRow(
-        key: section.key,
-        icon: section.icon,
-        title: section.title,
-        subtitle: section.subtitle,
-        expanded: expanded,
-        onTap: onTap,
-      ),
-      AnimatedSize(
-        duration: const Duration(milliseconds: 240),
-        reverseDuration: const Duration(milliseconds: 190),
-        curve: Curves.easeOutCubic,
-        alignment: Alignment.topCenter,
-        child: expanded
-            ? Container(
-                key: ValueKey(
-                  'profile-section-${section.section.name}-options',
-                ),
-                decoration: BoxDecoration(
-                  color: TradeXColors.background.withValues(alpha: .34),
-                  border: const Border(
-                    top: BorderSide(color: TradeXColors.border),
-                  ),
-                ),
-                child: Column(
-                  children: List<Widget>.generate(
-                    section.children.length * 2 - 1,
-                    (index) {
-                      if (index.isOdd) {
-                        return const Divider(
-                          height: 1,
-                          indent: 48,
-                          color: TradeXColors.border,
-                        );
-                      }
-                      return section.children[index ~/ 2];
-                    },
-                  ),
-                ),
-              )
-            : const SizedBox.shrink(),
-      ),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final expandable = section.action == null;
+    return Column(
+      children: [
+        _MenuRow(
+          key: section.key,
+          icon: section.icon,
+          title: section.title,
+          subtitle: section.subtitle,
+          expanded: expandable ? expanded : null,
+          onTap: onTap,
+        ),
+        if (expandable)
+          AnimatedSize(
+            duration: const Duration(milliseconds: 240),
+            reverseDuration: const Duration(milliseconds: 190),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: expanded
+                ? Container(
+                    key: ValueKey(
+                      'profile-section-${section.section.name}-options',
+                    ),
+                    decoration: BoxDecoration(
+                      color: palette.surfaceMuted,
+                      border: Border(top: BorderSide(color: palette.border)),
+                    ),
+                    child: Column(
+                      children: List<Widget>.generate(
+                        section.children.length * 2 - 1,
+                        (index) {
+                          if (index.isOdd) {
+                            return Divider(
+                              height: 1,
+                              indent: 48,
+                              color: palette.border,
+                            );
+                          }
+                          return section.children[index ~/ 2];
+                        },
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+      ],
+    );
+  }
 }
 
 class _CustomerProfile {

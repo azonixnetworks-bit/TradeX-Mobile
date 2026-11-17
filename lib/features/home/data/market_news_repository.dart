@@ -8,7 +8,7 @@ import '../domain/market_news_repository.dart';
 class MarketNewsRepository implements MarketNewsRepositoryContract {
   const MarketNewsRepository(this._apiClient);
 
-  static const _dailyCacheKey = 'tradex.economic_news.upcoming.v4';
+  static const _dailyCacheKey = 'tradex.economic_news.calendar.v5';
   static const _cacheFreshFor = Duration(minutes: 5);
   static final Map<String, Future<List<MarketNewsItem>>> _inFlightByDay = {};
 
@@ -59,6 +59,19 @@ class MarketNewsRepository implements MarketNewsRepositoryContract {
     }
   }
 
+  @override
+  Future<List<MarketNewsItem>> pastSevenDays({
+    DateTime? now,
+    bool forceRefresh = false,
+  }) async {
+    final localNow = now ?? DateTime.now();
+    await today(now: localNow, forceRefresh: forceRefresh);
+    final preferences = await SharedPreferences.getInstance();
+    final cached = _readCache(preferences.getString(_dailyCacheKey));
+    if (cached == null) return const [];
+    return _parsePastEvents(cached.events, localNow, cached.savedAt);
+  }
+
   Future<List<MarketNewsItem>> _fetchAndCache({
     required SharedPreferences preferences,
     required String day,
@@ -66,7 +79,7 @@ class MarketNewsRepository implements MarketNewsRepositoryContract {
     required _MarketNewsCache? stale,
   }) async {
     final from = Uri.encodeQueryComponent(
-      localNow.subtract(const Duration(minutes: 35)).toUtc().toIso8601String(),
+      localNow.subtract(const Duration(days: 7)).toUtc().toIso8601String(),
     );
     final to = Uri.encodeQueryComponent(
       localNow.add(const Duration(days: 14)).toUtc().toIso8601String(),
@@ -152,6 +165,29 @@ class MarketNewsRepository implements MarketNewsRepositoryContract {
       if (right == null) return -1;
       return left.compareTo(right);
     });
+    return parsed;
+  }
+
+  static List<MarketNewsItem> _parsePastEvents(
+    List<Map<String, dynamic>> events,
+    DateTime reference,
+    DateTime observedAt,
+  ) {
+    final cutoff = reference.subtract(const Duration(days: 7));
+    final parsed = events
+        .map(
+          (event) => _MarketNewsMapper.fromEvent(event, observedAt: observedAt),
+        )
+        .where((item) => item.title.isNotEmpty)
+        .where((item) => item.status.toUpperCase() != 'CANCELLED')
+        .where((item) {
+          final scheduled = item.occurredAt?.toLocal();
+          return scheduled != null &&
+              scheduled.isBefore(reference) &&
+              !scheduled.isBefore(cutoff);
+        })
+        .toList(growable: false);
+    parsed.sort((a, b) => b.occurredAt!.compareTo(a.occurredAt!));
     return parsed;
   }
 

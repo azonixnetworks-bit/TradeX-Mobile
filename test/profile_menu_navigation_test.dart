@@ -28,7 +28,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
     await AppPreferences.instance.load();
-    await AppPreferences.instance.setDashboardTab(4);
+    await AppPreferences.instance.setDashboardTab(5);
     final store = SecureSessionStore();
     final device = DeviceIdentity(store);
     final api = _ProfileMenuApiClient(store, device);
@@ -58,7 +58,20 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('profile-main-security')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-main-kyc')), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-main-help')), findsOneWidget);
+    for (final section in const [
+      'account',
+      'withdrawal',
+      'security',
+      'kyc',
+      'help',
+    ]) {
+      expect(
+        find.byKey(ValueKey('profile-section-card-$section')),
+        findsOneWidget,
+      );
+    }
     expect(find.text('Mobile Number'), findsNothing);
     expect(find.text('PayPal'), findsNothing);
     expect(find.text('Authenticator protected'), findsNothing);
@@ -92,6 +105,13 @@ void main() {
       'Sign out from all devices',
     ]);
 
+    await tester.ensureVisible(find.byKey(const ValueKey('profile-main-kyc')));
+    await tester.tap(find.byKey(const ValueKey('profile-main-kyc')));
+    await tester.pumpAndSettle();
+    expect(find.text('KYC Document Submission'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
     expect(tester.takeException(), isNull);
   });
 
@@ -105,7 +125,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
     await AppPreferences.instance.load();
-    await AppPreferences.instance.setDashboardTab(4);
+    await AppPreferences.instance.setDashboardTab(5);
     final store = SecureSessionStore();
     final device = DeviceIdentity(store);
     final api = _ProfileMenuApiClient(store, device, withPhoto: true);

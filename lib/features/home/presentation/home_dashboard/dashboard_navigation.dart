@@ -216,7 +216,7 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
                                                   style: const TextStyle(
                                                     color:
                                                         TradeXColors.goldBright,
-                                                    fontSize: 9.5,
+                                                    fontSize: 11,
                                                     fontWeight: FontWeight.w900,
                                                   ),
                                                 )

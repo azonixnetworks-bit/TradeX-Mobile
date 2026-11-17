@@ -182,12 +182,11 @@ class RiskRewardDisplay extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
-            color: _planBackground.withValues(alpha: .72),
+            color: context.palette.surfaceMuted,
             borderRadius: BorderRadius.circular(11),
             border: Border.all(
-              color: (ratio == null ? _planBorder : _planGold).withValues(
-                alpha: .82,
-              ),
+              color: (ratio == null ? context.palette.border : _planGold)
+                  .withValues(alpha: .82),
             ),
           ),
           child: Row(
@@ -200,17 +199,19 @@ class RiskRewardDisplay extends StatelessWidget {
                             : 'Enter levels to calculate'
                       : '1 : ${ratio.toStringAsFixed(2)}',
                   style: TextStyle(
-                    color: ratio == null ? _planMuted : _planGold,
+                    color: ratio == null
+                        ? context.palette.secondaryText
+                        : _planGold,
                     fontSize: ratio == null ? 12 : 20,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
               if (ratio != null)
-                const Text(
+                Text(
                   'R:R',
                   style: TextStyle(
-                    color: _planMuted,
+                    color: context.palette.secondaryText,
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                   ),
@@ -293,17 +294,20 @@ class _LiveEntryContext extends StatelessWidget {
                       : normalizedSymbol,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _planText,
+                  style: TextStyle(
+                    color: context.palette.primaryText,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 2),
                 if (loading)
-                  const Text(
+                  Text(
                     'Loading live price…',
-                    style: TextStyle(color: _planMuted, fontSize: 10.5),
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
+                      fontSize: 10.5,
+                    ),
                   )
                 else
                   Text(
@@ -312,7 +316,9 @@ class _LiveEntryContext extends StatelessWidget {
                         : 'Live Price · ${_formatLivePrice(livePrice!)}',
                     key: const ValueKey('risk-live-price'),
                     style: TextStyle(
-                      color: livePrice == null ? _planMuted : _planBlue,
+                      color: livePrice == null
+                          ? context.palette.secondaryText
+                          : _planBlue,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                     ),

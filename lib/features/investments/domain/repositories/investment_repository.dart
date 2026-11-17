@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../entities/investment_entities.dart';
 
 abstract interface class InvestmentPreferencesRepository {
@@ -12,6 +14,20 @@ abstract interface class InvestmentRepository {
     String investmentId, {
     bool refresh = false,
   });
+
+  Future<CustomerInvestment> createApplication({
+    required double amount,
+    required int periodYears,
+    required int reviewIntervalMonths,
+  });
+
+  Future<void> submitDeposit({
+    required String investmentId,
+    required String transactionId,
+    String? senderAddress,
+  });
+
+  Future<Uint8List> downloadAgreement(String investmentId);
 }
 
 class InvestmentFeatureUnavailable implements Exception {

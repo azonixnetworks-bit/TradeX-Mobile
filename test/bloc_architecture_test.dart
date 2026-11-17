@@ -28,12 +28,12 @@ void main() {
     final cubit = HomeNavigationCubit(preferences: AppPreferences.instance);
     addTearDown(cubit.close);
 
-    cubit.select(4);
-    expect(cubit.state, 4);
+    cubit.select(5);
+    expect(cubit.state, 5);
     await Future<void>.delayed(Duration.zero);
 
     final stored = await SharedPreferences.getInstance();
-    expect(stored.getInt('tradex.dashboard.selected_tab'), 4);
+    expect(stored.getInt('tradex.dashboard.selected_tab'), 5);
   });
 
   test('bloc future cubit ignores an obsolete request result', () async {

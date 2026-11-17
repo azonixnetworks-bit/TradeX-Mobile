@@ -13,7 +13,7 @@ import 'trade_idea_details_screen.dart';
 
 enum _TradeIdeaStockRegion { sriLanka, india, international }
 
-enum _TradeIdeaPeriod { today, thisWeek, thisMonth }
+enum _TradeIdeaPeriod { all, today, thisWeek, thisMonth }
 
 class TradeIdeasScreen extends StatefulWidget {
   const TradeIdeasScreen({
@@ -157,6 +157,16 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                 children: [
                   Row(
                     children: [
+                      Expanded(
+                        child: _PeriodButton(
+                          key: const ValueKey('trade-ideas-period-all'),
+                          label: 'All',
+                          selected: _period == _TradeIdeaPeriod.all,
+                          onTap: () =>
+                              setState(() => _period = _TradeIdeaPeriod.all),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Trade Ideas',
@@ -842,11 +852,13 @@ bool _matchesTradeIdeaCategory(String rawCategory, String selectedCategory) {
 }
 
 bool _matchesTradeIdeaPeriod(DateTime? publishedAt, _TradeIdeaPeriod selected) {
+  if (selected == _TradeIdeaPeriod.all) return true;
   // Keep legacy ideas that predate the mandatory publication timestamp.
   if (publishedAt == null) return true;
   final now = DateTime.now();
   final localPublishedAt = publishedAt.toLocal();
   final start = switch (selected) {
+    _TradeIdeaPeriod.all => DateTime.fromMillisecondsSinceEpoch(0),
     _TradeIdeaPeriod.today => DateTime(now.year, now.month, now.day),
     _TradeIdeaPeriod.thisWeek => DateTime(
       now.year,

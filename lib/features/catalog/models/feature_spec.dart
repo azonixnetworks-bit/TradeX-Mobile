@@ -113,7 +113,7 @@ const tradeXFeatureSpecs = <FeatureSpec>[
     title: 'Trading Routine',
     subtitle: 'Today’s checklist and saved plan',
     icon: Icons.checklist_rounded,
-    endpoint: '/api/v1/trading-routine/today',
+    endpoint: '/api/v1/trading-routine',
   ),
   FeatureSpec(
     id: 'funded-advisor',

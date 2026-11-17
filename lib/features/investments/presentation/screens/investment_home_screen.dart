@@ -88,6 +88,49 @@ class _InvestmentHomeScreenState extends State<InvestmentHomeScreen>
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
+                _InvestmentCard(
+                  emphasized: true,
+                  onTap: dashboard?.onboarding == null
+                      ? null
+                      : () => _open(
+                          InvestmentApplyScreen(
+                            repository: widget.repository,
+                            onboarding: dashboard!.onboarding!,
+                          ),
+                        ),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        Icons.account_balance_wallet_rounded,
+                        color: TradeXColors.goldBright,
+                        size: 34,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Invest with TradeX',
+                              style: TextStyle(
+                                color: _investmentText,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Verified KYC · USDT TRC20 · 3,000–500,000 USDT',
+                              style: TextStyle(color: _investmentMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right_rounded),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
                 if (dashboard?.isStale == true)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),

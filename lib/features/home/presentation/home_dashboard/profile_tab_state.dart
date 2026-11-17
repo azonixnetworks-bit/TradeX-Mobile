@@ -476,6 +476,19 @@ class _ProfileTabState extends State<_ProfileTab> {
                   children: _securityItems(profile),
                 ),
                 _ProfileAccordionSection(
+                  section: _ProfileSection.kyc,
+                  key: const ValueKey('profile-main-kyc'),
+                  icon: Icons.badge_outlined,
+                  title: 'KYC Verification',
+                  subtitle: 'Submit identity documents and review verification',
+                  action: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          KycSubmissionScreen(apiClient: widget.apiClient),
+                    ),
+                  ),
+                ),
+                _ProfileAccordionSection(
                   section: _ProfileSection.help,
                   key: const ValueKey('profile-main-help'),
                   icon: Icons.support_agent_rounded,

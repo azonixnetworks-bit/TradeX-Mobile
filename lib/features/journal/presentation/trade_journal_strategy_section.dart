@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/theme/tradex_design_system.dart';
+
 part 'journal_sections/journal_strategy_reason.dart';
 part 'journal_sections/journal_strategy_setup.dart';
 

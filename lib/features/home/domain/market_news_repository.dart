@@ -10,6 +10,11 @@ abstract interface class MarketNewsRepositoryContract {
     DateTime? now,
     bool forceRefresh = false,
   });
+
+  Future<List<MarketNewsItem>> pastSevenDays({
+    DateTime? now,
+    bool forceRefresh = false,
+  });
 }
 
 class MarketNewsItem {

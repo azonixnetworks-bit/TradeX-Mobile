@@ -93,6 +93,10 @@ void main() {
     );
 
     expect(find.byType(TextField), findsOneWidget);
+    expect(
+      tester.widget<Scaffold>(find.byType(Scaffold)).resizeToAvoidBottomInset,
+      isFalse,
+    );
     expect(find.text('Enter passcode'), findsOneWidget);
     expect(find.textContaining('Confirm'), findsNothing);
   });
@@ -131,6 +135,10 @@ void main() {
       expect(find.text('Password'), findsNothing);
       expect(find.text('Authenticator Code (6 digits)'), findsNothing);
       expect(find.text('Enter passcode'), findsOneWidget);
+      expect(
+        tester.widget<Scaffold>(find.byType(Scaffold)).resizeToAvoidBottomInset,
+        isFalse,
+      );
       expect(find.byType(TextFormField), findsOneWidget);
     },
   );

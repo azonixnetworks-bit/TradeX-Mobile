@@ -17,7 +17,7 @@ class JournalPeriodSelector extends StatelessWidget {
     decoration: BoxDecoration(
       color: context.palette.surfaceMuted,
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: _dashboardBorder.withValues(alpha: .85)),
+      border: Border.all(color: context.palette.border),
     ),
     child: DropdownButtonHideUnderline(
       child: DropdownButton<String>(
@@ -149,7 +149,7 @@ class NetPnlCard extends StatelessWidget {
               onChanged: onPeriodChanged,
             ),
           ),
-          const SizedBox(height: 11),
+          const SizedBox(height: TradeXSpacing.xs),
           Text(
             formatMoney(pnl, summary['pnl_currency']?.toString()),
             key: const ValueKey('journal-net-pnl'),
@@ -162,7 +162,7 @@ class NetPnlCard extends StatelessWidget {
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: TradeXSpacing.xs),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -181,7 +181,7 @@ class NetPnlCard extends StatelessWidget {
               ),
               Expanded(
                 child: SizedBox(
-                  height: 45,
+                  height: TradeXSpacing.xxxl,
                   child: CustomPaint(
                     painter: _SparklinePainter(curve, accent: accent),
                   ),
@@ -224,7 +224,7 @@ class WinRateCard extends StatelessWidget {
               onChanged: onPeriodChanged,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: TradeXSpacing.xs),
           Row(
             children: [
               Expanded(
@@ -241,7 +241,7 @@ class WinRateCard extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: TradeXSpacing.xs),
                     Row(
                       children: [
                         Expanded(
@@ -264,8 +264,8 @@ class WinRateCard extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: 70,
-                height: 70,
+                width: TradeXSpacing.xxl * 2,
+                height: TradeXSpacing.xxl * 2,
                 child: _Donut(value: rate, color: _dashboardGreen),
               ),
             ],
@@ -298,7 +298,7 @@ class OpenTradesCard extends StatelessWidget {
               color: context.palette.primaryText,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: TradeXSpacing.xs),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -316,7 +316,7 @@ class OpenTradesCard extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: TradeXSpacing.xs),
                     Text(
                       'Total Open',
                       style: TextStyle(
@@ -328,8 +328,8 @@ class OpenTradesCard extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: 90,
-                height: 60,
+                width: TradeXSpacing.xxxl * 2,
+                height: TradeXSpacing.xxxl,
                 child: CustomPaint(painter: _BarSparkPainter(open)),
               ),
             ],
@@ -367,7 +367,7 @@ class PlanFollowedCard extends StatelessWidget {
             color: context.palette.primaryText,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: TradeXSpacing.xs),
         Row(
           children: [
             Expanded(
@@ -384,7 +384,7 @@ class PlanFollowedCard extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: TradeXSpacing.xs),
                   Text(
                     reviewedCount == 0
                         ? 'No reviewed trades'
@@ -400,8 +400,8 @@ class PlanFollowedCard extends StatelessWidget {
               ),
             ),
             SizedBox(
-              width: 70,
-              height: 70,
+              width: TradeXSpacing.xxl * 2,
+              height: TradeXSpacing.xxl * 2,
               child: _Donut(value: percent, color: _dashboardGold),
             ),
           ],
@@ -429,7 +429,6 @@ class EquityCurveCard extends StatelessWidget {
   Widget build(BuildContext context) => _DashboardCard(
     key: const ValueKey('journal-equity-curve'),
     accent: _dashboardBlue,
-    minHeight: 220,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -448,32 +447,30 @@ class EquityCurveCard extends StatelessWidget {
             JournalPeriodSelector(value: period, onChanged: onPeriodChanged),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: TradeXSpacing.xxs),
         Text(
           currency == null ? 'Realized P&L' : 'Realized P&L · $currency',
           style: TextStyle(color: context.palette.secondaryText, fontSize: 10),
         ),
-        const SizedBox(height: 14),
-        if (values.isEmpty)
-          Expanded(
-            child: Center(
-              child: Text(
-                'Close trades with P&L to build your equity curve.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: context.palette.secondaryText,
-                  fontSize: 12,
+        const SizedBox(height: TradeXSpacing.sm),
+        SizedBox(
+          height: TradeXSpacing.xxxl * 2,
+          child: values.isEmpty
+              ? Center(
+                  child: Text(
+                    'Close trades with P&L to build your equity curve.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: context.palette.secondaryText,
+                      fontSize: 12,
+                    ),
+                  ),
+                )
+              : CustomPaint(
+                  size: Size.infinite,
+                  painter: _EquityCurvePainter(values),
                 ),
-              ),
-            ),
-          )
-        else
-          Expanded(
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: _EquityCurvePainter(values),
-            ),
-          ),
+        ),
       ],
     ),
   );

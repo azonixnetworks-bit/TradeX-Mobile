@@ -13,6 +13,32 @@ enum InvestmentRecordStatus {
   loss,
 }
 
+class InvestmentOnboarding {
+  const InvestmentOnboarding({
+    required this.kycVerified,
+    required this.kycStatus,
+    required this.minimumAmount,
+    required this.maximumAmount,
+    required this.currency,
+    required this.network,
+    required this.periodYears,
+    required this.reviewIntervalsMonths,
+    required this.riskStatements,
+    this.depositAddress,
+  });
+
+  final bool kycVerified;
+  final String kycStatus;
+  final double minimumAmount;
+  final double maximumAmount;
+  final String currency;
+  final String network;
+  final String? depositAddress;
+  final List<int> periodYears;
+  final List<int> reviewIntervalsMonths;
+  final List<String> riskStatements;
+}
+
 class InvestmentPortfolio {
   const InvestmentPortfolio({
     this.totalInvested,
@@ -221,6 +247,7 @@ class InvestmentDashboard {
     this.profitPeriods = const [],
     this.transactions = const [],
     this.agreement,
+    this.onboarding,
     this.cachedAt,
     this.isStale = false,
   });
@@ -231,6 +258,7 @@ class InvestmentDashboard {
   final List<InvestmentProfitPeriod> profitPeriods;
   final List<InvestmentTransaction> transactions;
   final InvestmentAgreement? agreement;
+  final InvestmentOnboarding? onboarding;
   final DateTime? cachedAt;
   final bool isStale;
 }

@@ -257,7 +257,9 @@ class _MenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = danger ? TradeXColors.error : TradeXColors.goldBright;
+    final palette = context.palette;
+    final typography = Theme.of(context).textTheme;
+    final color = danger ? palette.error : palette.goldText;
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -277,10 +279,8 @@ class _MenuRow extends StatelessWidget {
                           title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: danger
-                                ? TradeXColors.error
-                                : TradeXColors.primaryText,
+                          style: typography.titleSmall?.copyWith(
+                            color: danger ? palette.error : palette.primaryText,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -294,9 +294,8 @@ class _MenuRow extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      color: TradeXColors.secondaryText,
-                      fontSize: 11,
+                    style: typography.bodySmall?.copyWith(
+                      color: palette.secondaryText,
                     ),
                   ),
                 ],

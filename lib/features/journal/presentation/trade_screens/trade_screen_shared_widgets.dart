@@ -84,7 +84,7 @@ class _PickerTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 17, color: TradeXColors.secondaryText),
+          Icon(icon, size: 17, color: context.palette.secondaryText),
           const SizedBox(width: 8),
           Expanded(
             child: Column(

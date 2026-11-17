@@ -200,6 +200,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('trade-ideas-period-all')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('trade-ideas-period-all')));
+    await tester.pump();
     await tester.tap(find.widgetWithText(ChoiceChip, 'Forex'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));

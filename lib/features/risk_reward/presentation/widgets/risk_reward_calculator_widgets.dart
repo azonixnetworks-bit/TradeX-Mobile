@@ -558,20 +558,20 @@ class _StatusNotice extends StatelessWidget {
     margin: const EdgeInsets.symmetric(vertical: 6),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: TradeXColors.gold.withValues(alpha: .08),
+      color: context.palette.goldSoft,
       borderRadius: BorderRadius.circular(13),
-      border: Border.all(color: TradeXColors.goldSoft.withValues(alpha: .5)),
+      border: Border.all(color: context.palette.gold.withValues(alpha: .5)),
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 19, color: TradeXColors.goldBright),
+        Icon(icon, size: 19, color: context.palette.goldText),
         const SizedBox(width: 9),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
-              color: TradeXColors.secondaryText,
+            style: TextStyle(
+              color: context.palette.secondaryText,
               height: 1.35,
             ),
           ),
@@ -679,8 +679,8 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text,
-    style: const TextStyle(
-      color: TradeXColors.primaryText,
+    style: TextStyle(
+      color: context.palette.primaryText,
       fontSize: 18,
       fontWeight: FontWeight.w900,
     ),

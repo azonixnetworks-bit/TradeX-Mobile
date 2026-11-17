@@ -77,10 +77,12 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     // The reference login design has no phone status/notification strip.
     // Restore the normal system bars as soon as the login page closes.
-    unawaited(SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: const [SystemUiOverlay.bottom],
-    ));
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: const [SystemUiOverlay.bottom],
+      ),
+    );
     final config = widget.quickUnlockConfig;
     if (config != null) {
       _rememberDevice = true;
@@ -398,6 +400,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Keep the decorative wave attached to the physical viewport. The
+      // keyboard overlays the background while the form remains scrollable.
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF9FAFC),
       body: Stack(
         fit: StackFit.expand,
@@ -411,7 +416,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 return SingleChildScrollView(
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(12, 26, 12, 28),
+                  padding: EdgeInsets.fromLTRB(
+                    12,
+                    26,
+                    12,
+                    28 + MediaQuery.viewInsetsOf(context).bottom,
+                  ),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       minHeight: constraints.maxHeight - 54,

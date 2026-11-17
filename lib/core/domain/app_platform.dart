@@ -20,6 +20,13 @@ abstract interface class AppPlatform {
     double? originWidth,
     double? originHeight,
   });
+
+  Future<void> shareFile({
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+    required String text,
+  });
 }
 
 class SelectedImage {

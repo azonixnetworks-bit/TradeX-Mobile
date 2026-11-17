@@ -157,8 +157,8 @@ class _Eyebrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text,
-    style: const TextStyle(
-      color: TradeXColors.goldBright,
+    style: TextStyle(
+      color: context.palette.goldText,
       fontSize: 11,
       fontWeight: FontWeight.w800,
       letterSpacing: 3,
@@ -179,8 +179,8 @@ class _GradientTitle extends StatelessWidget {
     children: [
       Text(
         first,
-        style: const TextStyle(
-          color: TradeXColors.primaryText,
+        style: TextStyle(
+          color: context.palette.primaryText,
           fontSize: 28,
           fontWeight: FontWeight.w900,
           height: 1.05,
@@ -188,8 +188,8 @@ class _GradientTitle extends StatelessWidget {
       ),
       ShaderMask(
         blendMode: BlendMode.srcIn,
-        shaderCallback: (bounds) => const LinearGradient(
-          colors: [TradeXColors.goldBright, Color(0xFFFFE29A)],
+        shaderCallback: (bounds) => LinearGradient(
+          colors: [context.palette.goldText, context.palette.gold],
         ).createShader(bounds),
         child: Text(
           second,
@@ -212,8 +212,8 @@ class _PageSubtitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text,
-    style: const TextStyle(
-      color: TradeXColors.secondaryText,
+    style: TextStyle(
+      color: context.palette.secondaryText,
       fontSize: 14,
       height: 1.45,
     ),

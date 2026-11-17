@@ -123,12 +123,21 @@ void main() {
     expect(find.text('ECB Rate Decision'), findsOneWidget);
     expect(find.text('Japan Consumer Confidence'), findsNothing);
 
-    await tester.drag(
+    await tester.dragUntilVisible(
+      find.byKey(const ValueKey('economic-news-filter-lastSevenDays')),
       find.byKey(const ValueKey('economic-news-filters')),
-      const Offset(-240, 0),
+      const Offset(-180, 0),
     );
     await tester.pumpAndSettle();
     expect(find.text('Low Impact'), findsOneWidget);
+    expect(find.text('Last 7 Days'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('economic-news-filter-lastSevenDays')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('US Jobs Report'), findsOneWidget);
+    expect(find.text('US CPI'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -198,6 +207,15 @@ class _NewsApiClient extends TradeXApiClient {
             'USDJPY',
             'JPY',
           ),
+          _event(
+            'past',
+            'US Jobs Report',
+            'HIGH',
+            'BULLISH',
+            76,
+            'GBPUSD',
+            'USD',
+          ),
         ],
       },
     };
@@ -224,7 +242,13 @@ class _NewsApiClient extends TradeXApiClient {
     'actual': id == 'high' ? '2.9%' : null,
     'scheduled_at_utc': DateTime.now()
         .toUtc()
-        .add(id == 'high' ? highDelay : const Duration(hours: 6))
+        .add(
+          id == 'past'
+              ? const Duration(days: -2)
+              : id == 'high'
+              ? highDelay
+              : const Duration(hours: 6),
+        )
         .toIso8601String(),
     'source': <String, dynamic>{'name': 'Trading Economics'},
     'affected_pairs': <Map<String, dynamic>>[

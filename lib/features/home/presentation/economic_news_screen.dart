@@ -169,12 +169,19 @@ class _EconomicNewsScreenState extends State<EconomicNewsScreen>
                           ),
                           itemBuilder: (context, index) {
                             final filter = EconomicNewsFilter.values[index];
-                            final items = _itemsForFilter(state.items, filter);
+                            final items = _itemsForFilter(
+                              state.items,
+                              state.pastItems,
+                              filter,
+                            );
                             return items.isEmpty
                                 ? _NewsState(
                                     icon: Icons.event_available_rounded,
                                     message:
-                                        'No upcoming events in this category.',
+                                        filter ==
+                                            EconomicNewsFilter.lastSevenDays
+                                        ? 'No completed events in the last 7 days.'
+                                        : 'No upcoming events in this category.',
                                     action: 'Refresh',
                                     onTap: _cubit.refresh,
                                   )
@@ -227,8 +234,10 @@ class _EconomicNewsScreenState extends State<EconomicNewsScreen>
 
 List<MarketNewsItem> _itemsForFilter(
   List<MarketNewsItem> items,
+  List<MarketNewsItem> pastItems,
   EconomicNewsFilter filter,
 ) {
+  if (filter == EconomicNewsFilter.lastSevenDays) return pastItems;
   final impact = filter.impact;
   if (impact == null) return items;
   return items

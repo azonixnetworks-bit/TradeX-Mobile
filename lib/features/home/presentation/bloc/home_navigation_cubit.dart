@@ -9,12 +9,12 @@ class HomeNavigationCubit extends Cubit<int> {
     required DashboardTabPreferences preferences,
     int? initialIndex,
   }) : _preferences = preferences,
-       super((initialIndex ?? preferences.dashboardTab).clamp(0, 4));
+       super((initialIndex ?? preferences.dashboardTab).clamp(0, 5));
 
   final DashboardTabPreferences _preferences;
 
   void select(int index) {
-    final normalized = index.clamp(0, 4);
+    final normalized = index.clamp(0, 5);
     if (normalized == state) return;
     emit(normalized);
     unawaited(_preferences.setDashboardTab(normalized));

@@ -44,8 +44,24 @@ class _TradeXFeatureScreenState extends State<TradeXFeatureScreen>
   void _reload() {
     final endpoint = widget.spec.endpoint;
     setState(() {
-      _request = endpoint == null ? null : widget.apiClient.getJson(endpoint);
+      _request = endpoint == null
+          ? null
+          : widget.spec.id == 'trading-routine'
+          ? _loadTradingRoutine()
+          : widget.apiClient.getJson(endpoint);
     });
+  }
+
+  Future<Map<String, dynamic>> _loadTradingRoutine() async {
+    final preferences = await widget.apiClient.getJson(
+      '/api/v1/trading-routine',
+    );
+    final data = _dataMap(preferences);
+    final preference = data['preference'];
+    if (preference is Map && preference['enabled'] == true) {
+      return widget.apiClient.getJson('/api/v1/trading-routine/today');
+    }
+    return preferences;
   }
 
   @override
@@ -108,7 +124,11 @@ class _TradeXFeatureScreenState extends State<TradeXFeatureScreen>
                   const SizedBox(height: 12),
                 ],
                 if (widget.spec.id == 'trading-routine')
-                  _TradingRoutineView(payload: _dataMap(payload))
+                  _TradingRoutineView(
+                    payload: _dataMap(payload),
+                    apiClient: widget.apiClient,
+                    onEnabled: _reload,
+                  )
                 else if (_supportsSearch(widget.spec)) ...[
                   TextField(
                     controller: _search,

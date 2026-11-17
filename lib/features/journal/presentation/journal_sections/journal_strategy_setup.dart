@@ -20,8 +20,8 @@ class TradeSectionCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: _strategySurface.withValues(alpha: .82),
-      borderRadius: BorderRadius.circular(18),
+      color: context.palette.surfaceRaised,
+      borderRadius: TradeXRadii.card,
       border: Border.all(color: accent.withValues(alpha: .45)),
       boxShadow: [
         BoxShadow(color: accent.withValues(alpha: .045), blurRadius: 14),
@@ -40,8 +40,8 @@ class TradeSectionCard extends StatelessWidget {
                   children: [
                     TextSpan(
                       text: title,
-                      style: const TextStyle(
-                        color: _strategyText,
+                      style: TextStyle(
+                        color: context.palette.primaryText,
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
                       ),
@@ -49,8 +49,8 @@ class TradeSectionCard extends StatelessWidget {
                     if (subtitle != null)
                       TextSpan(
                         text: '  ($subtitle)',
-                        style: const TextStyle(
-                          color: _strategyMuted,
+                        style: TextStyle(
+                          color: context.palette.secondaryText,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
@@ -120,9 +120,9 @@ class TimeframeTrendCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(8),
     decoration: BoxDecoration(
-      color: _strategyBackground.withValues(alpha: .5),
+      color: context.palette.surfaceMuted,
       borderRadius: BorderRadius.circular(13),
-      border: Border.all(color: _strategyBorder),
+      border: Border.all(color: context.palette.border),
     ),
     child: Column(
       children: [
@@ -134,16 +134,16 @@ class TimeframeTrendCard extends StatelessWidget {
               child: Text.rich(
                 TextSpan(
                   text: title,
-                  style: const TextStyle(
-                    color: _strategyText,
+                  style: TextStyle(
+                    color: context.palette.primaryText,
                     fontSize: 13,
                     fontWeight: FontWeight.w900,
                   ),
                   children: [
                     TextSpan(
                       text: '  ($timeframe)',
-                      style: const TextStyle(
-                        color: _strategyMuted,
+                      style: TextStyle(
+                        color: context.palette.secondaryText,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                       ),
@@ -212,10 +212,10 @@ class TrendOptionTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? color.withValues(alpha: .18)
-              : _strategySurfaceRaised.withValues(alpha: .65),
+              : context.palette.surfaceRaised,
           borderRadius: BorderRadius.circular(9),
           border: Border.all(
-            color: selected ? color : _strategyBorder.withValues(alpha: .7),
+            color: selected ? color : context.palette.border,
             width: selected ? 1.35 : 1,
           ),
           boxShadow: selected
@@ -229,8 +229,8 @@ class TrendOptionTile extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
-                  color: _strategyText,
+                style: TextStyle(
+                  color: context.palette.primaryText,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),

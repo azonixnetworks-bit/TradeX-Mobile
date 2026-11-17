@@ -13,6 +13,8 @@ class _TabScrollView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    final typography = Theme.of(context).textTheme;
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
@@ -22,17 +24,16 @@ class _TabScrollView extends StatelessWidget {
             delegate: SliverChildListDelegate([
               Text(
                 title,
-                style: const TextStyle(
-                  color: TradeXColors.primaryText,
+                style: typography.headlineSmall?.copyWith(
+                  color: palette.primaryText,
                   fontWeight: FontWeight.w900,
-                  fontSize: 28,
                 ),
               ),
               const SizedBox(height: 5),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  color: TradeXColors.secondaryText,
+                style: typography.bodyMedium?.copyWith(
+                  color: palette.secondaryText,
                   height: 1.35,
                 ),
               ),
