@@ -125,14 +125,15 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
                       ),
                     ),
                     Positioned(
-                      left: activeCenter - 25,
-                      top: 0,
+                      left: activeCenter - 27,
+                      // About 60% of the active circle floats above the bar.
+                      top: -15,
                       child: Container(
                         key: ValueKey(
                           'dashboard-nav-selected-${widget.selectedIndex}',
                         ),
-                        width: 50,
-                        height: 50,
+                        width: 54,
+                        height: 54,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: const LinearGradient(
@@ -157,7 +158,7 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
                         child: Icon(
                           _tabItems[widget.selectedIndex].icon,
                           color: const Color(0xFF171308),
-                          size: 25,
+                          size: 29,
                         ),
                       ),
                     ),
@@ -188,7 +189,7 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
                                         opacity: selected ? 0 : 1,
                                         child: Icon(
                                           item.icon,
-                                          size: 21,
+                                          size: 24,
                                           color: dark
                                               ? TradeXColors.secondaryText
                                               : theme
@@ -216,7 +217,7 @@ class _DashboardNavBarState extends State<_DashboardNavBar> {
                                                   style: const TextStyle(
                                                     color:
                                                         TradeXColors.goldBright,
-                                                    fontSize: 11,
+                                                    fontSize: 12,
                                                     fontWeight: FontWeight.w900,
                                                   ),
                                                 )
@@ -250,8 +251,8 @@ class _TradeXNavNotchClipper extends CustomClipper<Path> {
 
   @override
   Path getClip(Size size) {
-    const radius = 34.0;
-    const depth = 25.0;
+    const radius = 36.0;
+    const depth = 27.0;
     final start = (notchCenter - radius).clamp(0.0, size.width).toDouble();
     final end = (notchCenter + radius).clamp(0.0, size.width).toDouble();
     final path = Path()..lineTo(start, 0);

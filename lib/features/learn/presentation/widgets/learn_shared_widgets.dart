@@ -388,13 +388,7 @@ class _CourseHero extends StatelessWidget {
           ),
           if (body.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(
-              body,
-              style: const TextStyle(
-                color: TradeXColors.secondaryText,
-                height: 1.45,
-              ),
-            ),
+            _ExpandableCourseDescription(body: body),
           ],
           if (instructorName.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -434,6 +428,73 @@ class _CourseHero extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _ExpandableCourseDescription extends StatefulWidget {
+  const _ExpandableCourseDescription({required this.body});
+
+  final String body;
+
+  @override
+  State<_ExpandableCourseDescription> createState() =>
+      _ExpandableCourseDescriptionState();
+}
+
+class _ExpandableCourseDescriptionState
+    extends State<_ExpandableCourseDescription> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodyMedium
+        ?.copyWith(color: context.palette.primaryText, height: 1.55);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final painter = TextPainter(
+          text: TextSpan(text: widget.body, style: style),
+          maxLines: 4,
+          textDirection: Directionality.of(context),
+        )..layout(maxWidth: constraints.maxWidth);
+        final canExpand = painter.didExceedMaxLines;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              child: Text(
+                widget.body,
+                key: const ValueKey('course-description-text'),
+                maxLines: _expanded ? null : 4,
+                overflow: _expanded ? null : TextOverflow.ellipsis,
+                style: style,
+              ),
+            ),
+            if (canExpand || _expanded) ...[
+              const SizedBox(height: 4),
+              TextButton.icon(
+                key: const ValueKey('course-description-toggle'),
+                onPressed: () => setState(() => _expanded = !_expanded),
+                style: TextButton.styleFrom(
+                  foregroundColor: context.palette.goldText,
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 36),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: Icon(
+                  _expanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                ),
+                label: Text(_expanded ? 'Show less' : 'Read more'),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

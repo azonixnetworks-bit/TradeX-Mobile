@@ -204,6 +204,16 @@ void main() {
       find.byKey(const ValueKey('trade-ideas-period-all')),
       findsOneWidget,
     );
+    final periodKeys = const [
+      'trade-ideas-period-today',
+      'trade-ideas-period-week',
+      'trade-ideas-period-month',
+      'trade-ideas-period-all',
+    ];
+    final periodLefts = periodKeys
+        .map((key) => tester.getTopLeft(find.byKey(ValueKey(key))).dx)
+        .toList(growable: false);
+    expect(periodLefts, orderedEquals([...periodLefts]..sort()));
     await tester.tap(find.byKey(const ValueKey('trade-ideas-period-all')));
     await tester.pump();
     await tester.tap(find.widgetWithText(ChoiceChip, 'Forex'));

@@ -7,6 +7,7 @@ import 'package:tradex_mobile/core/device/device_identity.dart';
 import 'package:tradex_mobile/core/network/api_exception.dart';
 import 'package:tradex_mobile/core/network/tradex_api_client.dart';
 import 'package:tradex_mobile/core/preferences/app_preferences.dart';
+import 'package:tradex_mobile/core/theme/tradex_colors.dart';
 import 'package:tradex_mobile/core/theme/tradex_theme.dart';
 import 'package:tradex_mobile/features/learn/data/learn_repository.dart';
 import 'package:tradex_mobile/features/learn/presentation/course_video_player_screen.dart';
@@ -61,6 +62,14 @@ void main() {
     );
     expect(find.text('Free Price Action Lesson'), findsOneWidget);
     expect(find.text('Featured Trading Course'), findsOneWidget);
+    final featuredList = find.byKey(const ValueKey('featured-courses-list'));
+    final featuredCard = find.byKey(
+      const ValueKey('featured-course-course-featured'),
+    );
+    expect(
+      tester.getSize(featuredCard).width,
+      closeTo(tester.getSize(featuredList).width, .01),
+    );
     expect(find.text('35%'), findsOneWidget);
     expect(find.text('7 of 20 lessons completed'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -94,6 +103,41 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PaymentCheckoutScreen), findsOneWidget);
     expect(find.text(productUuid), findsNothing);
+  });
+
+  testWidgets('course description uses readable global text and expands', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.light,
+        home: SubjectDetailsScreen(
+          repository: LearnRepository(_CourseDetailsApiClient()),
+          courseUuid: 'course-featured',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    var description = tester.widget<Text>(
+      find.byKey(const ValueKey('course-description-text')),
+    );
+    expect(description.maxLines, 4);
+    expect(description.style?.color, isNot(TradeXColors.secondaryText));
+    expect(find.text('Read more'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('course-description-toggle')));
+    await tester.pumpAndSettle();
+    description = tester.widget<Text>(
+      find.byKey(const ValueKey('course-description-text')),
+    );
+    expect(description.maxLines, isNull);
+    expect(find.text('Show less'), findsOneWidget);
   });
 
   testWidgets('learn dashboard falls back when overview service returns 500', (
@@ -191,11 +235,17 @@ void main() {
     await tester.pumpWidget(_subject(api));
     await tester.pumpAndSettle();
     final bookmark = find.byKey(const ValueKey('bookmark-lesson-free'));
-    await tester.scrollUntilVisible(
-      bookmark,
-      350,
-      scrollable: find.byType(Scrollable).first,
-    );
+    for (
+      var attempt = 0;
+      attempt < 6 && bookmark.evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.drag(find.byType(ListView).first, const Offset(0, -320));
+      await tester.pumpAndSettle();
+    }
+    expect(bookmark, findsOneWidget);
+    await tester.ensureVisible(bookmark);
+    await tester.pumpAndSettle();
     await tester.tap(bookmark);
     await tester.pump();
 
@@ -421,6 +471,27 @@ class _OverviewFailureLearnApiClient extends _LearnApiClient {
           'learning': overview['learning'],
           'is_premium': overview['is_premium'],
           'featured_courses': overview['featured_courses'],
+        },
+      };
+    }
+    return super.getJson(path);
+  }
+}
+
+class _CourseDetailsApiClient extends _LearnApiClient {
+  @override
+  Future<Map<String, dynamic>> getJson(String path) async {
+    if (path == '/api/v1/education/courses/course-featured') {
+      return {
+        'data': {
+          'course': {
+            ..._LearnApiClient._featuredCourse(),
+            'description': List.filled(
+              12,
+              'Learn market structure, risk control and disciplined execution.',
+            ).join(' '),
+          },
+          'modules': const <dynamic>[],
         },
       };
     }

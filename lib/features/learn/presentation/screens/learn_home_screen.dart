@@ -257,9 +257,7 @@ class _LearnHomeScreenState extends State<LearnHomeScreen> {
                   else
                     LayoutBuilder(
                       builder: (context, constraints) {
-                        final cardWidth = constraints.maxWidth >= 720
-                            ? math.min(520.0, constraints.maxWidth * .62)
-                            : math.min(330.0, constraints.maxWidth * .9);
+                        final cardWidth = constraints.maxWidth;
                         return SizedBox(
                           height: 310,
                           child: ListView.separated(

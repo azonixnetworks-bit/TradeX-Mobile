@@ -54,6 +54,18 @@ void main() {
           find.byKey(const ValueKey('dashboard-nav-selected-0')),
           findsOneWidget,
         );
+        final selectedCircle = find.byKey(
+          const ValueKey('dashboard-nav-selected-0'),
+        );
+        final surfaceFinder = find.byKey(
+          const ValueKey('dashboard-nav-surface'),
+        );
+        final circleSize = tester.getSize(selectedCircle);
+        final floatedHeight =
+            tester.getTopLeft(surfaceFinder).dy -
+            tester.getTopLeft(selectedCircle).dy;
+        expect(circleSize, const Size.square(54));
+        expect(floatedHeight / circleSize.height, closeTo(.6, .02));
         final nav = find.byKey(const ValueKey('dashboard-nav-root'));
         expect(
           find.descendant(of: nav, matching: find.text('Home')),

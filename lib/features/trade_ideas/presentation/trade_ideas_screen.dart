@@ -158,16 +158,6 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _PeriodButton(
-                          key: const ValueKey('trade-ideas-period-all'),
-                          label: 'All',
-                          selected: _period == _TradeIdeaPeriod.all,
-                          onTap: () =>
-                              setState(() => _period = _TradeIdeaPeriod.all),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
                         child: Text(
                           'Trade Ideas',
                           style: TextStyle(
@@ -339,6 +329,16 @@ class _TradeIdeasScreenState extends State<TradeIdeasScreen> {
                           onTap: () => setState(
                             () => _period = _TradeIdeaPeriod.thisMonth,
                           ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _PeriodButton(
+                          key: const ValueKey('trade-ideas-period-all'),
+                          label: 'All',
+                          selected: _period == _TradeIdeaPeriod.all,
+                          onTap: () =>
+                              setState(() => _period = _TradeIdeaPeriod.all),
                         ),
                       ),
                     ],
