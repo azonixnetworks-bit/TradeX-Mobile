@@ -264,31 +264,29 @@ class _MarketClockPopupState extends State<_MarketClockPopup> {
   }
 
   @override
-  Widget build(BuildContext context) => Dialog(
-    key: const ValueKey('market-clock-popup'),
-    elevation: 0,
-    backgroundColor: Colors.transparent,
-    insetPadding: const EdgeInsets.all(18),
-    child: LayoutBuilder(
-      builder: (context, constraints) {
-        final size = math.min(520.0, constraints.maxWidth);
-        return Center(
-          child: SizedBox.square(
-            dimension: size,
-            child: RepaintBoundary(
-              child: CustomPaint(
-                key: const ValueKey('market-24h-clock-popup-dial'),
-                painter: _MarketClockDialPainter(
-                  sessions: widget.sessions,
-                  now: _now,
-                ),
+  Widget build(BuildContext context) {
+    final screen = MediaQuery.sizeOf(context);
+    final size = math.min(520.0, math.min(screen.width, screen.height) - 36);
+    return Center(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {},
+        child: SizedBox.square(
+          key: const ValueKey('market-clock-popup'),
+          dimension: size,
+          child: RepaintBoundary(
+            child: CustomPaint(
+              key: const ValueKey('market-24h-clock-popup-dial'),
+              painter: _MarketClockDialPainter(
+                sessions: widget.sessions,
+                now: _now,
               ),
             ),
           ),
-        );
-      },
-    ),
-  );
+        ),
+      ),
+    );
+  }
 }
 
 class _WorldClockGrid extends StatelessWidget {

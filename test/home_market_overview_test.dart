@@ -78,10 +78,9 @@ void main() {
       findsOneWidget,
     );
     await clockGesture.up();
-    Navigator.of(
-      tester.element(find.byKey(const ValueKey('market-clock-popup'))),
-    ).pop();
+    await tester.tapAt(const Offset(10, 100));
     await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('market-clock-popup')), findsNothing);
     expect(find.byKey(const ValueKey('market-session-scroll')), findsOneWidget);
     // Session cards are compact but retain the original horizontal scroller.
     expect(
