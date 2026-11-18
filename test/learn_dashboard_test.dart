@@ -61,6 +61,25 @@ void main() {
     );
   });
 
+  testWidgets('AI screen shows the disconnected brain availability note', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.light,
+        home: AskTradeXAiScreen(repository: LearnRepository(_LearnApiClient())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('ai-brain-connection-notice')),
+      findsOneWidget,
+    );
+    expect(find.text('Brain not connected'), findsOneWidget);
+    expect(find.text('Will be available soon.'), findsOneWidget);
+  });
+
   testWidgets('premium learn dashboard renders authenticated API data', (
     tester,
   ) async {

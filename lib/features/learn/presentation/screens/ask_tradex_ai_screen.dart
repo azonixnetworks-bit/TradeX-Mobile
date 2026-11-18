@@ -55,6 +55,8 @@ class _AskTradeXAiScreenState extends State<AskTradeXAiScreen> {
               ),
               const SizedBox(height: 8),
               _AiStatusCard(lessonTitle: widget.lessonTitle),
+              const SizedBox(height: 10),
+              const _AiConnectionNotice(),
               if (submittedQuestion != null) ...[
                 const SizedBox(height: 14),
                 Align(
@@ -180,6 +182,52 @@ class _AskTradeXAiScreenState extends State<AskTradeXAiScreen> {
       if (mounted) setState(() => loading = false);
     }
   }
+}
+
+class _AiConnectionNotice extends StatelessWidget {
+  const _AiConnectionNotice();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const ValueKey('ai-brain-connection-notice'),
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    decoration: BoxDecoration(
+      color: context.palette.goldSoft,
+      borderRadius: TradeXRadii.control,
+      border: Border.all(color: context.palette.gold.withValues(alpha: .55)),
+    ),
+    child: Row(
+      children: [
+        Icon(
+          Icons.cloud_off_outlined,
+          color: context.palette.goldText,
+          size: 21,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Brain not connected',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: context.palette.primaryText,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Will be available soon.',
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: context.palette.secondaryText),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _AiStatusCard extends StatelessWidget {
