@@ -186,6 +186,9 @@ void main() {
       find.byKey(const ValueKey('market-news-artwork-icon-event-1')),
       findsOneWidget,
     );
+    final newsFlag = find.byKey(const ValueKey('market-news-flag-event-1'));
+    expect(newsFlag, findsOneWidget);
+    expect(tester.getSize(newsFlag), const Size(38, 38));
     expect(
       find.byKey(const ValueKey('market-news-values-event-1')),
       findsOneWidget,
@@ -300,6 +303,7 @@ class _HomeMarketApiClient extends TradeXApiClient {
               'title': 'Federal Reserve holds rates steady',
               'impact': 'HIGH',
               'currency': 'USD',
+              'country_code': 'US',
               'previous': '5.50%',
               'forecast': '5.25%',
               'actual': '5.25%',

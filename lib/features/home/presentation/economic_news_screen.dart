@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -632,16 +634,32 @@ class _CountryFlagBadge extends StatelessWidget {
   final String flag;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: 32,
-    height: 29,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(9),
-      border: Border.all(color: TradeXColors.gold.withValues(alpha: .55)),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(4),
+    child: Transform.rotate(
+      angle: -math.pi / 4,
+      child: Container(
+        width: 40,
+        height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: TradeXColors.gold.withValues(alpha: .62)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: .08),
+              blurRadius: 7,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Transform.rotate(
+          angle: math.pi / 4,
+          child: Text(flag, style: const TextStyle(fontSize: 25, height: 1)),
+        ),
+      ),
     ),
-    child: Text(flag, style: const TextStyle(fontSize: 17, height: 1)),
   );
 }
 

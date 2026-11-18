@@ -349,9 +349,38 @@ class _MarketNewsArtwork extends StatelessWidget {
         ),
         if (country.isNotEmpty)
           Positioned(
-            right: 8,
-            top: 70,
-            child: Text(country, style: const TextStyle(fontSize: 15)),
+            right: 12,
+            top: 78,
+            child: Transform.rotate(
+              key: ValueKey('market-news-flag-${item.uuid}'),
+              angle: -math.pi / 4,
+              child: Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .94),
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(
+                    color: TradeXColors.gold.withValues(alpha: .52),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: .09),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Transform.rotate(
+                  angle: math.pi / 4,
+                  child: Text(
+                    country,
+                    style: const TextStyle(fontSize: 25, height: 1),
+                  ),
+                ),
+              ),
+            ),
           ),
       ],
     );
