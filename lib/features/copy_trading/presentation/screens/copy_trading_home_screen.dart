@@ -78,7 +78,8 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
                             accounts.isEmpty
                                 ? 'No Connected Account'
                                 : '${active.length} Active ${active.length == 1 ? 'Account' : 'Accounts'}',
-                            style: const TextStyle(
+                            style: TextStyle(
+                              color: context.palette.primaryText,
                               fontSize: 20,
                               fontWeight: FontWeight.w900,
                             ),
@@ -88,8 +89,8 @@ class _CopyTradingHomeScreenState extends State<CopyTradingHomeScreen> {
                             accounts.isEmpty
                                 ? 'Choose a TradeX IB broker to begin verification.'
                                 : '${verified.length} verified · ${pending.length} awaiting review',
-                            style: const TextStyle(
-                              color: copyMuted,
+                            style: TextStyle(
+                              color: context.palette.secondaryText,
                               fontSize: 12,
                             ),
                           ),

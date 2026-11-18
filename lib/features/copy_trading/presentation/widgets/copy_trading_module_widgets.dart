@@ -28,9 +28,19 @@ class _HomeMetric extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              color: context.palette.primaryText,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-          Text(label, style: const TextStyle(color: copyMuted, fontSize: 12)),
+          Text(
+            label,
+            style: TextStyle(
+              color: context.palette.secondaryText,
+              fontSize: 12,
+            ),
+          ),
         ],
       ),
     ),
@@ -69,14 +79,18 @@ class _AccountCard extends StatelessWidget {
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
+                    color: context.palette.primaryText,
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 Text(
                   '${account.marketCategory} · ${account.accountNumberMasked}',
-                  style: const TextStyle(color: copyMuted, fontSize: 12),
+                  style: TextStyle(
+                    color: context.palette.secondaryText,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 5),
                 const Text(
@@ -116,18 +130,29 @@ class _QuickAction extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+              Text(
+                title,
+                style: TextStyle(
+                  color: context.palette.primaryText,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: const TextStyle(color: copyMuted, fontSize: 12),
+                style: TextStyle(
+                  color: context.palette.secondaryText,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
         ),
         Icon(
           Icons.chevron_right_rounded,
-          color: onTap == null ? Colors.white24 : copyGold,
+          color: onTap == null
+              ? context.palette.tertiaryText
+              : context.palette.goldText,
         ),
       ],
     ),

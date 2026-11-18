@@ -165,6 +165,31 @@ void main() {
     },
   );
 
+  testWidgets('copy trading home uses readable global light-theme colors', (
+    tester,
+  ) async {
+    final useCases = CopyTradingDependencies(
+      _FakeCopyTradeApi(),
+      intentStore: _MemoryIntentStore(),
+    ).useCases;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: TradeXTheme.light,
+        home: CopyTradingHomeScreen(useCases: useCases),
+      ),
+    );
+    await pumpNetworkFrame(tester);
+
+    final heading = tester.widget<Text>(find.text('Official cTrader'));
+    final subtitle = tester.widget<Text>(
+      find.text('Manage verified copy trading accounts securely.'),
+    );
+    expect(heading.style?.color, const Color(0xFF101828));
+    expect(subtitle.style?.color, const Color(0xFF5D6878));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('all six copy trading screens render real or honest empty data', (
     tester,
   ) async {

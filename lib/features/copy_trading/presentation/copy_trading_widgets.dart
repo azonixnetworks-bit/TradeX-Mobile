@@ -93,10 +93,8 @@ class CopySectionCard extends StatelessWidget {
                     : [palette.surfaceRaised, palette.surface],
               )
             : null,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: highlight ? copyGold.withValues(alpha: .88) : palette.border,
-        ),
+        borderRadius: TradeXRadii.card,
+        border: Border.all(color: highlight ? palette.gold : palette.border),
         boxShadow: TradeXElevation.surface(
           brightness: Theme.of(context).brightness,
           palette: palette,
@@ -108,7 +106,7 @@ class CopySectionCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: TradeXRadii.card,
         onTap: onTap,
         child: content,
       ),
@@ -180,50 +178,54 @@ class CopyPageHeading extends StatelessWidget {
   final IconData? icon;
 
   @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      if (icon != null) ...[
-        CopyIconBadge(icon: icon!, size: 48),
-        const SizedBox(width: 12),
-      ],
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Wrap(
-              spacing: 7,
-              runSpacing: 0,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 27,
-                    height: 1.08,
-                    fontWeight: FontWeight.w900,
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (icon != null) ...[
+          CopyIconBadge(icon: icon!, size: 48),
+          const SizedBox(width: 12),
+        ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 7,
+                runSpacing: 0,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: palette.primaryText,
+                      fontSize: 27,
+                      height: 1.08,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-                Text(
-                  goldTitle,
-                  style: const TextStyle(
-                    color: copyGold,
-                    fontSize: 27,
-                    height: 1.08,
-                    fontWeight: FontWeight.w900,
+                  Text(
+                    goldTitle,
+                    style: TextStyle(
+                      color: palette.goldText,
+                      fontSize: 27,
+                      height: 1.08,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: const TextStyle(color: copyMuted, fontSize: 14),
-            ),
-          ],
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                subtitle,
+                style: TextStyle(color: palette.secondaryText, fontSize: 14),
+              ),
+            ],
+          ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 class CopySectionHeading extends StatelessWidget {
@@ -241,34 +243,41 @@ class CopySectionHeading extends StatelessWidget {
   final VoidCallback? onAction;
 
   @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 3),
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
-                subtitle!,
-                style: const TextStyle(color: copyMuted, fontSize: 12),
+                title,
+                style: TextStyle(
+                  color: palette.primaryText,
+                  fontSize: 21,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 3),
+                Text(
+                  subtitle!,
+                  style: TextStyle(color: palette.secondaryText, fontSize: 12),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
-      ),
-      if (action != null)
-        TextButton(
-          onPressed: onAction,
-          child: Text(action!, style: const TextStyle(color: copyGold)),
-        ),
-    ],
-  );
+        if (action != null)
+          TextButton(
+            onPressed: onAction,
+            child: Text(action!, style: TextStyle(color: palette.goldText)),
+          ),
+      ],
+    );
+  }
 }
 
 class CopyIconBadge extends StatelessWidget {
@@ -284,20 +293,24 @@ class CopyIconBadge extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: .10),
-      borderRadius: BorderRadius.circular(size * .32),
-      border: Border.all(color: color.withValues(alpha: .65)),
-      boxShadow: [
-        BoxShadow(color: color.withValues(alpha: .12), blurRadius: 14),
-      ],
-    ),
-    child: Icon(icon, color: color, size: size * .52),
-  );
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final resolved = color == copyGold ? palette.gold : color;
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: resolved.withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(size * .32),
+        border: Border.all(color: resolved.withValues(alpha: .65)),
+        boxShadow: [
+          BoxShadow(color: resolved.withValues(alpha: .12), blurRadius: 14),
+        ],
+      ),
+      child: Icon(icon, color: resolved, size: size * .52),
+    );
+  }
 }
 
 class CopyStatusPill extends StatelessWidget {
@@ -478,10 +491,8 @@ class CopyPrimaryButton extends StatelessWidget {
     height: 52,
     child: DecoratedBox(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFDE67), Color(0xFFFFB913)],
-        ),
-        borderRadius: BorderRadius.circular(15),
+        gradient: TradeXGradients.primaryGold,
+        borderRadius: TradeXRadii.control,
       ),
       child: FilledButton.icon(
         onPressed: busy ? null : onPressed,
@@ -524,32 +535,39 @@ class CopyEmptyState extends StatelessWidget {
   final VoidCallback? onAction;
 
   @override
-  Widget build(BuildContext context) => CopySectionCard(
-    child: Column(
-      children: [
-        CopyIconBadge(icon: icon, size: 52),
-        const SizedBox(height: 12),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          message,
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: copyMuted, height: 1.4),
-        ),
-        if (action != null) ...[
-          const SizedBox(height: 14),
-          OutlinedButton(
-            onPressed: onAction,
-            child: Text(action!, style: const TextStyle(color: copyGold)),
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return CopySectionCard(
+      child: Column(
+        children: [
+          CopyIconBadge(icon: icon, size: 52),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: palette.primaryText,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
           ),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: palette.secondaryText, height: 1.4),
+          ),
+          if (action != null) ...[
+            const SizedBox(height: 14),
+            OutlinedButton(
+              onPressed: onAction,
+              child: Text(action!, style: TextStyle(color: palette.goldText)),
+            ),
+          ],
         ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class CopyLoadingState extends StatelessWidget {
