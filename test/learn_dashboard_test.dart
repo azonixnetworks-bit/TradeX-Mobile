@@ -407,11 +407,9 @@ void main() {
 
     await tester.pumpWidget(_subject(api));
     await tester.pumpAndSettle();
-    final continueButton = find.byKey(
-      const ValueKey('continue-learning-button'),
-    );
-    await tester.ensureVisible(continueButton);
-    await tester.tap(continueButton);
+    final continueCard = find.byKey(const ValueKey('continue-learning-card'));
+    await tester.ensureVisible(continueCard);
+    await tester.tap(continueCard);
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
 

@@ -270,6 +270,7 @@ class ContinueLearningCard extends StatelessWidget {
       key: const ValueKey('continue-learning-card'),
       accent: learnGold,
       padding: const EdgeInsets.all(12),
+      onTap: loading ? null : onContinue,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final horizontal = constraints.maxWidth >= 610;
