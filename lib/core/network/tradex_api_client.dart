@@ -269,12 +269,11 @@ class TradeXApiClient implements ApiGateway {
   }
 
   Future<bool> activityTrackingAvailable() async {
-    final response = await _activityRequest(
-      'GET',
-      '/api/v1/activity/config',
-    );
+    final response = await _activityRequest('GET', '/api/v1/activity/config');
     final data = response['data'];
-    return data is Map && data['enabled'] == true && data['policy_version'] == 1;
+    return data is Map &&
+        data['enabled'] == true &&
+        data['policy_version'] == 1;
   }
 
   Future<void> sendActivityEvents(
@@ -342,7 +341,7 @@ class TradeXApiClient implements ApiGateway {
       }
       try {
         return await _dio.post<dynamic>(
-          path,
+          TradeXApiConfig.resolveRequestUrl(path),
           data: data,
           options: Options(
             headers: <String, String>{
@@ -425,8 +424,12 @@ class TradeXApiClient implements ApiGateway {
     if (pins.isNotEmpty) {
       client.httpClientAdapter = IOHttpClientAdapter(
         validateCertificate: (certificate, certificateHost, _) {
-          if (certificate == null || certificateHost != host) return false;
-          return pins.contains(sha256.convert(certificate.der).toString());
+          if (certificate == null ||
+              !TradeXApiConfig.productionApiHosts.contains(certificateHost)) {
+            return false;
+          }
+          final hostPins = TradeXApiConfig.certificatePinsFor(certificateHost);
+          return hostPins.contains(sha256.convert(certificate.der).toString());
         },
       );
     }
@@ -549,7 +552,7 @@ class TradeXApiClient implements ApiGateway {
   }) async {
     try {
       return await _dio.request<dynamic>(
-        path,
+        TradeXApiConfig.resolveRequestUrl(path),
         data: body,
         options: Options(
           method: method,

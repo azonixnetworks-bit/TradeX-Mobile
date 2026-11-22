@@ -1,7 +1,7 @@
 # Trade X Mobile
 
-The mobile client uses `https://cloudvideo.online` as its default API base URL.
-Registration requests are sent to `https://cloudvideo.online/api/v1/...`.
+The mobile client uses `https://api.tradex.lk` as its default API base URL.
+Registration requests are sent to `https://api.tradex.lk/api/v1/...`.
 
 ## Run the app
 
