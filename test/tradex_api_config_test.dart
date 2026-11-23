@@ -53,6 +53,10 @@ void main() {
       TradeXApiConfig.resolveRequestUrl('/api/v1/screener/markets'),
       'https://screener.tradex.lk/api/v1/screener/markets',
     );
+    expect(
+      TradeXApiConfig.resolveRequestUrl('/api/v1/investments'),
+      'https://investments.tradex.lk/api/v1/investments',
+    );
   });
 
   test('core API paths remain on the configured base URL', () {

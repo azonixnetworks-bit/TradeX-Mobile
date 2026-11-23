@@ -8,6 +8,7 @@ abstract final class TradeXApiConfig {
     '/api/v1/support': 'support.tradex.lk',
     '/api/v1/copy-trade': 'copytrade.tradex.lk',
     '/api/v1/screener': 'screener.tradex.lk',
+    '/api/v1/investments': 'investments.tradex.lk',
   };
 
   static const Set<String> productionApiHosts = {
@@ -18,6 +19,7 @@ abstract final class TradeXApiConfig {
     'support.tradex.lk',
     'copytrade.tradex.lk',
     'screener.tradex.lk',
+    'investments.tradex.lk',
   };
 
   static const String _configuredBaseUrl = String.fromEnvironment(
