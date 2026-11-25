@@ -4,6 +4,10 @@ import '../../../core/theme/tradex_icons.dart';
 
 enum FeatureKind { collection, detail, action, local }
 
+// Temporary release gate. Keep the investment module source intact so it can
+// be enabled in a future build without rebuilding the feature from scratch.
+const investmentsEnabled = false;
+
 @immutable
 class FeatureSpec {
   const FeatureSpec({
@@ -26,14 +30,15 @@ class FeatureSpec {
 }
 
 const tradeXFeatureSpecs = <FeatureSpec>[
-  FeatureSpec(
-    id: 'investments',
-    group: 'Investments',
-    title: 'Investments',
-    subtitle: 'Read-only portfolio, records, performance and agreements',
-    icon: Icons.diamond_outlined,
-    kind: FeatureKind.local,
-  ),
+  if (investmentsEnabled)
+    FeatureSpec(
+      id: 'investments',
+      group: 'Investments',
+      title: 'Investments',
+      subtitle: 'Read-only portfolio, records, performance and agreements',
+      icon: Icons.diamond_outlined,
+      kind: FeatureKind.local,
+    ),
   FeatureSpec(
     id: 'economic-news',
     group: 'Home & Market',

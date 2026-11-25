@@ -10,12 +10,13 @@ class _TradeHubTab extends StatelessWidget {
       'Track plans, trades and performance',
       Icons.menu_book_rounded,
     ),
-    _TradeHubItem(
-      'investments',
-      'Investments',
-      'View portfolio and investment records',
-      Icons.diamond_outlined,
-    ),
+    if (investmentsEnabled)
+      _TradeHubItem(
+        'investments',
+        'Investments',
+        'View portfolio and investment records',
+        Icons.diamond_outlined,
+      ),
     _TradeHubItem(
       'funded-advisor',
       'Funded Account Adviser',
